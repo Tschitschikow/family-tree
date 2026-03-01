@@ -10,16 +10,19 @@
             font-family: Georgia, serif;
             background: #fdf8f0;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         header {
             background: #5a3e2b;
             color: white;
-            padding: 1em 2em;
+            padding: 0.8em 2em;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
-        header h1 { font-size: 1.3em; }
+        header h1 { font-size: 1.2em; }
         #logout-btn {
             background: rgba(255,255,255,0.2);
             border: 1px solid rgba(255,255,255,0.4);
@@ -30,43 +33,155 @@
             font-family: Georgia, serif;
         }
         #logout-btn:hover { background: rgba(255,255,255,0.3); }
-        main {
-            padding: 2em;
-            text-align: center;
+
+        /* Toolbar */
+        #toolbar {
+            background: #f0e8dc;
+            border-bottom: 1px solid #ddd;
+            padding: 0.6em 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            flex-wrap: wrap;
+            flex-shrink: 0;
         }
-        #user-info { color: #888; margin-bottom: 1em; font-size: 0.9em; }
-        #status    { color: #5a3e2b; font-size: 1.1em; }
+        #toolbar label { font-size: 0.9em; color: #5a3e2b; }
+        #filter-name {
+            padding: 0.4em 0.8em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: Georgia, serif;
+            width: 200px;
+        }
+        #layout-select {
+            padding: 0.4em 0.8em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: Georgia, serif;
+        }
+        .tool-btn {
+            padding: 0.4em 0.9em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: Georgia, serif;
+        }
+        .tool-btn:hover { background: #7a5e4b; }
+        #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
+
+        /* Graph-Container */
+        #cy {
+            flex: 1;
+            width: 100%;
+            min-height: 500px;
+        }
+
+        /* Info-Panel */
+        #info-panel {
+            display: none;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 1.2em;
+            z-index: 1000;
+            font-size: 0.9em;
+        }
+        #info-panel h2 {
+            font-size: 1.1em;
+            color: #3a2a1a;
+            margin-bottom: 0.8em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5em;
+        }
+        #info-panel .field { margin-bottom: 0.4em; color: #555; }
+        #info-panel .field span { color: #222; font-weight: bold; }
+        #info-close {
+            position: absolute;
+            top: 0.6em;
+            right: 0.8em;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #aaa;
+            background: none;
+            border: none;
+        }
+        #info-close:hover { color: #333; }
+
+        #status-bar {
+            text-align: center;
+            padding: 2em;
+            color: #5a3e2b;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 <body>
+
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
     <button id="logout-btn">Ausloggen</button>
 </header>
-<main>
-    <p id="user-info"></p>
-    <p id="status">Lade Daten...</p>
-</main>
+
+<div id="toolbar">
+    <label>🔍 Filter:</label>
+    <input type="text" id="filter-name" placeholder="Familienname..." />
+    <label>Layout:</label>
+    <select id="layout-select">
+        <option value="breadthfirst">Hierarchisch</option>
+        <option value="cose">Organisch</option>
+        <option value="circle">Kreis</option>
+        <option value="grid">Raster</option>
+    </select>
+    <button class="tool-btn" id="apply-layout">Neu anordnen</button>
+    <button class="tool-btn" id="reset-filter">Alle zeigen</button>
+    <span id="person-count"></span>
+</div>
+
+<div id="status-bar">Lade Stammbaum...</div>
+<div id="cy"></div>
+
+<!-- Info-Panel -->
+<div id="info-panel">
+    <button id="info-close">✕</button>
+    <h2 id="info-name"></h2>
+    <div class="field">Geschlecht: <span id="info-sex"></span></div>
+    <div class="field">Geboren: <span id="info-birth"></span></div>
+    <div class="field">Gestorben: <span id="info-death"></span></div>
+    <div class="field">Geburtsort: <span id="info-birthplace"></span></div>
+    <div class="field">Beruf: <span id="info-profession"></span></div>
+    <div class="field">Mädchenname: <span id="info-maiden"></span></div>
+</div>
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <script>
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let cy = null;
+    let allPersons = [];
+    let allRelationships = [];
 
-    // Zugangsschutz: nicht eingeloggt → zurück zum Login
+    // Zugangsschutz
     client.auth.getSession().then(function(result) {
         if (!result.data.session) {
             window.location.href = 'login.html';
         } else {
-            document.getElementById('user-info').textContent =
-                'Eingeloggt als: ' + result.data.session.user.email;
             loadData();
         }
     });
 
-    // Logout-Button
+    // Logout
     document.getElementById('logout-btn').addEventListener('click', function() {
         client.auth.signOut().then(function() {
             window.location.href = 'login.html';
@@ -75,16 +190,221 @@ window.addEventListener('load', function() {
 
     // Daten laden
     function loadData() {
-        client.from('persons').select('*').then(function(result) {
-            if (result.error) {
-                document.getElementById('status').textContent =
-                    'Fehler beim Laden: ' + result.error.message;
-            } else {
-                document.getElementById('status').textContent =
-                    '✓ ' + result.data.length + ' Personen geladen – Stammbaum folgt in Phase 4!';
+        Promise.all([
+            client.from('persons').select('*'),
+            client.from('relationships').select('*')
+        ]).then(function(results) {
+            var personsResult = results[0];
+            var relsResult    = results[1];
+
+            if (personsResult.error || relsResult.error) {
+                document.getElementById('status-bar').textContent =
+                    'Fehler beim Laden der Daten.';
+                return;
             }
+
+            allPersons       = personsResult.data;
+            allRelationships = relsResult.data;
+
+            document.getElementById('status-bar').style.display = 'none';
+            document.getElementById('cy').style.display = 'block';
+
+            buildGraph(allPersons, allRelationships);
         });
     }
+
+    // Graph aufbauen
+    function buildGraph(persons, relationships) {
+        var elements = [];
+
+        // Knoten (Personen)
+        persons.forEach(function(p) {
+            elements.push({
+                group: 'nodes',
+                data: {
+                    id: p.id,
+                    label: p.display_name,
+                    sex: p.sex,
+                    birth_date:  p.birth_date  || '',
+                    death_date:  p.death_date  || '',
+                    birth_place: p.birth_place || '',
+                    profession:  p.profession  || '',
+                    maiden_name: p.maiden_name || '',
+                }
+            });
+        });
+
+        // Kanten (Beziehungen) – nur hasMother und hasFather für Baumstruktur
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+        relationships.forEach(function(r) {
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                if (personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
+                    elements.push({
+                        group: 'edges',
+                        data: {
+                            id: r.id,
+                            source: r.related_person_id,
+                            target: r.person_id,
+                            type: r.relationship_type
+                        }
+                    });
+                }
+            }
+        });
+
+        // Cytoscape initialisieren
+        cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: elements,
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(label)',
+                        'font-size': '9px',
+                        'font-family': 'Georgia, serif',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '80px',
+                        'width': '85px',
+                        'height': '30px',
+                        'shape': 'roundrectangle',
+                        'background-color': '#a0c4e8',
+                        'border-width': '1px',
+                        'border-color': '#5a8ab0',
+                        'color': '#1a1a2e',
+                    }
+                },
+                {
+                    selector: 'node[sex = "f"]',
+                    style: {
+                        'background-color': '#f4a7b9',
+                        'border-color': '#c0607a',
+                    }
+                },
+                {
+                    selector: 'node[sex = "m"]',
+                    style: {
+                        'background-color': '#a0c4e8',
+                        'border-color': '#5a8ab0',
+                    }
+                },
+                {
+                    selector: 'node:selected',
+                    style: {
+                        'border-width': '3px',
+                        'border-color': '#5a3e2b',
+                        'background-color': '#f5d08a',
+                    }
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 1.5,
+                        'line-color': '#aaa',
+                        'target-arrow-color': '#aaa',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                    }
+                },
+                {
+                    selector: 'edge[type = "hasMother"]',
+                    style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a' }
+                },
+                {
+                    selector: 'edge[type = "hasFather"]',
+                    style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0' }
+                },
+                {
+                    selector: '.faded',
+                    style: { 'opacity': 0.15 }
+                }
+            ],
+            layout: {
+                name: 'breadthfirst',
+                directed: true,
+                padding: 20,
+                spacingFactor: 1.2,
+            }
+        });
+
+        updateCount(persons.length);
+
+        // Klick auf Person → Info-Panel
+        cy.on('tap', 'node', function(e) {
+            var d = e.target.data();
+            document.getElementById('info-name').textContent      = d.label;
+            document.getElementById('info-sex').textContent       = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
+            document.getElementById('info-birth').textContent     = formatDate(d.birth_date)  || '–';
+            document.getElementById('info-death').textContent     = formatDate(d.death_date)  || '–';
+            document.getElementById('info-birthplace').textContent= d.birth_place  || '–';
+            document.getElementById('info-profession').textContent = d.profession  || '–';
+            document.getElementById('info-maiden').textContent    = d.maiden_name  || '–';
+            document.getElementById('info-panel').style.display   = 'block';
+        });
+
+        // Klick auf Hintergrund → Panel schließen
+        cy.on('tap', function(e) {
+            if (e.target === cy) {
+                document.getElementById('info-panel').style.display = 'none';
+            }
+        });
+
+        // Info-Panel schließen
+        document.getElementById('info-close').addEventListener('click', function() {
+            document.getElementById('info-panel').style.display = 'none';
+        });
+    }
+
+    // Datum formatieren: 1843-01-23 → 23.01.1843
+    function formatDate(d) {
+        if (!d) return '';
+        var parts = d.split('T')[0].split('-');
+        if (parts.length === 3) {
+            return parts[2] + '.' + parts[1] + '.' + parts[0];
+        }
+        return d;
+    }
+
+    // Personenzahl anzeigen
+    function updateCount(n) {
+        document.getElementById('person-count').textContent = n + ' Personen';
+    }
+
+    // Filter nach Familienname
+    document.getElementById('filter-name').addEventListener('input', function() {
+        var query = this.value.trim().toLowerCase();
+        if (!query) {
+            buildGraph(allPersons, allRelationships);
+            return;
+        }
+        var filtered = allPersons.filter(function(p) {
+            return p.family_name.toLowerCase().includes(query) ||
+                   p.display_name.toLowerCase().includes(query);
+        });
+        buildGraph(filtered, allRelationships);
+    });
+
+    // Filter zurücksetzen
+    document.getElementById('reset-filter').addEventListener('click', function() {
+        document.getElementById('filter-name').value = '';
+        buildGraph(allPersons, allRelationships);
+    });
+
+    // Layout wechseln
+    document.getElementById('apply-layout').addEventListener('click', function() {
+        if (!cy) return;
+        var layoutName = document.getElementById('layout-select').value;
+        cy.layout({
+            name: layoutName,
+            directed: true,
+            padding: 20,
+            spacingFactor: 1.2,
+            animate: true,
+            animationDuration: 600,
+        }).run();
+    });
 
 });
 </script>
