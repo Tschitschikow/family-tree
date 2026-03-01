@@ -69,18 +69,22 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    document.getElementById('login-btn').addEventListener('click', login);
+window.addEventListener('load', function() {
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Schon eingeloggt? Direkt weiterleiten
-    supabase.auth.getSession().then(({ data }) => {
-        if (data.session) window.location.href = 'stammbaum.html';
+    client.auth.getSession().then(function(result) {
+        if (result.data.session) {
+            window.location.href = 'stammbaum.html';
+        }
     });
 
-    async function login() {
-        const email    = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const msg      = document.getElementById('message');
+    // Login-Button
+    document.getElementById('login-btn').addEventListener('click', function() {
+        var email    = document.getElementById('email').value.trim();
+        var password = document.getElementById('password').value;
+        var msg      = document.getElementById('message');
 
         if (!email || !password) {
             msg.className = 'error';
@@ -91,22 +95,29 @@
         msg.className = '';
         msg.textContent = 'Einen Moment...';
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-        if (error) {
-            msg.className = 'error';
-            msg.textContent = 'Login fehlgeschlagen. E-Mail oder Passwort falsch.';
-        } else {
-            msg.className = 'success';
-            msg.textContent = 'Erfolgreich! Weiterleitung...';
-            setTimeout(() => window.location.href = 'stammbaum.html', 800);
-        }
-    }
+        client.auth.signInWithPassword({ email: email, password: password })
+            .then(function(result) {
+                if (result.error) {
+                    msg.className = 'error';
+                    msg.textContent = 'Login fehlgeschlagen. E-Mail oder Passwort falsch.';
+                } else {
+                    msg.className = 'success';
+                    msg.textContent = 'Erfolgreich! Weiterleitung...';
+                    setTimeout(function() {
+                        window.location.href = 'stammbaum.html';
+                    }, 800);
+                }
+            });
+    });
 
     // Enter-Taste
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Enter') login();
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('login-btn').click();
+        }
     });
+
+});
 </script>
 </body>
 </html>
