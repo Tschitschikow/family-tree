@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login – Bahrs Familienstammbaum</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #fdf8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 2.5em;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+            text-align: center;
+        }
+        h1 { font-size: 1.6em; color: #3a2a1a; margin-bottom: 0.3em; }
+        p  { color: #888; margin-bottom: 1.5em; font-size: 0.95em; }
+        input {
+            width: 100%;
+            padding: 0.75em 1em;
+            margin-bottom: 1em;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            font-family: Georgia, serif;
+        }
+        input:focus { outline: none; border-color: #5a3e2b; }
+        button {
+            width: 100%;
+            padding: 0.75em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        button:hover { background: #7a5e4b; }
+        #message {
+            margin-top: 1em;
+            font-size: 0.9em;
+            min-height: 1.5em;
+        }
+        .error   { color: #c0392b; }
+        .success { color: #27ae60; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>🌳 Familienstammbaum</h1>
+    <p>Bitte melde dich an um fortzufahren.</p>
+    <input type="email"    id="email"    placeholder="E-Mail-Adresse" />
+    <input type="password" id="password" placeholder="Passwort" />
+    <button onclick="login()">Einloggen</button>
+    <div id="message"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Schon eingeloggt? Direkt weiterleiten
+    supabase.auth.getSession().then(({ data }) => {
+        if (data.session) window.location.href = 'stammbaum.html';
+    });
+
+    async function login() {
+        const email    = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const msg      = document.getElementById('message');
+
+        if (!email || !password) {
+            msg.className = 'error';
+            msg.textContent = 'Bitte E-Mail und Passwort eingeben.';
+            return;
+        }
+
+        msg.className = '';
+        msg.textContent = 'Einen Moment...';
+
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (error) {
+            msg.className = 'error';
+            msg.textContent = 'Login fehlgeschlagen. E-Mail oder Passwort falsch.';
+        } else {
+            msg.className = 'success';
+            msg.textContent = 'Erfolgreich! Weiterleitung...';
+            setTimeout(() => window.location.href = 'stammbaum.html', 800);
+        }
+    }
+
+    // Enter-Taste
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter') login();
+    });
+</script>
+</body>
+</html>
