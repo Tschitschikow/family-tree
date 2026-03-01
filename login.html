@@ -62,7 +62,7 @@
     <p>Bitte melde dich an um fortzufahren.</p>
     <input type="email"    id="email"    placeholder="E-Mail-Adresse" />
     <input type="password" id="password" placeholder="Passwort" />
-    <button onclick="login()">Einloggen</button>
+    <button id="login-btn">Einloggen</button>
     <div id="message"></div>
 </div>
 
@@ -70,6 +70,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    document.getElementById('login-btn').addEventListener('click', login);
 
     // Schon eingeloggt? Direkt weiterleiten
     supabase.auth.getSession().then(({ data }) => {
