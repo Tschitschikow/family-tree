@@ -41,7 +41,7 @@
 <body>
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
-    <button id="logout-btn" onclick="logout()">Ausloggen</button>
+    <button id="logout-btn">Ausloggen</button>
 </header>
 <main>
     <p id="user-info"></p>
@@ -51,37 +51,42 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.addEventListener('load', function() {
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Zugangsschutz: nicht eingeloggt → zurück zum Login
-    supabase.auth.getSession().then(({ data }) => {
-        if (!data.session) {
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) {
             window.location.href = 'login.html';
         } else {
             document.getElementById('user-info').textContent =
-                'Eingeloggt als: ' + data.session.user.email;
+                'Eingeloggt als: ' + result.data.session.user.email;
             loadData();
         }
     });
 
-    async function loadData() {
-        const { data: persons, error } = await supabase
-            .from('persons')
-            .select('*');
+    // Logout-Button
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        client.auth.signOut().then(function() {
+            window.location.href = 'login.html';
+        });
+    });
 
-        if (error) {
-            document.getElementById('status').textContent =
-                'Fehler beim Laden: ' + error.message;
-        } else {
-            document.getElementById('status').textContent =
-                `✓ ${persons.length} Personen geladen – Stammbaum folgt in Phase 4!`;
-        }
+    // Daten laden
+    function loadData() {
+        client.from('persons').select('*').then(function(result) {
+            if (result.error) {
+                document.getElementById('status').textContent =
+                    'Fehler beim Laden: ' + result.error.message;
+            } else {
+                document.getElementById('status').textContent =
+                    '✓ ' + result.data.length + ' Personen geladen – Stammbaum folgt in Phase 4!';
+            }
+        });
     }
 
-    async function logout() {
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-    }
+});
 </script>
 </body>
 </html>
