@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stammbaum – Bahrs Familie</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #fdf8f0;
+            min-height: 100vh;
+        }
+        header {
+            background: #5a3e2b;
+            color: white;
+            padding: 1em 2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 1.3em; }
+        #logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.4em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        #logout-btn:hover { background: rgba(255,255,255,0.3); }
+        main {
+            padding: 2em;
+            text-align: center;
+        }
+        #user-info { color: #888; margin-bottom: 1em; font-size: 0.9em; }
+        #status    { color: #5a3e2b; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>🌳 Bahrs Familienstammbaum</h1>
+    <button id="logout-btn" onclick="logout()">Ausloggen</button>
+</header>
+<main>
+    <p id="user-info"></p>
+    <p id="status">Lade Daten...</p>
+</main>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Zugangsschutz: nicht eingeloggt → zurück zum Login
+    supabase.auth.getSession().then(({ data }) => {
+        if (!data.session) {
+            window.location.href = 'login.html';
+        } else {
+            document.getElementById('user-info').textContent =
+                'Eingeloggt als: ' + data.session.user.email;
+            loadData();
+        }
+    });
+
+    async function loadData() {
+        const { data: persons, error } = await supabase
+            .from('persons')
+            .select('*');
+
+        if (error) {
+            document.getElementById('status').textContent =
+                'Fehler beim Laden: ' + error.message;
+        } else {
+            document.getElementById('status').textContent =
+                `✓ ${persons.length} Personen geladen – Stammbaum folgt in Phase 4!`;
+        }
+    }
+
+    async function logout() {
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+    }
+</script>
+</body>
+</html>
