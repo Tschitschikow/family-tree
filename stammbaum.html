@@ -236,15 +236,31 @@ window.addEventListener('load', function() {
 
         // Kanten (Beziehungen) – nur hasMother und hasFather für Baumstruktur
         var personIds = new Set(persons.map(function(p) { return p.id; }));
+        // Kanten (Beziehungen) – Eltern + Ehepartner
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
         relationships.forEach(function(r) {
-            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-                if (personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
+            if (personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
+
+                if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
                     elements.push({
                         group: 'edges',
                         data: {
                             id: r.id,
                             source: r.related_person_id,
                             target: r.person_id,
+                            type: r.relationship_type
+                        }
+                    });
+                }
+
+                // Ehe: nur hasWife eintragen (hasHusband ist die Gegenseite – verhindert Doppellinien)
+                if (r.relationship_type === 'hasWife') {
+                    elements.push({
+                        group: 'edges',
+                        data: {
+                            id: r.id,
+                            source: r.person_id,
+                            target: r.related_person_id,
                             type: r.relationship_type
                         }
                     });
@@ -315,6 +331,16 @@ window.addEventListener('load', function() {
                 {
                     selector: 'edge[type = "hasFather"]',
                     style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0' }
+                },
+                {
+                    selector: 'edge[type = "hasWife"]',
+                    style: {
+                        'line-color': '#8B4513',
+                        'target-arrow-color': '#8B4513',
+                        'target-arrow-shape': 'none',
+                        'line-style': 'dashed',
+                        'width': 2,
+                    }
                 },
                 {
                     selector: '.faded',
