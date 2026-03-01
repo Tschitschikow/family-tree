@@ -5,34 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bahrs Familienstammbaum</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: Georgia, serif;
-            max-width: 600px;
-            margin: 80px auto;
-            text-align: center;
             background: #fdf8f0;
-            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        h1 { font-size: 2.2em; margin-bottom: 0.2em; }
-        p  { color: #666; font-size: 1.1em; }
-        .login-btn {
+        .hero {
+            text-align: center;
+            padding: 2em;
+        }
+        h1 { font-size: 2.5em; color: #3a2a1a; margin-bottom: 0.3em; }
+        p  { color: #888; font-size: 1.1em; margin-bottom: 2em; }
+        a.btn {
             display: inline-block;
-            margin-top: 2em;
-            padding: 0.8em 2em;
+            padding: 0.8em 2.5em;
             background: #5a3e2b;
             color: white;
-            border-radius: 6px;
+            border-radius: 7px;
             text-decoration: none;
             font-size: 1.1em;
         }
-        .login-btn:hover { background: #7a5e4b; }
+        a.btn:hover { background: #7a5e4b; }
     </style>
 </head>
 <body>
+<div class="hero">
     <h1>🌳 Bahrs Familienstammbaum</h1>
-    <p>Ein privates Projekt zur Dokumentation unserer Familiengeschichte.</p>
-    <p>Für Familienmitglieder: Bitte einloggen.</p>
-    <a class="login-btn" href="#">Einloggen</a>
+    <p>Ein privates Projekt zur Dokumentation unserer Familiengeschichte.<br>
+       Für Familienmitglieder: Bitte einloggen.</p>
+    <a class="btn" href="login.html">Einloggen</a>
+</div>
 </body>
 </html>
-```
