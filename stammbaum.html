@@ -218,7 +218,32 @@ window.addEventListener('load', function() {
         var elements = [];
 
         // Knoten (Personen)
+        // Geburtsjahreszahlen für Radiusberechnung sammeln
+        var birthYears = persons
+            .map(function(p) {
+                return p.birth_date ? parseInt(p.birth_date.substring(0, 4)) : null;
+            })
+            .filter(function(y) { return y !== null; });
+
+        var minYear = Math.min.apply(null, birthYears);  // älteste Person
+        var maxYear = Math.max.apply(null, birthYears);  // jüngste Person
+        var avgYear = Math.round(
+            birthYears.reduce(function(a, b) { return a + b; }, 0) / birthYears.length
+        );
+
+        var minRadius = 20;   // kleinster Kreis (jüngste Person)
+        var maxRadius = 55;   // größter Kreis (älteste Person)
+
+        function calcRadius(birth_date) {
+            var year = birth_date ? parseInt(birth_date.substring(0, 4)) : avgYear;
+            // Ältere Person = kleineres Jahr = größerer Radius
+            var ratio = (maxYear - year) / (maxYear - minYear);
+            return Math.round(minRadius + ratio * (maxRadius - minRadius));
+        }
+
+        // Knoten (Personen)
         persons.forEach(function(p) {
+            var radius = calcRadius(p.birth_date);
             elements.push({
                 group: 'nodes',
                 data: {
@@ -230,6 +255,7 @@ window.addEventListener('load', function() {
                     birth_place: p.birth_place || '',
                     profession:  p.profession  || '',
                     maiden_name: p.maiden_name || '',
+                    radius: radius,
                 }
             });
         });
@@ -283,9 +309,9 @@ window.addEventListener('load', function() {
                         'text-halign': 'center',
                         'text-wrap': 'wrap',
                         'text-max-width': '80px',
-                        'width': '85px',
-                        'height': '30px',
-                        'shape': 'roundrectangle',
+                        'width':  'data(radius)',
+                        'height': 'data(radius)',
+                        'shape': 'ellipse',
                         'background-color': '#a0c4e8',
                         'border-width': '1px',
                         'border-color': '#5a8ab0',
