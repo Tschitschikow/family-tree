@@ -232,7 +232,7 @@ window.addEventListener('load', function() {
         );
 
         var minRadius = 20;   // kleinster Kreis (jüngste Person)
-        var maxRadius = 220;   // größter Kreis (älteste Person)
+        var maxRadius = 100;   // größter Kreis (älteste Person)
 
         function calcRadius(birth_date) {
             var year = birth_date ? parseInt(birth_date.substring(0, 4)) : avgYear;
