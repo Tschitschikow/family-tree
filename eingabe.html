@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eintrag – Bahrs Familienstammbaum</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #fdf8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #5a3e2b;
+            color: white;
+            padding: 0.8em 2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 { font-size: 1.2em; }
+        header nav a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            margin-left: 1.5em;
+            font-size: 0.95em;
+        }
+        header nav a:hover { color: white; }
+        #logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.4em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        main {
+            max-width: 700px;
+            margin: 2em auto;
+            padding: 0 1em;
+            width: 100%;
+        }
+        h2 {
+            color: #5a3e2b;
+            font-size: 1.3em;
+            margin-bottom: 1em;
+            padding-bottom: 0.4em;
+            border-bottom: 2px solid #e0d0c0;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.8em;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 2em;
+        }
+        .field {
+            margin-bottom: 1em;
+        }
+        label {
+            display: block;
+            font-size: 0.85em;
+            color: #5a3e2b;
+            margin-bottom: 0.3em;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.6em 0.8em;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95em;
+            font-family: Georgia, serif;
+            background: #fafafa;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #5a3e2b;
+            background: white;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1em;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 0.8em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            margin-top: 0.5em;
+        }
+        .submit-btn:hover { background: #7a5e4b; }
+        .message {
+            margin-top: 1em;
+            padding: 0.8em;
+            border-radius: 5px;
+            font-size: 0.9em;
+            display: none;
+        }
+        .message.success {
+            background: #eafaf1;
+            color: #1e8449;
+            border: 1px solid #a9dfbf;
+            display: block;
+        }
+        .message.error {
+            background: #fdedec;
+            color: #c0392b;
+            border: 1px solid #f1948a;
+            display: block;
+        }
+        .hint {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 0.2em;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌳 Bahrs Familienstammbaum</h1>
+    <nav>
+        <a href="stammbaum.html">← Zum Stammbaum</a>
+    </nav>
+    <button id="logout-btn">Ausloggen</button>
+</header>
+
+<main>
+
+    <!-- Neue Person -->
+    <div class="card">
+        <h2>👤 Neue Person eintragen</h2>
+
+        <div class="row">
+            <div class="field">
+                <label>Familienname *</label>
+                <input type="text" id="p-family" placeholder="z.B. BAHRS" />
+            </div>
+            <div class="field">
+                <label>Vorname *</label>
+                <input type="text" id="p-given" placeholder="z.B. Johann" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label>Geschlecht *</label>
+                <select id="p-sex">
+                    <option value="">– bitte wählen –</option>
+                    <option value="m">männlich</option>
+                    <option value="f">weiblich</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Mädchenname</label>
+                <input type="text" id="p-maiden" placeholder="nur bei verheirateten Frauen" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label>Geburtsdatum</label>
+                <input type="date" id="p-birth" />
+                <div class="hint">Format: TT.MM.JJJJ – leer lassen wenn unbekannt</div>
+            </div>
+            <div class="field">
+                <label>Sterbedatum</label>
+                <input type="date" id="p-death" />
+                <div class="hint">Leer lassen wenn unbekannt oder noch lebend</div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="field">
+                <label>Geburtsort</label>
+                <input type="text" id="p-birthplace" placeholder="z.B. Lütjenburg" />
+            </div>
+            <div class="field">
+                <label>Sterbeort</label>
+                <input type="text" id="p-deathplace" placeholder="z.B. Hamburg" />
+            </div>
+        </div>
+
+        <div class="field">
+            <label>Beruf</label>
+            <input type="text" id="p-profession" placeholder="z.B. Holländer, Bauer" />
+        </div>
+
+        <button class="submit-btn" id="btn-person">Person eintragen (zur Freigabe)</button>
+        <div class="message" id="msg-person"></div>
+    </div>
+
+    <!-- Neue Beziehung -->
+    <div class="card">
+        <h2>🔗 Neue Beziehung eintragen</h2>
+
+        <div class="field">
+            <label>Person *</label>
+            <select id="r-person"></select>
+        </div>
+
+        <div class="field">
+            <label>Beziehungstyp *</label>
+            <select id="r-type">
+                <option value="">– bitte wählen –</option>
+                <option value="hasMother">hat Mutter (hasMother)</option>
+                <option value="hasFather">hat Vater (hasFather)</option>
+                <option value="hasWife">hat Ehefrau (hasWife)</option>
+                <option value="hasHusband">hat Ehemann (hasHusband)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label>Verbunden mit *</label>
+            <select id="r-related"></select>
+        </div>
+
+        <button class="submit-btn" id="btn-rel">Beziehung eintragen (zur Freigabe)</button>
+        <div class="message" id="msg-rel"></div>
+    </div>
+
+</main>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.addEventListener('load', function() {
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let currentUser = null;
+    let allPersons  = [];
+
+    // Zugangsschutz
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) {
+            window.location.href = 'login.html';
+        } else {
+            currentUser = result.data.session.user;
+            loadPersons();
+        }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        client.auth.signOut().then(function() {
+            window.location.href = 'login.html';
+        });
+    });
+
+    // Alle Personen für Dropdowns laden
+    function loadPersons() {
+        client.from('persons')
+            .select('id, display_name, family_name, given_name')
+            .eq('status', 'approved')
+            .order('family_name')
+            .then(function(result) {
+                if (result.error) return;
+                allPersons = result.data;
+                fillDropdowns();
+            });
+    }
+
+    function fillDropdowns() {
+        var selects = ['r-person', 'r-related'];
+        selects.forEach(function(sid) {
+            var sel = document.getElementById(sid);
+            sel.innerHTML = '<option value="">– Person wählen –</option>';
+            allPersons.forEach(function(p) {
+                var opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.display_name + ' (' + p.id + ')';
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    // Person eintragen
+    document.getElementById('btn-person').addEventListener('click', function() {
+        var familyName = document.getElementById('p-family').value.trim().toUpperCase();
+        var givenName  = document.getElementById('p-given').value.trim();
+        var sex        = document.getElementById('p-sex').value;
+        var msg        = document.getElementById('msg-person');
+
+        if (!familyName || !givenName || !sex) {
+            showMsg(msg, 'error', 'Bitte Familienname, Vorname und Geschlecht ausfüllen.');
+            return;
+        }
+
+        var displayName = familyName + ' ' + givenName;
+        var birthDate   = document.getElementById('p-birth').value     || null;
+        var deathDate   = document.getElementById('p-death').value     || null;
+
+        var newPerson = {
+            id:           '',   // wird automatisch per Trigger gesetzt
+            display_name: displayName,
+            family_name:  familyName,
+            given_name:   givenName,
+            sex:          sex,
+            maiden_name:  document.getElementById('p-maiden').value.trim()     || null,
+            birth_date:   birthDate,
+            death_date:   deathDate,
+            birth_place:  document.getElementById('p-birthplace').value.trim() || null,
+            death_place:  document.getElementById('p-deathplace').value.trim() || null,
+            profession:   document.getElementById('p-profession').value.trim() || null,
+            status:       'pending',
+        };
+
+        client.from('persons').insert([newPerson]).select().then(function(result) {
+            if (result.error) {
+                showMsg(msg, 'error', 'Fehler: ' + result.error.message);
+                return;
+            }
+            // Changelog schreiben
+            logChange('INSERT', 'persons', result.data[0].id, newPerson);
+            showMsg(msg, 'success',
+                '✓ ' + displayName + ' wurde eingetragen und wartet auf Freigabe.');
+            clearPersonForm();
+        });
+    });
+
+    // Beziehung eintragen
+    document.getElementById('btn-rel').addEventListener('click', function() {
+        var personId   = document.getElementById('r-person').value;
+        var relType    = document.getElementById('r-type').value;
+        var relatedId  = document.getElementById('r-related').value;
+        var msg        = document.getElementById('msg-rel');
+
+        if (!personId || !relType || !relatedId) {
+            showMsg(msg, 'error', 'Bitte alle drei Felder ausfüllen.');
+            return;
+        }
+        if (personId === relatedId) {
+            showMsg(msg, 'error', 'Eine Person kann nicht mit sich selbst verbunden sein.');
+            return;
+        }
+
+        var newRel = {
+            id:                 '',
+            person_id:          personId,
+            related_person_id:  relatedId,
+            relationship_type:  relType,
+            status:             'pending',
+        };
+
+        client.from('relationships').insert([newRel]).select().then(function(result) {
+            if (result.error) {
+                showMsg(msg, 'error', 'Fehler: ' + result.error.message);
+                return;
+            }
+            logChange('INSERT', 'relationships', result.data[0].id, newRel);
+            showMsg(msg, 'success', '✓ Beziehung eingetragen und wartet auf Freigabe.');
+            document.getElementById('r-type').value    = '';
+            document.getElementById('r-related').value = '';
+        });
+    });
+
+    // Changelog-Eintrag schreiben
+    function logChange(action, tableName, recordId, details) {
+        client.from('changelog').insert([{
+            changed_by: currentUser.email,
+            action:     action,
+            table_name: tableName,
+            record_id:  String(recordId),
+            details:    details,
+        }]).then(function() {});
+    }
+
+    // Hilfsfunktionen
+    function showMsg(el, type, text) {
+        el.className = 'message ' + type;
+        el.textContent = text;
+    }
+
+    function clearPersonForm() {
+        ['p-family','p-given','p-maiden','p-birth','p-death',
+         'p-birthplace','p-deathplace','p-profession'].forEach(function(id) {
+            document.getElementById(id).value = '';
+        });
+        document.getElementById('p-sex').value = '';
+    }
+
+});
+</script>
+</body>
+</html>
