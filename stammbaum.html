@@ -191,8 +191,8 @@ window.addEventListener('load', function() {
     // Daten laden
     function loadData() {
         Promise.all([
-            client.from('persons').select('*'),
-            client.from('relationships').select('*')
+            client.from('persons').select('*').eq('status', 'approved'),
+            client.from('relationships').select('*').eq('status', 'approved'),
         ]).then(function(results) {
             var personsResult = results[0];
             var relsResult    = results[1];
