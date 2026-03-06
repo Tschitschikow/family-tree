@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stammbaum 3D – Bahrs Familie</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background: #5a3e2b;
+            color: white;
+            padding: 0.8em 2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        header h1 { font-size: 1.2em; }
+        #logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.4em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        #logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        #toolbar {
+            background: #2a1a0e;
+            border-bottom: 1px solid #5a3e2b;
+            padding: 0.6em 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        #toolbar label { font-size: 0.9em; color: #c8a882; }
+        #filter-name {
+            padding: 0.4em 0.8em;
+            border: 1px solid #5a3e2b;
+            border-radius: 5px;
+            font-size: 0.9em;
+            font-family: Georgia, serif;
+            background: #1a1a2e;
+            color: white;
+            width: 180px;
+        }
+        .tool-btn {
+            padding: 0.4em 0.9em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: Georgia, serif;
+        }
+        .tool-btn:hover { background: #7a5e4b; }
+        .tool-btn.active { background: #c8a882; color: #1a1a2e; }
+        #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
+
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            cursor: grab;
+        }
+        #canvas-container:active { cursor: grabbing; }
+
+        #three-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Info-Panel */
+        #info-panel {
+            display: none;
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 280px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            padding: 1.2em;
+            z-index: 100;
+            font-size: 0.9em;
+        }
+        #info-panel h2 {
+            font-size: 1.1em;
+            color: #3a2a1a;
+            margin-bottom: 0.8em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5em;
+        }
+        #info-panel .field { margin-bottom: 0.4em; color: #555; }
+        #info-panel .field span { color: #222; font-weight: bold; }
+        #info-close {
+            position: absolute;
+            top: 0.6em;
+            right: 0.8em;
+            cursor: pointer;
+            font-size: 1.2em;
+            color: #aaa;
+            background: none;
+            border: none;
+        }
+        #info-close:hover { color: #333; }
+
+        /* Legende */
+        #legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 8px;
+            padding: 0.8em 1.2em;
+            color: white;
+            font-size: 0.8em;
+            z-index: 100;
+            line-height: 1.8em;
+        }
+        #legend .dot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* Hilfstext */
+        #hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            color: #ccc;
+            font-size: 0.8em;
+            padding: 0.4em 1em;
+            border-radius: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #status-bar {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #c8a882;
+            font-size: 1.2em;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🌳 Bahrs Familienstammbaum – 3D</h1>
+    <nav style="display:flex; gap:1em; align-items:center;">
+        <a href="stammbaum.html"
+           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
+           🗺️ 2D-Ansicht
+        </a>
+        <a href="eingabe.html"
+           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
+           ✏️ Eintrag hinzufügen
+        </a>
+        <button id="logout-btn">Ausloggen</button>
+    </nav>
+</header>
+
+<div id="toolbar">
+    <label>🔍 Filter:</label>
+    <input type="text" id="filter-name" placeholder="Familienname..." />
+    <button class="tool-btn" id="reset-filter">Alle zeigen</button>
+    <button class="tool-btn" id="reset-camera">Kamera zurücksetzen</button>
+    <label style="margin-left:1em;">
+        <input type="checkbox" id="show-relations" checked style="width:auto; margin-right:4px;">
+        Verbindungen zeigen
+    </label>
+    <span id="person-count"></span>
+</div>
+
+<div id="canvas-container">
+    <canvas id="three-canvas"></canvas>
+</div>
+
+<div id="status-bar">Lade Stammbaum...</div>
+
+<!-- Info-Panel -->
+<div id="info-panel">
+    <button id="info-close">✕</button>
+    <h2 id="info-name"></h2>
+    <div class="field">Geschlecht: <span id="info-sex"></span></div>
+    <div class="field">Geboren: <span id="info-birth"></span></div>
+    <div class="field">Gestorben: <span id="info-death"></span></div>
+    <div class="field">Geburtsort: <span id="info-birthplace"></span></div>
+    <div class="field">Beruf: <span id="info-profession"></span></div>
+    <div class="field">Mädchenname: <span id="info-maiden"></span></div>
+</div>
+
+<!-- Legende -->
+<div id="legend">
+    <div><span class="dot" style="background:#6ab0e8;"></span> Mann</div>
+    <div><span class="dot" style="background:#f4a7b9;"></span> Frau</div>
+    <div><span class="dot" style="background:#f5d08a;"></span> Unbekannt</div>
+    <div style="margin-top:0.4em; color:#aaa;">Nadellänge = Alter (älter = länger)</div>
+</div>
+
+<div id="hint">🖱️ Drehen: linke Maustaste &nbsp;|&nbsp; Zoom: Mausrad &nbsp;|&nbsp; Verschieben: rechte Maustaste &nbsp;|&nbsp; Klick auf Kugel: Details</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+window.addEventListener('load', function() {
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    let allPersons = [];
+    let allRelationships = [];
+
+    // Three.js Objekte
+    let scene, camera, renderer, raycaster, mouse;
+    let pinObjects  = [];   // { mesh: Kugel, person: data }
+    let lineObjects = [];   // Verbindungslinien
+    let animFrameId = null;
+
+    // Zugangsschutz
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) {
+            window.location.href = 'login.html';
+        } else {
+            loadData();
+        }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        client.auth.signOut().then(function() {
+            window.location.href = 'login.html';
+        });
+    });
+
+    // Daten laden
+    function loadData() {
+        Promise.all([
+            client.from('persons').select('*').eq('status', 'approved'),
+            client.from('relationships').select('*').eq('status', 'approved'),
+        ]).then(function(results) {
+            if (results[0].error || results[1].error) {
+                document.getElementById('status-bar').textContent = 'Fehler beim Laden.';
+                return;
+            }
+            allPersons = results[0].data.map(function(p) {
+                p.id = Number(p.id); return p;
+            });
+            allRelationships = results[1].data.map(function(r) {
+                r.id = Number(r.id);
+                r.person_id = Number(r.person_id);
+                r.related_person_id = Number(r.related_person_id);
+                return r;
+            });
+            document.getElementById('status-bar').style.display = 'none';
+            initThree();
+            build3D(allPersons, allRelationships);
+        });
+    }
+
+    // ─── Three.js Setup ───────────────────────────────────────────
+    function initThree() {
+        var container = document.getElementById('canvas-container');
+        var canvas    = document.getElementById('three-canvas');
+
+        // Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        scene.fog = new THREE.Fog(0x1a1a2e, 300, 800);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(
+            50,
+            container.clientWidth / container.clientHeight,
+            0.1,
+            2000
+        );
+        camera.position.set(0, 80, 220);
+        camera.lookAt(0, 0, 0);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+
+        // Licht
+        var ambient = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambient);
+
+        var dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(100, 200, 100);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        var pointLight = new THREE.PointLight(0xc8a882, 0.6, 500);
+        pointLight.position.set(-100, 150, -100);
+        scene.add(pointLight);
+
+        // Boden-Gitter
+        var gridHelper = new THREE.GridHelper(400, 40, 0x3a2a1a, 0x2a1a0e);
+        scene.add(gridHelper);
+
+        // Raycaster für Klicks
+        raycaster = new THREE.Raycaster();
+        mouse     = new THREE.Vector2();
+
+        // Orbit Controls (manuell implementiert)
+        initOrbitControls(canvas);
+
+        // Resize
+        window.addEventListener('resize', function() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        // Klick auf Kugel
+        canvas.addEventListener('click', onCanvasClick);
+
+        // Animations-Loop
+        function animate() {
+            animFrameId = requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+
+    // ─── 3D Graph bauen ───────────────────────────────────────────
+    function build3D(persons, relationships) {
+
+        // Alte Objekte entfernen
+        pinObjects.forEach(function(o) {
+            scene.remove(o.group);
+        });
+        lineObjects.forEach(function(l) { scene.remove(l); });
+        pinObjects  = [];
+        lineObjects = [];
+
+        // Geburtsjahr-Grenzen
+        var birthYears = persons
+            .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
+            .filter(function(y) { return y !== null; });
+
+        var minYear = Math.min.apply(null, birthYears);
+        var maxYear = Math.max.apply(null, birthYears);
+        var avgYear = Math.round(
+            birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length
+        );
+
+        var minHeight = 5;
+        var maxHeight = 80;
+
+        function calcHeight(birth_date) {
+            var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
+            var ratio = (maxYear - year) / (maxYear - minYear);
+            return minHeight + ratio * (maxHeight - minHeight);
+        }
+
+        // Personen auf Kreisen anordnen (spiralförmig)
+        var n = persons.length;
+        var positions = {};  // id → THREE.Vector3 (Position der Kugelspitze)
+
+        persons.forEach(function(p, i) {
+            // Spirale: jede Person bekommt einen Winkel und Radius
+            var angle  = (i / n) * Math.PI * 6;   // 3 volle Umdrehungen
+            var radius = 20 + (i / n) * 120;
+            var x = Math.cos(angle) * radius;
+            var z = Math.sin(angle) * radius;
+
+            var height = calcHeight(p.birth_date);
+
+            // Farbe nach Geschlecht
+            var color = p.sex === 'm' ? 0x6ab0e8 :
+                        p.sex === 'f' ? 0xf4a7b9 : 0xf5d08a;
+
+            // Gruppe für Pin
+            var group = new THREE.Group();
+            group.position.set(x, 0, z);
+
+            // Zylinder (Nadel)
+            var cylGeo = new THREE.CylinderGeometry(0.4, 0.8, height, 8);
+            var cylMat = new THREE.MeshLambertMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.7,
+            });
+            var cylinder = new THREE.Mesh(cylGeo, cylMat);
+            cylinder.position.y = height / 2;
+            cylinder.castShadow = true;
+            group.add(cylinder);
+
+            // Kugel (Kopf)
+            var sphereGeo = new THREE.SphereGeometry(2.5, 16, 16);
+            var sphereMat = new THREE.MeshPhongMaterial({
+                color: color,
+                shininess: 80,
+                emissive: new THREE.Color(color).multiplyScalar(0.2),
+            });
+            var sphere = new THREE.Mesh(sphereGeo, sphereMat);
+            sphere.position.y = height + 2.5;
+            sphere.castShadow = true;
+            group.add(sphere);
+
+            scene.add(group);
+
+            // Kugelspitze Position merken
+            var worldPos = new THREE.Vector3(x, height + 2.5, z);
+            positions[p.id] = worldPos;
+
+            pinObjects.push({
+                sphere: sphere,
+                group:  group,
+                person: p,
+                height: height,
+                baseColor: color,
+            });
+        });
+
+        // Verbindungslinien
+        drawLines(relationships, positions, persons);
+
+        // Personenzahl
+        document.getElementById('person-count').textContent = persons.length + ' Personen';
+    }
+
+    function drawLines(relationships, positions, persons) {
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+
+        relationships.forEach(function(r) {
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
+
+            var isParent = r.relationship_type === 'hasMother' ||
+                           r.relationship_type === 'hasFather';
+            var isWife   = r.relationship_type === 'hasWife';
+
+            if (!isParent && !isWife) return;
+
+            var posA = positions[r.person_id];
+            var posB = positions[r.related_person_id];
+            if (!posA || !posB) return;
+
+            var color   = isParent ? (r.relationship_type === 'hasMother' ? 0xc0607a : 0x5a8ab0)
+                                   : 0x8B4513;
+            var opacity = isParent ? 0.6 : 0.4;
+
+            var points = [posA, posB];
+            var geo    = new THREE.BufferGeometry().setFromPoints(points);
+            var mat    = new THREE.LineBasicMaterial({
+                color:       color,
+                transparent: true,
+                opacity:     opacity,
+            });
+            var line = new THREE.Line(geo, mat);
+            scene.add(line);
+            lineObjects.push(line);
+        });
+    }
+
+    // ─── Klick auf Kugel ─────────────────────────────────────────
+    function onCanvasClick(event) {
+        var canvas = document.getElementById('three-canvas');
+        var rect   = canvas.getBoundingClientRect();
+        mouse.x =  ((event.clientX - rect.left)  / rect.width)  * 2 - 1;
+        mouse.y = -((event.clientY - rect.top)   / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        var spheres = pinObjects.map(function(o) { return o.sphere; });
+        var hits    = raycaster.intersectObjects(spheres);
+
+        if (hits.length > 0) {
+            var hitSphere = hits[0].object;
+            var found     = pinObjects.find(function(o) { return o.sphere === hitSphere; });
+            if (found) showInfo(found.person);
+
+            // Highlight
+            pinObjects.forEach(function(o) {
+                o.sphere.material.emissive = new THREE.Color(o.baseColor).multiplyScalar(0.2);
+            });
+            hitSphere.material.emissive = new THREE.Color(0xffff00).multiplyScalar(0.5);
+        }
+    }
+
+    function showInfo(p) {
+        document.getElementById('info-name').textContent       = p.display_name;
+        document.getElementById('info-sex').textContent        = p.sex === 'm' ? 'männlich' : p.sex === 'f' ? 'weiblich' : '–';
+        document.getElementById('info-birth').textContent      = formatDate(p.birth_date)  || '–';
+        document.getElementById('info-death').textContent      = formatDate(p.death_date)  || '–';
+        document.getElementById('info-birthplace').textContent = p.birth_place  || '–';
+        document.getElementById('info-profession').textContent = p.profession   || '–';
+        document.getElementById('info-maiden').textContent     = p.maiden_name  || '–';
+        document.getElementById('info-panel').style.display    = 'block';
+    }
+
+    document.getElementById('info-close').addEventListener('click', function() {
+        document.getElementById('info-panel').style.display = 'none';
+    });
+
+    // ─── Orbit Controls (manuell) ────────────────────────────────
+    function initOrbitControls(canvas) {
+        var isDragging   = false;
+        var isRightDrag  = false;
+        var lastX = 0, lastY = 0;
+        var theta = 0, phi = 30;   // Winkel in Grad
+        var radius = 220;
+        var targetX = 0, targetY = 0;  // Pan-Offset
+
+        function updateCamera() {
+            var t = THREE.MathUtils.degToRad(theta);
+            var p = THREE.MathUtils.degToRad(phi);
+            camera.position.x = targetX + radius * Math.sin(t) * Math.cos(p);
+            camera.position.y = targetY + radius * Math.sin(p);
+            camera.position.z = radius * Math.cos(t) * Math.cos(p);
+            camera.lookAt(targetX, targetY, 0);
+        }
+
+        canvas.addEventListener('mousedown', function(e) {
+            isDragging  = true;
+            isRightDrag = e.button === 2;
+            lastX = e.clientX;
+            lastY = e.clientY;
+        });
+
+        canvas.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        window.addEventListener('mousemove', function(e) {
+            if (!isDragging) return;
+            var dx = e.clientX - lastX;
+            var dy = e.clientY - lastY;
+            lastX = e.clientX;
+            lastY = e.clientY;
+
+            if (isRightDrag) {
+                targetX -= dx * 0.2;
+                targetY += dy * 0.2;
+            } else {
+                theta -= dx * 0.3;
+                phi    = Math.max(-80, Math.min(80, phi + dy * 0.3));
+            }
+            updateCamera();
+        });
+
+        window.addEventListener('mouseup', function() { isDragging = false; });
+
+        canvas.addEventListener('wheel', function(e) {
+            radius = Math.max(50, Math.min(600, radius + e.deltaY * 0.3));
+            updateCamera();
+        });
+
+        // Kamera zurücksetzen
+        document.getElementById('reset-camera').addEventListener('click', function() {
+            theta = 0; phi = 30; radius = 220; targetX = 0; targetY = 0;
+            updateCamera();
+        });
+
+        updateCamera();
+    }
+
+    // ─── Filter ──────────────────────────────────────────────────
+    document.getElementById('filter-name').addEventListener('input', function() {
+        var query = this.value.trim().toLowerCase();
+        var filtered = query
+            ? allPersons.filter(function(p) {
+                return p.family_name.toLowerCase().includes(query) ||
+                       p.display_name.toLowerCase().includes(query);
+              })
+            : allPersons;
+        build3D(filtered, allRelationships);
+    });
+
+    document.getElementById('reset-filter').addEventListener('click', function() {
+        document.getElementById('filter-name').value = '';
+        build3D(allPersons, allRelationships);
+    });
+
+    // ─── Verbindungen ein/ausblenden ─────────────────────────────
+    document.getElementById('show-relations').addEventListener('change', function() {
+        var visible = this.checked;
+        lineObjects.forEach(function(l) { l.visible = visible; });
+    });
+
+    // ─── Hilfsfunktionen ─────────────────────────────────────────
+    function formatDate(d) {
+        if (!d) return '';
+        var parts = d.split('T')[0].split('-');
+        if (parts.length === 3) return parts[2] + '.' + parts[1] + '.' + parts[0];
+        return d;
+    }
+
+});
+</script>
+</body>
+</html>
