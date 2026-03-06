@@ -253,7 +253,7 @@ window.addEventListener('load', function() {
             elements.push({
                 group: 'nodes',
                 data: {
-                    id: p.id,
+                    id: Number(p.id),
                     label: p.display_name,
                     sex: p.sex,
                     birth_date:  p.birth_date  || '',
@@ -267,9 +267,9 @@ window.addEventListener('load', function() {
         });
 
         // Kanten (Beziehungen) – nur hasMother und hasFather für Baumstruktur
-        var personIds = new Set(persons.map(function(p) { return p.id; }));
+        var personIds = new Set(persons.map(function(p) { return Number(p.id); }));
         // Kanten (Beziehungen) – Eltern + Ehepartner
-        var personIds = new Set(persons.map(function(p) { return p.id; }));
+        var personIds = new Set(persons.map(function(p) { return Number(p.id); }));
         relationships.forEach(function(r) {
             if (personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
 
@@ -278,8 +278,8 @@ window.addEventListener('load', function() {
                         group: 'edges',
                         data: {
                             id: r.id,
-                            source: r.related_person_id,
-                            target: r.person_id,
+                            source: Number(r.related_person_id),
+                            target: Number(r.person_id),
                             type: r.relationship_type
                         }
                     });
@@ -291,8 +291,8 @@ window.addEventListener('load', function() {
                         group: 'edges',
                         data: {
                             id: r.id,
-                            source: r.person_id,
-                            target: r.related_person_id,
+                            source: Number(r.person_id),
+                            target: Number(r.related_person_id),
                             type: r.relationship_type
                         }
                     });
