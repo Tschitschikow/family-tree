@@ -296,7 +296,7 @@ window.addEventListener('load', function() {
         var options = '<option value="">– Person wählen –</option>';
         allPersons.forEach(function(p) {
             options += '<option value="' + p.id + '">' +
-                       p.display_name + ' (' + p.id + ')</option>';
+                       p.display_name + ' (ID: ' + p.id + ')</option>';
         });
 
         div.innerHTML =
@@ -343,9 +343,8 @@ window.addEventListener('load', function() {
             return;
         }
 
+        // Kein id, kein display_name – beides setzt die Datenbank automatisch
         var newPerson = {
-            id:           '',
-            display_name: familyName + ' ' + givenName,
             family_name:  familyName,
             given_name:   givenName,
             sex:          sex,
@@ -372,7 +371,6 @@ window.addEventListener('load', function() {
             var rels = collectRelationships(savedPerson.id);
 
             if (rels.length === 0) {
-                // Keine Beziehungen – fertig
                 showSuccess(msg, savedPerson.display_name, 0);
                 clearForm();
                 return;
@@ -400,40 +398,36 @@ window.addEventListener('load', function() {
         var rels = [];
         var blocks = document.querySelectorAll('.rel-block');
         blocks.forEach(function(block) {
-            var blockId  = block.id.replace('rel-block-', '');
-            var relType  = document.getElementById('r-type-'   + blockId).value;
-            var relatedId= document.getElementById('r-related-' + blockId).value;
+            var blockId   = block.id.replace('rel-block-', '');
+            var relType   = document.getElementById('r-type-'    + blockId).value;
+            var relatedId = parseInt(document.getElementById('r-related-' + blockId).value);
 
             if (!relType || !relatedId) return;
 
-            // Richtung der Beziehung bestimmen
-            // "Neue Person ist Mutter von X" → X hasMother newPerson
-            // "X hat diese Mutter (neue Person)" → newPerson hasMother X ... 
-            // Wir speichern immer aus Sicht des Kindes/der Person:
             var personId, relatedPersonId, type;
 
             if (relType === 'hasMother' || relType === 'hasFather') {
                 // Neue Person IST Mutter/Vater von relatedId
                 personId        = relatedId;
                 relatedPersonId = newPersonId;
-                type = relType;
+                type            = relType;
             } else if (relType === 'isMother' || relType === 'isFather') {
                 // Neue Person HAT diese Mutter/diesen Vater
                 personId        = newPersonId;
                 relatedPersonId = relatedId;
-                type = relType === 'isMother' ? 'hasMother' : 'hasFather';
+                type            = relType === 'isMother' ? 'hasMother' : 'hasFather';
             } else if (relType === 'hasWife' || relType === 'isWife') {
                 personId        = newPersonId;
                 relatedPersonId = relatedId;
-                type = 'hasWife';
+                type            = 'hasWife';
             } else if (relType === 'hasHusband' || relType === 'isHusband') {
                 personId        = newPersonId;
                 relatedPersonId = relatedId;
-                type = 'hasHusband';
+                type            = 'hasHusband';
             }
 
+            // Kein id – wird automatisch von der Datenbank vergeben
             rels.push({
-                id:                '',
                 person_id:         personId,
                 related_person_id: relatedPersonId,
                 relationship_type: type,
@@ -459,8 +453,7 @@ window.addEventListener('load', function() {
             ? ' mit ' + relCount + ' Beziehung(en)'
             : ' (ohne Beziehungen)';
         showMsg(msg, 'success',
-            '✓ ' + name + relText +
-            ' eingetragen – wartet auf Freigabe.');
+            '✓ ' + name + relText + ' eingetragen – wartet auf Freigabe.');
     }
 
     function showMsg(el, type, text) {
