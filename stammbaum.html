@@ -34,7 +34,6 @@
         }
         #logout-btn:hover { background: rgba(255,255,255,0.3); }
 
-        /* Toolbar */
         #toolbar {
             background: #f0e8dc;
             border-bottom: 1px solid #ddd;
@@ -74,14 +73,12 @@
         .tool-btn:hover { background: #7a5e4b; }
         #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
 
-        /* Graph-Container */
         #cy {
             flex: 1;
             width: 100%;
             min-height: 500px;
         }
 
-        /* Info-Panel */
         #info-panel {
             display: none;
             position: fixed;
@@ -155,7 +152,6 @@
 <div id="status-bar">Lade Stammbaum...</div>
 <div id="cy"></div>
 
-<!-- Info-Panel -->
 <div id="info-panel">
     <button id="info-close">✕</button>
     <h2 id="info-name"></h2>
@@ -194,184 +190,192 @@ window.addEventListener('load', function() {
         });
     });
 
-    // Daten laden
+    // Daten laden – IDs sofort als Ganzzahlen konvertieren
     function loadData() {
         Promise.all([
             client.from('persons').select('*').eq('status', 'approved'),
             client.from('relationships').select('*').eq('status', 'approved'),
         ]).then(function(results) {
-            var personsResult = results[0];
-            var relsResult    = results[1];
-
-            if (personsResult.error || relsResult.error) {
+            if (results[0].error || results[1].error) {
                 document.getElementById('status-bar').textContent =
                     'Fehler beim Laden der Daten.';
                 return;
             }
 
-            allPersons       = personsResult.data;
-            allRelationships = relsResult.data;
+            allPersons = results[0].data.map(function(p) {
+                p.id = Number(p.id);
+                return p;
+            });
+
+            allRelationships = results[1].data.map(function(r) {
+                r.id                = Number(r.id);
+                r.person_id         = Number(r.person_id);
+                r.related_person_id = Number(r.related_person_id);
+                return r;
+            });
 
             document.getElementById('status-bar').style.display = 'none';
-            document.getElementById('cy').style.display = 'block';
-
             buildGraph(allPersons, allRelationships);
         });
     }
 
     // Graph aufbauen
     function buildGraph(persons, relationships) {
+
+        // Alten Graph zerstören
+        if (cy) { cy.destroy(); cy = null; }
+
         var elements = [];
 
-        // Knoten (Personen)
-        // Geburtsjahreszahlen für Radiusberechnung sammeln
+        // Radiusberechnung nach Geburtsjahr
         var birthYears = persons
             .map(function(p) {
                 return p.birth_date ? parseInt(p.birth_date.substring(0, 4)) : null;
             })
             .filter(function(y) { return y !== null; });
 
-        var minYear = Math.min.apply(null, birthYears);  // älteste Person
-        var maxYear = Math.max.apply(null, birthYears);  // jüngste Person
-        var avgYear = Math.round(
+        var minYear   = Math.min.apply(null, birthYears);
+        var maxYear   = Math.max.apply(null, birthYears);
+        var avgYear   = Math.round(
             birthYears.reduce(function(a, b) { return a + b; }, 0) / birthYears.length
         );
-
-        var minRadius = 20;   // kleinster Kreis (jüngste Person)
-        var maxRadius = 100;   // größter Kreis (älteste Person)
+        var minRadius = 20;
+        var maxRadius = 100;
 
         function calcRadius(birth_date) {
-            var year = birth_date ? parseInt(birth_date.substring(0, 4)) : avgYear;
-            // Ältere Person = kleineres Jahr = größerer Radius
+            var year  = birth_date ? parseInt(birth_date.substring(0, 4)) : avgYear;
             var ratio = (maxYear - year) / (maxYear - minYear);
             return Math.round(minRadius + ratio * (maxRadius - minRadius));
         }
 
-        // Knoten (Personen)
+        // Knoten
         persons.forEach(function(p) {
-            var radius = calcRadius(p.birth_date);
             elements.push({
                 group: 'nodes',
                 data: {
-                    id: Number(p.id),
-                    label: p.display_name,
-                    sex: p.sex,
+                    id:          p.id,
+                    label:       p.display_name,
+                    sex:         p.sex,
                     birth_date:  p.birth_date  || '',
                     death_date:  p.death_date  || '',
                     birth_place: p.birth_place || '',
                     profession:  p.profession  || '',
                     maiden_name: p.maiden_name || '',
-                    radius: radius,
+                    radius:      calcRadius(p.birth_date),
                 }
             });
         });
 
-        // Kanten (Beziehungen) – nur hasMother und hasFather für Baumstruktur
-        var personIds = new Set(persons.map(function(p) { return Number(p.id); }));
-        // Kanten (Beziehungen) – Eltern + Ehepartner
-        var personIds = new Set(persons.map(function(p) { return Number(p.id); }));
+        // Personen-ID Set – alle bereits Number
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+
+        // Kanten – IDs bereits Number aus loadData()
         relationships.forEach(function(r) {
-            if (personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
 
-                if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-                    elements.push({
-                        group: 'edges',
-                        data: {
-                            id: r.id,
-                            source: Number(r.related_person_id),
-                            target: Number(r.person_id),
-                            type: r.relationship_type
-                        }
-                    });
-                }
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                elements.push({
+                    group: 'edges',
+                    data: {
+                        id:     'e' + r.id,
+                        source: r.related_person_id,
+                        target: r.person_id,
+                        type:   r.relationship_type,
+                    }
+                });
+            }
 
-                // Ehe: nur hasWife eintragen (hasHusband ist die Gegenseite – verhindert Doppellinien)
-                if (r.relationship_type === 'hasWife') {
-                    elements.push({
-                        group: 'edges',
-                        data: {
-                            id: r.id,
-                            source: Number(r.person_id),
-                            target: Number(r.related_person_id),
-                            type: r.relationship_type
-                        }
-                    });
-                }
+            if (r.relationship_type === 'hasWife') {
+                elements.push({
+                    group: 'edges',
+                    data: {
+                        id:     'e' + r.id,
+                        source: r.person_id,
+                        target: r.related_person_id,
+                        type:   r.relationship_type,
+                    }
+                });
             }
         });
 
-        // Cytoscape initialisieren
+        // Cytoscape
         cy = cytoscape({
             container: document.getElementById('cy'),
-            elements: elements,
+            elements:  elements,
             style: [
                 {
                     selector: 'node',
                     style: {
-                        'label': 'data(label)',
-                        'font-size': '9px',
-                        'font-family': 'Georgia, serif',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'text-wrap': 'wrap',
-                        'text-max-width': '80px',
-                        'width':  'data(radius)',
-                        'height': 'data(radius)',
-                        'shape': 'ellipse',
+                        'label':            'data(label)',
+                        'font-size':        '9px',
+                        'font-family':      'Georgia, serif',
+                        'text-valign':      'center',
+                        'text-halign':      'center',
+                        'text-wrap':        'wrap',
+                        'text-max-width':   '80px',
+                        'width':            'data(radius)',
+                        'height':           'data(radius)',
+                        'shape':            'ellipse',
                         'background-color': '#a0c4e8',
-                        'border-width': '1px',
-                        'border-color': '#5a8ab0',
-                        'color': '#1a1a2e',
+                        'border-width':     '1px',
+                        'border-color':     '#5a8ab0',
+                        'color':            '#1a1a2e',
                     }
                 },
                 {
                     selector: 'node[sex = "f"]',
                     style: {
                         'background-color': '#f4a7b9',
-                        'border-color': '#c0607a',
+                        'border-color':     '#c0607a',
                     }
                 },
                 {
                     selector: 'node[sex = "m"]',
                     style: {
                         'background-color': '#a0c4e8',
-                        'border-color': '#5a8ab0',
+                        'border-color':     '#5a8ab0',
                     }
                 },
                 {
                     selector: 'node:selected',
                     style: {
-                        'border-width': '3px',
-                        'border-color': '#5a3e2b',
+                        'border-width':     '3px',
+                        'border-color':     '#5a3e2b',
                         'background-color': '#f5d08a',
                     }
                 },
                 {
                     selector: 'edge',
                     style: {
-                        'width': 1.5,
-                        'line-color': '#aaa',
+                        'width':              1.5,
+                        'line-color':         '#aaa',
                         'target-arrow-color': '#aaa',
                         'target-arrow-shape': 'triangle',
-                        'curve-style': 'bezier',
+                        'curve-style':        'bezier',
                     }
                 },
                 {
                     selector: 'edge[type = "hasMother"]',
-                    style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a' }
+                    style: {
+                        'line-color':         '#c0607a',
+                        'target-arrow-color': '#c0607a',
+                    }
                 },
                 {
                     selector: 'edge[type = "hasFather"]',
-                    style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0' }
+                    style: {
+                        'line-color':         '#5a8ab0',
+                        'target-arrow-color': '#5a8ab0',
+                    }
                 },
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
-                        'line-color': '#8B4513',
+                        'line-color':         '#8B4513',
                         'target-arrow-color': '#8B4513',
                         'target-arrow-shape': 'none',
-                        'line-style': 'dashed',
-                        'width': 2,
+                        'line-style':         'dashed',
+                        'width':              2,
                     }
                 },
                 {
@@ -380,9 +384,9 @@ window.addEventListener('load', function() {
                 }
             ],
             layout: {
-                name: 'breadthfirst',
-                directed: true,
-                padding: 20,
+                name:          'breadthfirst',
+                directed:      true,
+                padding:       20,
                 spacingFactor: 1.2,
             }
         });
@@ -392,24 +396,22 @@ window.addEventListener('load', function() {
         // Klick auf Person → Info-Panel
         cy.on('tap', 'node', function(e) {
             var d = e.target.data();
-            document.getElementById('info-name').textContent      = d.label;
-            document.getElementById('info-sex').textContent       = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
-            document.getElementById('info-birth').textContent     = formatDate(d.birth_date)  || '–';
-            document.getElementById('info-death').textContent     = formatDate(d.death_date)  || '–';
-            document.getElementById('info-birthplace').textContent= d.birth_place  || '–';
-            document.getElementById('info-profession').textContent = d.profession  || '–';
-            document.getElementById('info-maiden').textContent    = d.maiden_name  || '–';
-            document.getElementById('info-panel').style.display   = 'block';
+            document.getElementById('info-name').textContent       = d.label;
+            document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
+            document.getElementById('info-birth').textContent      = formatDate(d.birth_date)  || '–';
+            document.getElementById('info-death').textContent      = formatDate(d.death_date)  || '–';
+            document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
+            document.getElementById('info-profession').textContent = d.profession   || '–';
+            document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
+            document.getElementById('info-panel').style.display    = 'block';
         });
 
-        // Klick auf Hintergrund → Panel schließen
         cy.on('tap', function(e) {
             if (e.target === cy) {
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
 
-        // Info-Panel schließen
         document.getElementById('info-close').addEventListener('click', function() {
             document.getElementById('info-panel').style.display = 'none';
         });
@@ -425,12 +427,11 @@ window.addEventListener('load', function() {
         return d;
     }
 
-    // Personenzahl anzeigen
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
 
-    // Filter nach Familienname
+    // Filter
     document.getElementById('filter-name').addEventListener('input', function() {
         var query = this.value.trim().toLowerCase();
         if (!query) {
@@ -444,7 +445,6 @@ window.addEventListener('load', function() {
         buildGraph(filtered, allRelationships);
     });
 
-    // Filter zurücksetzen
     document.getElementById('reset-filter').addEventListener('click', function() {
         document.getElementById('filter-name').value = '';
         buildGraph(allPersons, allRelationships);
@@ -453,15 +453,18 @@ window.addEventListener('load', function() {
     // Layout wechseln
     document.getElementById('apply-layout').addEventListener('click', function() {
         if (!cy) return;
-        var layoutName = document.getElementById('layout-select').value;
-        cy.layout({
-            name: layoutName,
-            directed: true,
-            padding: 20,
-            spacingFactor: 2.0,
-            animate: true,
-            animationDuration: 600,
-        }).run();
+        var layoutName   = document.getElementById('layout-select').value;
+        var layoutConfig = { name: layoutName, animate: true, animationDuration: 600 };
+        if (layoutName === 'breadthfirst') {
+            layoutConfig.directed      = true;
+            layoutConfig.spacingFactor = 1.2;
+            layoutConfig.padding       = 20;
+        } else if (layoutName === 'cose') {
+            layoutConfig.idealEdgeLength = 100;
+            layoutConfig.nodeRepulsion   = 400000;
+            layoutConfig.gravity         = 80;
+        }
+        cy.layout(layoutConfig).run();
     });
 
 });
