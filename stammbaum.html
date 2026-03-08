@@ -75,8 +75,7 @@
 
         #legend {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
+            bottom: 20px; left: 20px;
             background: rgba(255,255,255,0.95);
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -89,46 +88,30 @@
             min-width: 160px;
         }
         #legend h4 {
-            color: #5a3e2b;
-            margin-bottom: 0.5em;
-            font-size: 0.9em;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.3em;
+            color: #5a3e2b; margin-bottom: 0.5em; font-size: 0.9em;
+            border-bottom: 1px solid #eee; padding-bottom: 0.3em;
         }
         .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 0.3em;
-            gap: 0.5em;
-            cursor: pointer;
-            padding: 0.1em 0.2em;
-            border-radius: 3px;
+            display: flex; align-items: center; margin-bottom: 0.3em;
+            gap: 0.5em; cursor: pointer; padding: 0.1em 0.2em; border-radius: 3px;
         }
         .legend-item:hover { background: #f0e8dc; }
         .legend-dot {
-            width: 14px; height: 14px;
-            border-radius: 50%; flex-shrink: 0;
+            width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
             border: 1px solid rgba(0,0,0,0.2);
         }
         .legend-hint { font-size: 0.8em; color: #aaa; margin-top: 0.5em; font-style: italic; }
 
         #info-panel {
             display: none;
-            position: fixed;
-            top: 80px; right: 20px;
-            width: 280px;
-            background: white;
-            border-radius: 10px;
+            position: fixed; top: 80px; right: 20px;
+            width: 280px; background: white; border-radius: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            padding: 1.2em;
-            z-index: 1000;
-            font-size: 0.9em;
+            padding: 1.2em; z-index: 1000; font-size: 0.9em;
         }
         #info-panel h2 {
-            font-size: 1.1em; color: #3a2a1a;
-            margin-bottom: 0.8em;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5em;
+            font-size: 1.1em; color: #3a2a1a; margin-bottom: 0.8em;
+            border-bottom: 1px solid #eee; padding-bottom: 0.5em;
         }
         #info-panel .field { margin-bottom: 0.4em; color: #555; }
         #info-panel .field span { color: #222; font-weight: bold; }
@@ -138,10 +121,7 @@
             background: none; border: none;
         }
         #info-close:hover { color: #333; }
-        #status-bar {
-            text-align: center; padding: 2em;
-            color: #5a3e2b; font-size: 1.1em;
-        }
+        #status-bar { text-align: center; padding: 2em; color: #5a3e2b; font-size: 1.1em; }
     </style>
 </head>
 <body>
@@ -229,14 +209,11 @@ function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let cy          = null;
-    let allPersons  = [];
-    let allRels     = [];
-    let showLabels  = true;
-    let currentPersons = [];
-    let currentRels    = [];
+    let cy         = null;
+    let allPersons = [];
+    let allRels    = [];
+    let showLabels = true;
 
-    // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
         if (!result.data.session) { window.location.href = 'login.html'; }
         else { loadData(); }
@@ -265,16 +242,12 @@ window.addEventListener('load', function() {
             });
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
-            // Cytoscape einmalig initialisieren
             initCy();
-            // Daten laden
             applyFilter(allPersons, allRels);
         });
     }
 
-    // ── Cytoscape EINMALIG aufbauen ──────────────────────────────
-    // Daten werden danach nur noch via cy.json() ausgetauscht,
-    // kein destroy() mehr → Event-Listener bleiben erhalten!
+    // ── Cytoscape einmalig initialisieren ────────────────────────
     function initCy() {
         cy = cytoscape({
             container: document.getElementById('cy'),
@@ -301,10 +274,7 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'node[sex = "f"]', style: { 'border-style': 'dashed' } },
                 { selector: 'node[sex = "m"]', style: { 'border-style': 'solid'  } },
-                {
-                    selector: 'node:selected',
-                    style: { 'border-width': '4px', 'border-color': '#5a3e2b', 'border-style': 'solid' }
-                },
+                { selector: 'node:selected',   style: { 'border-width': '4px', 'border-color': '#5a3e2b' } },
                 {
                     selector: 'edge',
                     style: {
@@ -316,29 +286,16 @@ window.addEventListener('load', function() {
                         'color': '#555', 'label': '',
                     }
                 },
-                {
-                    selector: 'edge[type = "hasMother"]',
-                    style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a' }
-                },
-                {
-                    selector: 'edge[type = "hasFather"]',
-                    style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0' }
-                },
-                {
-                    selector: 'edge[type = "hasWife"]',
-                    style: {
-                        'line-color': '#8B4513', 'target-arrow-shape': 'none',
-                        'line-style': 'dashed', 'width': 2, 'color': '#8B4513',
-                    }
-                },
+                { selector: 'edge[type = "hasMother"]', style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a' } },
+                { selector: 'edge[type = "hasFather"]', style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0' } },
+                { selector: 'edge[type = "hasWife"]',   style: { 'line-color': '#8B4513', 'target-arrow-shape': 'none', 'line-style': 'dashed', 'width': 2, 'color': '#8B4513' } },
                 { selector: '.faded', style: { 'opacity': 0.1 } }
             ],
         });
 
-        // ── Events (einmalig registriert) ────────────────────────
+        // Events einmalig registrieren
         cy.on('tap', 'node', function(e) {
-            var node = e.target;
-            var d    = node.data();
+            var node = e.target, d = node.data();
             document.getElementById('info-name').textContent       = d.label;
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
             document.getElementById('info-birth').textContent      = formatDate(d.birth_date)  || '–';
@@ -352,38 +309,28 @@ window.addEventListener('load', function() {
             node.connectedEdges().removeClass('faded');
             node.connectedEdges().connectedNodes().removeClass('faded');
         });
-
         cy.on('tap', function(e) {
             if (e.target === cy) {
                 cy.elements().removeClass('faded');
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
-
         document.getElementById('info-close').addEventListener('click', function() {
             cy.elements().removeClass('faded');
             document.getElementById('info-panel').style.display = 'none';
         });
     }
 
-    // ── Elemente berechnen & in cy laden ─────────────────────────
+    // ── Filter anwenden → Elemente tauschen → Layout ─────────────
     function applyFilter(persons, relationships) {
-        currentPersons = persons;
-        currentRels    = relationships;
-
-        var elements = buildElements(persons, relationships);
-
-        // Alte Elemente ersetzen ohne destroy()
         cy.elements().remove();
-        cy.add(elements);
-
+        cy.add(buildElements(persons, relationships));
         updateCount(persons.length);
         runLayout(document.getElementById('layout-select').value);
     }
 
+    // ── Elemente bauen ───────────────────────────────────────────
     function buildElements(persons, relationships) {
-        var elements = [];
-
         var birthYears = persons
             .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
             .filter(function(y) { return y !== null; });
@@ -398,23 +345,16 @@ window.addEventListener('load', function() {
             return Math.round(20 + ratio * 80);
         }
 
+        var elements = [];
         persons.forEach(function(p) {
             var r = calcRadius(p.birth_date);
             elements.push({ group: 'nodes', data: {
-                id:          p.id,
-                label:       p.display_name,
-                sex:         p.sex,
+                id: p.id, label: p.display_name, sex: p.sex,
                 family_name: p.family_name,
-                birth_date:  p.birth_date  || '',
-                death_date:  p.death_date  || '',
-                birth_place: p.birth_place || '',
-                profession:  p.profession  || '',
+                birth_date: p.birth_date || '', death_date: p.death_date || '',
+                birth_place: p.birth_place || '', profession: p.profession || '',
                 maiden_name: p.maiden_name || '',
-                radius:      r,
-                famColor:    getFamilyColor(p.family_name),
-                // ELK benötigt width/height
-                width:       r,
-                height:      r,
+                radius: r, famColor: getFamilyColor(p.family_name),
             }});
         });
 
@@ -435,71 +375,59 @@ window.addEventListener('load', function() {
                 }});
             }
         });
-
         return elements;
     }
 
     // ── Layout ausführen ─────────────────────────────────────────
     function runLayout(name) {
-        if (!cy) return;
+        if (!cy || cy.nodes().length === 0) return;
 
-        // Labels aktualisieren
-        var labelVal = showLabels ? 'data(label)' : '';
+        // Labels-Style aktualisieren
+        var lv = showLabels ? 'data(label)' : '';
         cy.style()
-            .selector('edge[type = "hasMother"]').style('label', labelVal)
-            .selector('edge[type = "hasFather"]').style('label', labelVal)
-            .selector('edge[type = "hasWife"]').style('label',   labelVal)
+            .selector('edge[type = "hasMother"]').style('label', lv)
+            .selector('edge[type = "hasFather"]').style('label', lv)
+            .selector('edge[type = "hasWife"]').style('label',   lv)
             .update();
 
-        var config = getLayoutConfig(name);
-        var layout = cy.layout(config);
-
-        // ELK ist asynchron – nach Abschluss fit aufrufen
         if (name === 'elk') {
-            layout.promiseOn('layoutstop').then(function() {
-                cy.fit(50);
+            // ELK: Knotengrößen per Callback übergeben – das ist der entscheidende Fix!
+            var layout = cy.layout({
+                name: 'elk',
+                animate: false,
+                elk: {
+                    algorithm:              'layered',
+                    'elk.direction':        'DOWN',
+                    'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+                    'elk.spacing.nodeNode': '60',
+                    'elk.edgeRouting':      'SPLINES',
+                    'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+                    'elk.layered.nodePlacement.strategy':        'BRANDES_KOEPF',
+                },
+                // Knotengrößen explizit pro Knoten übergeben
+                nodeLayoutOptions: function(node) {
+                    var r = node.data('radius') || 40;
+                    return {
+                        'elk.nodeSize.fixedGraphSize': 'false',
+                        'elk.nodeSize.minimum':        r + ' ' + r,
+                    };
+                },
             });
-        }
+            // Auf async Abschluss warten, dann fit
+            layout.promiseOn('layoutstop').then(function() {
+                cy.fit(60);
+            });
+            layout.run();
 
-        layout.run();
-    }
-
-    function getLayoutConfig(name) {
-        switch(name) {
-            case 'elk':
-                return {
-                    name: 'elk',
-                    elk: {
-                        algorithm:           'layered',
-                        'elk.direction':     'DOWN',
-                        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-                        'elk.spacing.nodeNode': '50',
-                        'elk.edgeRouting':   'SPLINES',
-                        'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
-                        'elk.layered.nodePlacement.strategy':        'BRANDES_KOEPF',
-                        'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
-                    },
-                    // ELK braucht Knotengrößen aus den Daten
-                    nodeLayoutOptions: function(node) {
-                        return {
-                            'elk.nodeSize.fixedGraphSize': 'false',
-                        };
-                    },
-                };
-            case 'dagre':
-                return {
-                    name: 'dagre', rankDir: 'TB', ranker: 'network-simplex',
-                    nodeSep: 40, rankSep: 80, padding: 30,
-                };
-            case 'breadthfirst':
-                return { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
-            case 'cose':
-                return {
-                    name: 'cose', animate: true, animationDuration: 600,
-                    idealEdgeLength: 100, nodeRepulsion: 400000, gravity: 80,
-                };
-            default:
-                return { name: name, animate: true, animationDuration: 600 };
+        } else {
+            var configs = {
+                dagre:       { name: 'dagre', rankDir: 'TB', nodeSep: 40, rankSep: 80, padding: 30 },
+                breadthfirst:{ name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 },
+                cose:        { name: 'cose', animate: true, animationDuration: 600, idealEdgeLength: 100, nodeRepulsion: 400000, gravity: 80 },
+                circle:      { name: 'circle', animate: true, animationDuration: 600 },
+                grid:        { name: 'grid',   animate: true, animationDuration: 600 },
+            };
+            cy.layout(configs[name] || { name: name }).run();
         }
     }
 
@@ -512,29 +440,21 @@ window.addEventListener('load', function() {
         Object.keys(families).sort().forEach(function(name) {
             var item = document.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML =
-                '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div>' +
-                '<span>' + name + '</span>';
+            item.innerHTML = '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div><span>' + name + '</span>';
             item.addEventListener('click', function() {
                 document.getElementById('filter-name').value = name;
-                applyFilter(allPersons.filter(function(p) {
-                    return p.family_name === name;
-                }), allRels);
+                applyFilter(allPersons.filter(function(p) { return p.family_name === name; }), allRels);
             });
             container.appendChild(item);
         });
     }
 
-    // ── Toolbar-Events ───────────────────────────────────────────
+    // ── Toolbar ──────────────────────────────────────────────────
     document.getElementById('filter-name').addEventListener('input', function() {
-        var query = this.value.trim().toLowerCase();
-        applyFilter(
-            query ? allPersons.filter(function(p) {
-                return p.family_name.toLowerCase().includes(query) ||
-                       p.display_name.toLowerCase().includes(query);
-            }) : allPersons,
-            allRels
-        );
+        var q = this.value.trim().toLowerCase();
+        applyFilter(q ? allPersons.filter(function(p) {
+            return p.family_name.toLowerCase().includes(q) || p.display_name.toLowerCase().includes(q);
+        }) : allPersons, allRels);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
@@ -548,12 +468,11 @@ window.addEventListener('load', function() {
 
     document.getElementById('show-labels').addEventListener('change', function() {
         showLabels = this.checked;
-        if (!cy) return;
-        var labelVal = showLabels ? 'data(label)' : '';
-        cy.style()
-            .selector('edge[type = "hasMother"]').style('label', labelVal)
-            .selector('edge[type = "hasFather"]').style('label', labelVal)
-            .selector('edge[type = "hasWife"]').style('label',   labelVal)
+        var lv = showLabels ? 'data(label)' : '';
+        if (cy) cy.style()
+            .selector('edge[type = "hasMother"]').style('label', lv)
+            .selector('edge[type = "hasFather"]').style('label', lv)
+            .selector('edge[type = "hasWife"]').style('label',   lv)
             .update();
     });
 
@@ -563,11 +482,9 @@ window.addEventListener('load', function() {
         var parts = d.split('T')[0].split('-');
         return parts.length === 3 ? parts[2]+'.'+parts[1]+'.'+parts[0] : d;
     }
-
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
-
 });
 </script>
 </body>
