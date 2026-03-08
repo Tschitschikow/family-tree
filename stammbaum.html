@@ -33,7 +33,6 @@
             font-family: Georgia, serif;
         }
         #logout-btn:hover { background: rgba(255,255,255,0.3); }
-
         #toolbar {
             background: #f0e8dc;
             border-bottom: 1px solid #ddd;
@@ -72,13 +71,56 @@
         }
         .tool-btn:hover { background: #7a5e4b; }
         #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
+        #cy { flex: 1; width: 100%; min-height: 500px; }
 
-        #cy {
-            flex: 1;
-            width: 100%;
-            min-height: 500px;
+        /* Legende */
+        #legend {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.7em 1em;
+            font-size: 0.75em;
+            z-index: 100;
+            max-height: 55vh;
+            overflow-y: auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 160px;
+        }
+        #legend h4 {
+            color: #5a3e2b;
+            margin-bottom: 0.5em;
+            font-size: 0.9em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.3em;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.3em;
+            gap: 0.5em;
+            cursor: pointer;
+            padding: 0.1em 0.2em;
+            border-radius: 3px;
+        }
+        .legend-item:hover { background: #f0e8dc; }
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.2);
+        }
+        .legend-hint {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 0.5em;
+            font-style: italic;
         }
 
+        /* Info-Panel */
         #info-panel {
             display: none;
             position: fixed;
@@ -112,7 +154,6 @@
             border: none;
         }
         #info-close:hover { color: #333; }
-
         #status-bar {
             text-align: center;
             padding: 2em;
@@ -129,7 +170,8 @@
         <a href="stammbaum3d.html"
            style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            🌐 3D-Ansicht
-        </a><a href="eingabe.html"
+        </a>
+        <a href="eingabe.html"
            style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            ✏️ Eintrag hinzufügen
         </a>
@@ -142,6 +184,7 @@
     <input type="text" id="filter-name" placeholder="Familienname..." />
     <label>Layout:</label>
     <select id="layout-select">
+        <option value="dagre">Stammbaum (dagre)</option>
         <option value="breadthfirst">Hierarchisch</option>
         <option value="cose">Organisch</option>
         <option value="circle">Kreis</option>
@@ -149,12 +192,24 @@
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
+    <label style="font-size:0.85em; display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="show-labels" checked style="width:auto;">
+        Beziehungslabels
+    </label>
     <span id="person-count"></span>
 </div>
 
 <div id="status-bar">Lade Stammbaum...</div>
 <div id="cy"></div>
 
+<!-- Legende -->
+<div id="legend">
+    <h4>🎨 Familiennamen</h4>
+    <div id="legend-items"></div>
+    <div class="legend-hint">Klick → nur diese Familie</div>
+</div>
+
+<!-- Info-Panel -->
 <div id="info-panel">
     <button id="info-close">✕</button>
     <h2 id="info-name"></h2>
@@ -169,13 +224,35 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script>
+
+var FAMILY_COLORS = {
+    'ALLERHOLZ': '#e29c9c', 'APPEL':     '#e2a99c', 'BAHRS':     '#e2b79c',
+    'BERG':      '#e2c49c', 'DAVIDS':    '#e2d29c', 'DEPNER':    '#e2e09c',
+    'FRANCK':    '#d7e29c', 'FRANSSEN':  '#c9e29c', 'GAVRIKOV':  '#bbe29c',
+    'GAVRIKOVA': '#aee29c', 'GLASHOFF':  '#a0e29c', 'GROTH':     '#9ce2a5',
+    'HEIDEMANN': '#9ce2b2', 'HEINRICHS': '#9ce2c0', 'KARSTENS':  '#9ce2cd',
+    'KÜHL':      '#9ce2db', 'MARTENS':   '#9cdbe2', 'MEYER':     '#9ccde2',
+    'MÖLLER':    '#9cc0e2', 'PETERS':    '#9cb2e2', 'RISCHE':    '#9ca5e2',
+    'RÜHMANN':   '#a09ce2', 'RÜHTER':    '#ae9ce2', 'SCHMIDT':   '#bb9ce2',
+    'SCHNAAK':   '#c99ce2', 'SCHUBERT':  '#d79ce2', 'STEINKAMP': '#e29ce0',
+    'TEGTMEYER': '#e29cd2', 'UHLMANN':   '#e29cc4', 'ULMER':     '#e29cb7',
+    'WIPPERMANN':'#e29ca9',
+};
+
+function getFamilyColor(name) {
+    return FAMILY_COLORS[name] || '#cccccc';
+}
+
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let cy = null;
     let allPersons = [];
     let allRelationships = [];
+    let showLabels = true;
 
     // Zugangsschutz
     client.auth.getSession().then(function(result) {
@@ -186,69 +263,73 @@ window.addEventListener('load', function() {
         }
     });
 
-    // Logout
     document.getElementById('logout-btn').addEventListener('click', function() {
-        client.auth.signOut().then(function() {
-            window.location.href = 'login.html';
-        });
+        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // Daten laden – IDs sofort als Ganzzahlen konvertieren
     function loadData() {
         Promise.all([
             client.from('persons').select('*').eq('status', 'approved'),
             client.from('relationships').select('*').eq('status', 'approved'),
         ]).then(function(results) {
             if (results[0].error || results[1].error) {
-                document.getElementById('status-bar').textContent =
-                    'Fehler beim Laden der Daten.';
+                document.getElementById('status-bar').textContent = 'Fehler beim Laden.';
                 return;
             }
-
             allPersons = results[0].data.map(function(p) {
-                p.id = Number(p.id);
-                return p;
+                p.id = Number(p.id); return p;
             });
-
             allRelationships = results[1].data.map(function(r) {
-                r.id                = Number(r.id);
-                r.person_id         = Number(r.person_id);
+                r.id = Number(r.id);
+                r.person_id = Number(r.person_id);
                 r.related_person_id = Number(r.related_person_id);
                 return r;
             });
-
             document.getElementById('status-bar').style.display = 'none';
+            buildLegend(allPersons);
             buildGraph(allPersons, allRelationships);
         });
     }
 
-    // Graph aufbauen
-    function buildGraph(persons, relationships) {
+    function buildLegend(persons) {
+        var families = {};
+        persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
+        var container = document.getElementById('legend-items');
+        container.innerHTML = '';
+        Object.keys(families).sort().forEach(function(name) {
+            var item = document.createElement('div');
+            item.className = 'legend-item';
+            item.title = 'Klick: nur ' + name + ' anzeigen';
+            item.innerHTML =
+                '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div>' +
+                '<span>' + name + '</span>';
+            item.addEventListener('click', function() {
+                document.getElementById('filter-name').value = name;
+                buildGraph(allPersons.filter(function(p) {
+                    return p.family_name === name;
+                }), allRelationships);
+            });
+            container.appendChild(item);
+        });
+    }
 
-        // Alten Graph zerstören
+    function buildGraph(persons, relationships) {
         if (cy) { cy.destroy(); cy = null; }
 
         var elements = [];
 
-        // Radiusberechnung nach Geburtsjahr
         var birthYears = persons
-            .map(function(p) {
-                return p.birth_date ? parseInt(p.birth_date.substring(0, 4)) : null;
-            })
+            .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
             .filter(function(y) { return y !== null; });
-
-        var minYear   = Math.min.apply(null, birthYears);
-        var maxYear   = Math.max.apply(null, birthYears);
-        var avgYear   = Math.round(
-            birthYears.reduce(function(a, b) { return a + b; }, 0) / birthYears.length
-        );
-        var minRadius = 20;
-        var maxRadius = 100;
+        var minYear = birthYears.length ? Math.min.apply(null, birthYears) : 1660;
+        var maxYear = birthYears.length ? Math.max.apply(null, birthYears) : 2025;
+        var avgYear = birthYears.length ? Math.round(
+            birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length) : 1850;
 
         function calcRadius(birth_date) {
-            var year  = birth_date ? parseInt(birth_date.substring(0, 4)) : avgYear;
-            var ratio = (maxYear - year) / (maxYear - minYear);
-            return Math.round(minRadius + ratio * (maxRadius - minRadius));
+            var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
+            var ratio = (maxYear - minYear) > 0 ? (maxYear - year) / (maxYear - minYear) : 0.5;
+            return Math.round(20 + ratio * 80);
         }
 
         // Knoten
@@ -259,49 +340,37 @@ window.addEventListener('load', function() {
                     id:          p.id,
                     label:       p.display_name,
                     sex:         p.sex,
+                    family_name: p.family_name,
                     birth_date:  p.birth_date  || '',
                     death_date:  p.death_date  || '',
                     birth_place: p.birth_place || '',
                     profession:  p.profession  || '',
                     maiden_name: p.maiden_name || '',
                     radius:      calcRadius(p.birth_date),
+                    famColor:    getFamilyColor(p.family_name),
                 }
             });
         });
 
-        // Personen-ID Set – alle bereits Number
+        // Kanten
         var personIds = new Set(persons.map(function(p) { return p.id; }));
-
-        // Kanten – IDs bereits Number aus loadData()
         relationships.forEach(function(r) {
             if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
-
             if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-                elements.push({
-                    group: 'edges',
-                    data: {
-                        id:     'e' + r.id,
-                        source: r.related_person_id,
-                        target: r.person_id,
-                        type:   r.relationship_type,
-                    }
-                });
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
+                    type: r.relationship_type,
+                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
+                }});
             }
-
             if (r.relationship_type === 'hasWife') {
-                elements.push({
-                    group: 'edges',
-                    data: {
-                        id:     'e' + r.id,
-                        source: r.person_id,
-                        target: r.related_person_id,
-                        type:   r.relationship_type,
-                    }
-                });
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
+                    type: r.relationship_type, label: '💍 Ehepaar',
+                }});
             }
         });
 
-        // Cytoscape
         cy = cytoscape({
             container: document.getElementById('cy'),
             elements:  elements,
@@ -319,99 +388,73 @@ window.addEventListener('load', function() {
                         'width':            'data(radius)',
                         'height':           'data(radius)',
                         'shape':            'ellipse',
-                        'background-color': '#a0c4e8',
-                        'border-width':     '1px',
-                        'border-color':     '#5a8ab0',
+                        'background-color': 'data(famColor)',
+                        'border-width':     '2px',
+                        'border-color':     '#555',
                         'color':            '#1a1a2e',
                     }
                 },
                 {
                     selector: 'node[sex = "f"]',
-                    style: {
-                        'background-color': '#f4a7b9',
-                        'border-color':     '#c0607a',
-                    }
+                    style: { 'border-style': 'dashed' }
                 },
                 {
                     selector: 'node[sex = "m"]',
-                    style: {
-                        'background-color': '#a0c4e8',
-                        'border-color':     '#5a8ab0',
-                    }
+                    style: { 'border-style': 'solid' }
                 },
                 {
                     selector: 'node:selected',
                     style: {
-                        'border-width':     '3px',
-                        'border-color':     '#5a3e2b',
-                        'background-color': '#f5d08a',
+                        'border-width': '4px',
+                        'border-color': '#5a3e2b',
+                        'border-style': 'solid',
                     }
                 },
-{
+                {
                     selector: 'edge',
                     style: {
-                        'width':               1.5,
-                        'line-color':          '#aaa',
-                        'target-arrow-color':  '#aaa',
-                        'target-arrow-shape':  'triangle',
-                        'curve-style':         'bezier',
-                        'font-size':           '7px',
-                        'font-family':         'Georgia, serif',
-                        'text-rotation':       'autorotate',
-                        'text-margin-y':       '-8px',
-                        'color':               '#555',
+                        'width': 1.5, 'line-color': '#aaa',
+                        'target-arrow-color': '#aaa', 'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier', 'font-size': '7px',
+                        'font-family': 'Georgia, serif', 'text-rotation': 'autorotate',
+                        'text-margin-y': '-8px', 'color': '#555', 'label': '',
                     }
                 },
                 {
                     selector: 'edge[type = "hasMother"]',
                     style: {
-                        'line-color':         '#c0607a',
-                        'target-arrow-color': '#c0607a',
-                        'label':              '👩 Mutter',
-                        'color':              '#c0607a',
+                        'line-color': '#c0607a', 'target-arrow-color': '#c0607a',
+                        'label': showLabels ? 'data(label)' : '', 'color': '#c0607a',
                     }
                 },
                 {
                     selector: 'edge[type = "hasFather"]',
                     style: {
-                        'line-color':         '#5a8ab0',
-                        'target-arrow-color': '#5a8ab0',
-                        'label':              '👨 Vater',
-                        'color':              '#5a8ab0',
+                        'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0',
+                        'label': showLabels ? 'data(label)' : '', 'color': '#5a8ab0',
                     }
                 },
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
-                        'line-color':         '#8B4513',
-                        'target-arrow-color': '#8B4513',
-                        'target-arrow-shape': 'none',
-                        'line-style':         'dashed',
-                        'width':              2,
-                        'label':              '💍 Ehepaar',
-                        'color':              '#8B4513',
-                        'text-rotation':      'autorotate',
-                        'text-margin-y':      '-8px',
+                        'line-color': '#8B4513', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'width': 2,
+                        'label': showLabels ? 'data(label)' : '', 'color': '#8B4513',
                     }
                 },
-                {
-                    selector: '.faded',
-                    style: { 'opacity': 0.15 }
-                }
+                { selector: '.faded', style: { 'opacity': 0.1 } }
             ],
             layout: {
-                name:          'breadthfirst',
-                directed:      true,
-                padding:       20,
-                spacingFactor: 1.2,
+                name: 'dagre', rankDir: 'TB', ranker: 'network-simplex',
+                nodeSep: 40, rankSep: 80, edgeSep: 10, padding: 30,
             }
         });
 
         updateCount(persons.length);
 
-        // Klick auf Person → Info-Panel
         cy.on('tap', 'node', function(e) {
-            var d = e.target.data();
+            var node = e.target;
+            var d    = node.data();
             document.getElementById('info-name').textContent       = d.label;
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
             document.getElementById('info-birth').textContent      = formatDate(d.birth_date)  || '–';
@@ -420,45 +463,43 @@ window.addEventListener('load', function() {
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-panel').style.display    = 'block';
+            cy.elements().addClass('faded');
+            node.removeClass('faded');
+            node.connectedEdges().removeClass('faded');
+            node.connectedEdges().connectedNodes().removeClass('faded');
         });
 
         cy.on('tap', function(e) {
             if (e.target === cy) {
+                cy.elements().removeClass('faded');
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
 
         document.getElementById('info-close').addEventListener('click', function() {
+            cy.elements().removeClass('faded');
             document.getElementById('info-panel').style.display = 'none';
         });
     }
 
-    // Datum formatieren: 1843-01-23 → 23.01.1843
     function formatDate(d) {
         if (!d) return '';
         var parts = d.split('T')[0].split('-');
-        if (parts.length === 3) {
-            return parts[2] + '.' + parts[1] + '.' + parts[0];
-        }
-        return d;
+        return parts.length === 3 ? parts[2]+'.'+parts[1]+'.'+parts[0] : d;
     }
 
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
 
-    // Filter
     document.getElementById('filter-name').addEventListener('input', function() {
         var query = this.value.trim().toLowerCase();
-        if (!query) {
-            buildGraph(allPersons, allRelationships);
-            return;
-        }
-        var filtered = allPersons.filter(function(p) {
-            return p.family_name.toLowerCase().includes(query) ||
-                   p.display_name.toLowerCase().includes(query);
-        });
-        buildGraph(filtered, allRelationships);
+        buildGraph(query
+            ? allPersons.filter(function(p) {
+                return p.family_name.toLowerCase().includes(query) ||
+                       p.display_name.toLowerCase().includes(query);
+              })
+            : allPersons, allRelationships);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
@@ -466,21 +507,28 @@ window.addEventListener('load', function() {
         buildGraph(allPersons, allRelationships);
     });
 
-    // Layout wechseln
+    document.getElementById('show-labels').addEventListener('change', function() {
+        showLabels = this.checked;
+        if (!cy) return;
+        cy.style()
+            .selector('edge[type = "hasMother"]').style('label', showLabels ? 'data(label)' : '')
+            .selector('edge[type = "hasFather"]').style('label', showLabels ? 'data(label)' : '')
+            .selector('edge[type = "hasWife"]').style('label',   showLabels ? 'data(label)' : '')
+            .update();
+    });
+
     document.getElementById('apply-layout').addEventListener('click', function() {
         if (!cy) return;
-        var layoutName   = document.getElementById('layout-select').value;
-        var layoutConfig = { name: layoutName, animate: true, animationDuration: 600 };
-        if (layoutName === 'breadthfirst') {
-            layoutConfig.directed      = true;
-            layoutConfig.spacingFactor = 1.2;
-            layoutConfig.padding       = 20;
-        } else if (layoutName === 'cose') {
-            layoutConfig.idealEdgeLength = 100;
-            layoutConfig.nodeRepulsion   = 400000;
-            layoutConfig.gravity         = 80;
+        var name   = document.getElementById('layout-select').value;
+        var config = { name: name, animate: true, animationDuration: 600 };
+        if (name === 'dagre') {
+            config.rankDir = 'TB'; config.nodeSep = 40; config.rankSep = 80; config.animate = false;
+        } else if (name === 'breadthfirst') {
+            config.directed = true; config.spacingFactor = 1.2; config.padding = 20;
+        } else if (name === 'cose') {
+            config.idealEdgeLength = 100; config.nodeRepulsion = 400000; config.gravity = 80;
         }
-        cy.layout(layoutConfig).run();
+        cy.layout(config).run();
     });
 
 });
