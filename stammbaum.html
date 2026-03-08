@@ -73,7 +73,6 @@
         #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
         #cy { flex: 1; width: 100%; min-height: 500px; }
 
-        /* Legende */
         #legend {
             position: fixed;
             bottom: 20px;
@@ -113,7 +112,6 @@
         }
         .legend-hint { font-size: 0.8em; color: #aaa; margin-top: 0.5em; font-style: italic; }
 
-        /* Info-Panel */
         #info-panel {
             display: none;
             position: fixed;
@@ -207,15 +205,12 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-<!-- ELK Layout -->
-<script src="https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/cytoscape-elk.js"></script>
-<!-- dagre als Fallback -->
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/cytoscape-elk.js"></script>
 
 <script>
-
 var FAMILY_COLORS = {
     'ALLERHOLZ': '#e29c9c', 'APPEL':     '#e2a99c', 'BAHRS':     '#e2b79c',
     'BERG':      '#e2c49c', 'DAVIDS':    '#e2d29c', 'DEPNER':    '#e2e09c',
@@ -229,29 +224,29 @@ var FAMILY_COLORS = {
     'TEGTMEYER': '#e29cd2', 'UHLMANN':   '#e29cc4', 'ULMER':     '#e29cb7',
     'WIPPERMANN':'#e29ca9',
 };
-
-function getFamilyColor(name) { return FAMILY_COLORS[name] || '#cccccc'; }
+function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let cy = null;
-    let allPersons = [];
-    let allRelationships = [];
-    let showLabels = true;
+    let cy          = null;
+    let allPersons  = [];
+    let allRels     = [];
+    let showLabels  = true;
+    let currentPersons = [];
+    let currentRels    = [];
 
+    // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
-        if (!result.data.session) {
-            window.location.href = 'login.html';
-        } else {
-            loadData();
-        }
+        if (!result.data.session) { window.location.href = 'login.html'; }
+        else { loadData(); }
     });
 
     document.getElementById('logout-btn').addEventListener('click', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
+    // ── Daten laden ──────────────────────────────────────────────
     function loadData() {
         Promise.all([
             client.from('persons').select('*').eq('status', 'approved'),
@@ -261,10 +256,8 @@ window.addEventListener('load', function() {
                 document.getElementById('status-bar').textContent = 'Fehler beim Laden.';
                 return;
             }
-            allPersons = results[0].data.map(function(p) {
-                p.id = Number(p.id); return p;
-            });
-            allRelationships = results[1].data.map(function(r) {
+            allPersons = results[0].data.map(function(p) { p.id = Number(p.id); return p; });
+            allRels    = results[1].data.map(function(r) {
                 r.id = Number(r.id);
                 r.person_id = Number(r.person_id);
                 r.related_person_id = Number(r.related_person_id);
@@ -272,101 +265,20 @@ window.addEventListener('load', function() {
             });
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
-            buildGraph(allPersons, allRelationships);
+            // Cytoscape einmalig initialisieren
+            initCy();
+            // Daten laden
+            applyFilter(allPersons, allRels);
         });
     }
 
-    function buildLegend(persons) {
-        var families = {};
-        persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
-        var container = document.getElementById('legend-items');
-        container.innerHTML = '';
-        Object.keys(families).sort().forEach(function(name) {
-            var item = document.createElement('div');
-            item.className = 'legend-item';
-            item.innerHTML =
-                '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div>' +
-                '<span>' + name + '</span>';
-            item.addEventListener('click', function() {
-                document.getElementById('filter-name').value = name;
-                buildGraph(allPersons.filter(function(p) {
-                    return p.family_name === name;
-                }), allRelationships);
-            });
-            container.appendChild(item);
-        });
-    }
-
-    function buildGraph(persons, relationships) {
-        if (cy) { cy.destroy(); cy = null; }
-
-        var elements = [];
-
-        var birthYears = persons
-            .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
-            .filter(function(y) { return y !== null; });
-        var minYear = birthYears.length ? Math.min.apply(null, birthYears) : 1660;
-        var maxYear = birthYears.length ? Math.max.apply(null, birthYears) : 2025;
-        var avgYear = birthYears.length ? Math.round(
-            birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length) : 1850;
-
-        function calcRadius(birth_date) {
-            var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
-            var ratio = (maxYear - minYear) > 0 ? (maxYear - year) / (maxYear - minYear) : 0.5;
-            return Math.round(20 + ratio * 80);
-        }
-
-        persons.forEach(function(p) {
-            var r = calcRadius(p.birth_date);
-            elements.push({
-                group: 'nodes',
-                data: {
-                    id:          p.id,
-                    label:       p.display_name,
-                    sex:         p.sex,
-                    family_name: p.family_name,
-                    birth_date:  p.birth_date  || '',
-                    death_date:  p.death_date  || '',
-                    birth_place: p.birth_place || '',
-                    profession:  p.profession  || '',
-                    maiden_name: p.maiden_name || '',
-                    radius:      r,
-                    famColor:    getFamilyColor(p.family_name),
-                    // ELK braucht Größenangaben direkt im data-Objekt
-                    width:       r,
-                    height:      r,
-                }
-            });
-        });
-
-        var personIds = new Set(persons.map(function(p) { return p.id; }));
-        relationships.forEach(function(r) {
-            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
-            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-                elements.push({ group: 'edges', data: {
-                    id: 'e'+r.id,
-                    source: r.related_person_id,
-                    target: r.person_id,
-                    type: r.relationship_type,
-                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
-                }});
-            }
-            if (r.relationship_type === 'hasWife') {
-                elements.push({ group: 'edges', data: {
-                    id: 'e'+r.id,
-                    source: r.person_id,
-                    target: r.related_person_id,
-                    type: r.relationship_type,
-                    label: '💍 Ehepaar',
-                }});
-            }
-        });
-
-        var currentLayout = document.getElementById('layout-select').value;
-
+    // ── Cytoscape EINMALIG aufbauen ──────────────────────────────
+    // Daten werden danach nur noch via cy.json() ausgetauscht,
+    // kein destroy() mehr → Event-Listener bleiben erhalten!
+    function initCy() {
         cy = cytoscape({
             container: document.getElementById('cy'),
-            elements:  elements,
+            elements:  [],
             style: [
                 {
                     selector: 'node',
@@ -406,33 +318,24 @@ window.addEventListener('load', function() {
                 },
                 {
                     selector: 'edge[type = "hasMother"]',
-                    style: {
-                        'line-color': '#c0607a', 'target-arrow-color': '#c0607a',
-                        'label': showLabels ? 'data(label)' : '', 'color': '#c0607a',
-                    }
+                    style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a' }
                 },
                 {
                     selector: 'edge[type = "hasFather"]',
-                    style: {
-                        'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0',
-                        'label': showLabels ? 'data(label)' : '', 'color': '#5a8ab0',
-                    }
+                    style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0' }
                 },
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
                         'line-color': '#8B4513', 'target-arrow-shape': 'none',
-                        'line-style': 'dashed', 'width': 2,
-                        'label': showLabels ? 'data(label)' : '', 'color': '#8B4513',
+                        'line-style': 'dashed', 'width': 2, 'color': '#8B4513',
                     }
                 },
                 { selector: '.faded', style: { 'opacity': 0.1 } }
             ],
-            layout: getLayoutConfig(currentLayout),
         });
 
-        updateCount(persons.length);
-
+        // ── Events (einmalig registriert) ────────────────────────
         cy.on('tap', 'node', function(e) {
             var node = e.target;
             var d    = node.data();
@@ -463,37 +366,133 @@ window.addEventListener('load', function() {
         });
     }
 
+    // ── Elemente berechnen & in cy laden ─────────────────────────
+    function applyFilter(persons, relationships) {
+        currentPersons = persons;
+        currentRels    = relationships;
+
+        var elements = buildElements(persons, relationships);
+
+        // Alte Elemente ersetzen ohne destroy()
+        cy.elements().remove();
+        cy.add(elements);
+
+        updateCount(persons.length);
+        runLayout(document.getElementById('layout-select').value);
+    }
+
+    function buildElements(persons, relationships) {
+        var elements = [];
+
+        var birthYears = persons
+            .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
+            .filter(function(y) { return y !== null; });
+        var minYear = birthYears.length ? Math.min.apply(null, birthYears) : 1660;
+        var maxYear = birthYears.length ? Math.max.apply(null, birthYears) : 2025;
+        var avgYear = birthYears.length ? Math.round(
+            birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length) : 1850;
+
+        function calcRadius(birth_date) {
+            var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
+            var ratio = (maxYear - minYear) > 0 ? (maxYear - year) / (maxYear - minYear) : 0.5;
+            return Math.round(20 + ratio * 80);
+        }
+
+        persons.forEach(function(p) {
+            var r = calcRadius(p.birth_date);
+            elements.push({ group: 'nodes', data: {
+                id:          p.id,
+                label:       p.display_name,
+                sex:         p.sex,
+                family_name: p.family_name,
+                birth_date:  p.birth_date  || '',
+                death_date:  p.death_date  || '',
+                birth_place: p.birth_place || '',
+                profession:  p.profession  || '',
+                maiden_name: p.maiden_name || '',
+                radius:      r,
+                famColor:    getFamilyColor(p.family_name),
+                // ELK benötigt width/height
+                width:       r,
+                height:      r,
+            }});
+        });
+
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+        relationships.forEach(function(r) {
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
+                    type: r.relationship_type,
+                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
+                }});
+            }
+            if (r.relationship_type === 'hasWife') {
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
+                    type: r.relationship_type, label: '💍 Ehepaar',
+                }});
+            }
+        });
+
+        return elements;
+    }
+
+    // ── Layout ausführen ─────────────────────────────────────────
+    function runLayout(name) {
+        if (!cy) return;
+
+        // Labels aktualisieren
+        var labelVal = showLabels ? 'data(label)' : '';
+        cy.style()
+            .selector('edge[type = "hasMother"]').style('label', labelVal)
+            .selector('edge[type = "hasFather"]').style('label', labelVal)
+            .selector('edge[type = "hasWife"]').style('label',   labelVal)
+            .update();
+
+        var config = getLayoutConfig(name);
+        var layout = cy.layout(config);
+
+        // ELK ist asynchron – nach Abschluss fit aufrufen
+        if (name === 'elk') {
+            layout.promiseOn('layoutstop').then(function() {
+                cy.fit(50);
+            });
+        }
+
+        layout.run();
+    }
+
     function getLayoutConfig(name) {
         switch(name) {
             case 'elk':
                 return {
                     name: 'elk',
                     elk: {
-                        algorithm:                    'layered',
-                        'elk.direction':              'DOWN',
-                        // Großzügige Abstände – natürlich, nicht gequetscht
-                        'elk.layered.spacing.nodeNodeBetweenLayers': 80,
-                        'elk.spacing.nodeNode':        50,
-                        // Kanten sollen schräg sein dürfen – keine Rechtwinkelpflicht
-                        'elk.edgeRouting':            'SPLINES',
-                        // Weniger strenge Schichtung → natürlicheres Bild
+                        algorithm:           'layered',
+                        'elk.direction':     'DOWN',
+                        'elk.layered.spacing.nodeNodeBetweenLayers': '80',
+                        'elk.spacing.nodeNode': '50',
+                        'elk.edgeRouting':   'SPLINES',
                         'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
                         'elk.layered.nodePlacement.strategy':        'BRANDES_KOEPF',
-                        // Kompakter wo möglich
                         'elk.layered.compaction.postCompaction.strategy': 'EDGE_LENGTH',
                     },
-                    animate: false,
+                    // ELK braucht Knotengrößen aus den Daten
+                    nodeLayoutOptions: function(node) {
+                        return {
+                            'elk.nodeSize.fixedGraphSize': 'false',
+                        };
+                    },
                 };
             case 'dagre':
                 return {
                     name: 'dagre', rankDir: 'TB', ranker: 'network-simplex',
-                    nodeSep: 40, rankSep: 80, edgeSep: 10, padding: 30,
+                    nodeSep: 40, rankSep: 80, padding: 30,
                 };
             case 'breadthfirst':
-                return {
-                    name: 'breadthfirst', directed: true,
-                    spacingFactor: 1.2, padding: 20,
-                };
+                return { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
             case 'cose':
                 return {
                     name: 'cose', animate: true, animationDuration: 600,
@@ -504,6 +503,61 @@ window.addEventListener('load', function() {
         }
     }
 
+    // ── Legende ──────────────────────────────────────────────────
+    function buildLegend(persons) {
+        var families = {};
+        persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
+        var container = document.getElementById('legend-items');
+        container.innerHTML = '';
+        Object.keys(families).sort().forEach(function(name) {
+            var item = document.createElement('div');
+            item.className = 'legend-item';
+            item.innerHTML =
+                '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div>' +
+                '<span>' + name + '</span>';
+            item.addEventListener('click', function() {
+                document.getElementById('filter-name').value = name;
+                applyFilter(allPersons.filter(function(p) {
+                    return p.family_name === name;
+                }), allRels);
+            });
+            container.appendChild(item);
+        });
+    }
+
+    // ── Toolbar-Events ───────────────────────────────────────────
+    document.getElementById('filter-name').addEventListener('input', function() {
+        var query = this.value.trim().toLowerCase();
+        applyFilter(
+            query ? allPersons.filter(function(p) {
+                return p.family_name.toLowerCase().includes(query) ||
+                       p.display_name.toLowerCase().includes(query);
+            }) : allPersons,
+            allRels
+        );
+    });
+
+    document.getElementById('reset-filter').addEventListener('click', function() {
+        document.getElementById('filter-name').value = '';
+        applyFilter(allPersons, allRels);
+    });
+
+    document.getElementById('apply-layout').addEventListener('click', function() {
+        runLayout(document.getElementById('layout-select').value);
+    });
+
+    document.getElementById('show-labels').addEventListener('change', function() {
+        showLabels = this.checked;
+        if (!cy) return;
+        var labelVal = showLabels ? 'data(label)' : '';
+        cy.style()
+            .selector('edge[type = "hasMother"]').style('label', labelVal)
+            .selector('edge[type = "hasFather"]').style('label', labelVal)
+            .selector('edge[type = "hasWife"]').style('label',   labelVal)
+            .update();
+    });
+
+    // ── Hilfsfunktionen ──────────────────────────────────────────
     function formatDate(d) {
         if (!d) return '';
         var parts = d.split('T')[0].split('-');
@@ -513,37 +567,6 @@ window.addEventListener('load', function() {
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
-
-    document.getElementById('filter-name').addEventListener('input', function() {
-        var query = this.value.trim().toLowerCase();
-        buildGraph(query
-            ? allPersons.filter(function(p) {
-                return p.family_name.toLowerCase().includes(query) ||
-                       p.display_name.toLowerCase().includes(query);
-              })
-            : allPersons, allRelationships);
-    });
-
-    document.getElementById('reset-filter').addEventListener('click', function() {
-        document.getElementById('filter-name').value = '';
-        buildGraph(allPersons, allRelationships);
-    });
-
-    document.getElementById('show-labels').addEventListener('change', function() {
-        showLabels = this.checked;
-        if (!cy) return;
-        cy.style()
-            .selector('edge[type = "hasMother"]').style('label', showLabels ? 'data(label)' : '')
-            .selector('edge[type = "hasFather"]').style('label', showLabels ? 'data(label)' : '')
-            .selector('edge[type = "hasWife"]').style('label',   showLabels ? 'data(label)' : '')
-            .update();
-    });
-
-    document.getElementById('apply-layout').addEventListener('click', function() {
-        if (!cy) return;
-        var name = document.getElementById('layout-select').value;
-        cy.layout(getLayoutConfig(name)).run();
-    });
 
 });
 </script>
