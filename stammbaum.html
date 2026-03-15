@@ -355,10 +355,10 @@ window.addEventListener('load', function() {
 
         cy.on('tap', 'node', function(e) {
             var node = e.target, d = node.data();
-            document.getElementById('info-name').textContent       = d.label;
+            document.getElementById('info-name').textContent       = d.label.replace('\n🔮','');
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
-            document.getElementById('info-birth').textContent      = formatDate(d.birth_date)  || '–';
-            document.getElementById('info-death').textContent      = formatDate(d.death_date)  || '–';
+            document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' 🔮' : '');
+            document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' 🔮' : '');
             document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
@@ -417,9 +417,14 @@ window.addEventListener('load', function() {
             var r = calcRadius(p.birth_date);
             // Geburtsjahr für spätere Y-Positionierung im data speichern
             var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
+            // Label mit Schätzungs-Symbol ergänzen
+            var label = p.display_name;
+            if (p.birth_date_estimated || p.death_date_estimated) {
+                label = label + '\n🔮';
+            }
             elements.push({ group: 'nodes', data: {
                 id:          p.id,
-                label:       p.display_name,
+                label:       label,
                 sex:         p.sex,
                 family_name: p.family_name,
                 birth_date:  p.birth_date  || '',
@@ -430,6 +435,8 @@ window.addEventListener('load', function() {
                 radius:      r,
                 famColor:    getFamilyColor(p.family_name),
                 birthYear:   birthYear,
+                birth_date_estimated: p.birth_date_estimated || false,
+                death_date_estimated: p.death_date_estimated || false,
             },
             classes: marriedIds.has(p.id) ? 'married' : '',
             });
