@@ -146,9 +146,9 @@
     <input type="text" id="filter-name" placeholder="Familienname..." />
     <label>Layout:</label>
     <select id="layout-select">
+        <option value="cose">Organisch</option>
         <option value="klay">Stammbaum (klay)</option>
         <option value="dagre">Hierarchisch (dagre)</option>
-        <option value="cose">Organisch</option>
         <option value="breadthfirst">Breitensuche</option>
         <option value="circle">Kreis</option>
         <option value="grid">Raster</option>
@@ -251,6 +251,7 @@ window.addEventListener('load', function() {
             container: document.getElementById('cy'),
             elements:  [],
             style: [
+                // ── Knoten Standard ──────────────────────────────
                 {
                     selector: 'node',
                     style: {
@@ -272,21 +273,57 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'node[sex = "f"]', style: { 'border-style': 'dashed' } },
                 { selector: 'node[sex = "m"]', style: { 'border-style': 'solid'  } },
-                { selector: 'node:selected',   style: { 'border-width': '4px', 'border-color': '#5a3e2b' } },
+
+                // ── Verheiratete Person: goldene, dickere Umrandung ──
+                {
+                    selector: 'node.married',
+                    style: {
+                        'border-color': '#c8960c',
+                        'border-width': '4px',
+                        'border-style': 'solid',
+                    }
+                },
+
+                { selector: 'node:selected', style: { 'border-width': '5px', 'border-color': '#5a3e2b' } },
+
+                // ── Kanten Standard ──────────────────────────────
                 {
                     selector: 'edge',
                     style: {
-                        'width': 1.5, 'line-color': '#aaa',
-                        'target-arrow-color': '#aaa', 'target-arrow-shape': 'triangle',
+                        'width': 1.5,
+                        'line-color': '#aaa',
+                        'target-arrow-color': '#aaa',
+                        'target-arrow-shape': 'triangle',
                         'curve-style': 'bezier',
-                        'font-size': '7px', 'font-family': 'Georgia, serif',
-                        'text-rotation': 'autorotate', 'text-margin-y': '-8px',
-                        'color': '#555', 'label': '',
+                        'font-size': '7px',
+                        'font-family': 'Georgia, serif',
+                        'text-rotation': 'autorotate',
+                        'text-margin-y': '-8px',
+                        'color': '#555',
+                        'label': '',
                     }
                 },
-                { selector: 'edge[type = "hasMother"]', style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a' } },
-                { selector: 'edge[type = "hasFather"]', style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0' } },
-                { selector: 'edge[type = "hasWife"]',   style: { 'line-color': '#8B4513', 'target-arrow-shape': 'none', 'line-style': 'dashed', 'width': 2, 'color': '#8B4513' } },
+                { selector: 'edge[type = "hasMother"]', style: {
+                    'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a'
+                }},
+                { selector: 'edge[type = "hasFather"]', style: {
+                    'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0'
+                }},
+
+                // ── Ehe-Kante: deutlich dicker, goldfarben ───────
+                {
+                    selector: 'edge[type = "hasWife"]',
+                    style: {
+                        'line-color':         '#c8960c',
+                        'target-arrow-shape': 'none',
+                        'line-style':         'solid',   // durchgezogen statt gestrichelt
+                        'width':              6,          // deutlich dicker
+                        'opacity':            0.85,
+                        'color':              '#c8960c',
+                        'curve-style':        'bezier',
+                    }
+                },
+
                 { selector: '.faded', style: { 'opacity': 0.1 } }
             ],
         });
@@ -340,33 +377,66 @@ window.addEventListener('load', function() {
             return Math.round(20 + ratio * 80);
         }
 
+        // Verheiratete Personen-IDs ermitteln (für goldene Umrandung)
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+        var marriedIds = new Set();
+        relationships.forEach(function(r) {
+            if ((r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband') &&
+                personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
+                marriedIds.add(r.person_id);
+                marriedIds.add(r.related_person_id);
+            }
+        });
+
+        // Familienname → Index für Abstoßungs-Gewichtung
+        var familyList = [];
+        persons.forEach(function(p) {
+            if (p.family_name && familyList.indexOf(p.family_name) === -1) {
+                familyList.push(p.family_name);
+            }
+        });
+
         var elements = [];
         persons.forEach(function(p) {
             var r = calcRadius(p.birth_date);
             elements.push({ group: 'nodes', data: {
-                id: p.id, label: p.display_name, sex: p.sex,
+                id:          p.id,
+                label:       p.display_name,
+                sex:         p.sex,
                 family_name: p.family_name,
-                birth_date: p.birth_date || '', death_date: p.death_date || '',
-                birth_place: p.birth_place || '', profession: p.profession || '',
+                birth_date:  p.birth_date  || '',
+                death_date:  p.death_date  || '',
+                birth_place: p.birth_place || '',
+                profession:  p.profession  || '',
                 maiden_name: p.maiden_name || '',
-                radius: r, famColor: getFamilyColor(p.family_name),
-            }});
+                radius:      r,
+                famColor:    getFamilyColor(p.family_name),
+                // Familienindex für Layout-Gewichtung
+                famIndex:    familyList.indexOf(p.family_name),
+            },
+            // Verheiratete bekommen die Klasse 'married'
+            classes: marriedIds.has(p.id) ? 'married' : '',
+            });
         });
 
-        var personIds = new Set(persons.map(function(p) { return p.id; }));
         relationships.forEach(function(r) {
             if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
             if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
                 elements.push({ group: 'edges', data: {
-                    id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
-                    type: r.relationship_type,
-                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
+                    id:     'e'+r.id,
+                    source: r.related_person_id,
+                    target: r.person_id,
+                    type:   r.relationship_type,
+                    label:  r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
                 }});
             }
             if (r.relationship_type === 'hasWife') {
                 elements.push({ group: 'edges', data: {
-                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                    type: r.relationship_type, label: '💍 Ehepaar',
+                    id:     'e'+r.id,
+                    source: r.person_id,
+                    target: r.related_person_id,
+                    type:   r.relationship_type,
+                    label:  '💍 Ehepaar',
                 }});
             }
         });
@@ -385,21 +455,70 @@ window.addEventListener('load', function() {
 
         var config;
         switch(name) {
+            case 'cose':
+                config = {
+                    name: 'cose',
+                    animate: true,
+                    animationDuration: 800,
+                    animationEasing: 'ease-out',
+                    refresh: 20,
+                    fit: true,
+                    padding: 60,
+
+                    // ── Punkt 2: Familien nach außen dehnen ──────
+                    // Niedrige Schwerkraft → Knoten driften weit nach außen
+                    gravity: 3,
+
+                    // Starke Abstoßung zwischen Knoten verschiedener Familien,
+                    // schwächere innerhalb derselben Familie → Cluster entstehen
+                    nodeRepulsion: function(node) {
+                        return 12000;
+                    },
+
+                    // ── Punkt 3: Kinder auffächern ───────────────
+                    // Kurze Eltern-Kind-Kanten halten Kinder nah beieinander
+                    // um die Eltern herum
+                    idealEdgeLength: function(edge) {
+                        var type = edge.data('type');
+                        if (type === 'hasMother' || type === 'hasFather') {
+                            return 80;   // Eltern-Kind: mittelkurz → Kinder kreisen um Eltern
+                        }
+                        if (type === 'hasWife') {
+                            return 40;   // Ehepaar: sehr kurz → Paar bleibt eng zusammen
+                        }
+                        return 100;
+                    },
+
+                    edgeElasticity: function(edge) {
+                        var type = edge.data('type');
+                        if (type === 'hasWife') return 200;  // Ehe zieht stark zusammen
+                        return 100;
+                    },
+
+                    // Knoten gleicher Familie werden dichter zusammengehalten
+                    // durch kürzere ideale Kantenlänge (indirekt via Abstoßung)
+                    nestingFactor: 1.2,
+                    numIter: 2500,           // mehr Iterationen → stabileres Ergebnis
+                    initialTemp: 400,
+                    coolingFactor: 0.97,
+                    minTemp: 1.0,
+                    randomize: true,
+                };
+                break;
+
             case 'klay':
                 config = {
                     name: 'klay',
                     animate: false,
                     klay: {
-                        direction:          'DOWN',   // von oben nach unten
-                        nodePlacement:      'BRANDES_KOEPF',
-                        edgeRouting:        'SPLINES', // schräge, organische Kanten
-                        spacing:            60,        // Abstand zwischen Knoten
-                        thoroughness:       7,         // Qualität vs. Speed (1-10)
-                        fixedAlignment:     'NONE',    // keine strenge Ausrichtung
-                        layoutHierarchy:    false,
+                        direction:            'DOWN',
+                        nodePlacement:        'BRANDES_KOEPF',
+                        edgeRouting:          'SPLINES',
+                        spacing:              60,
+                        thoroughness:         7,
+                        fixedAlignment:       'NONE',
                         separateConnectedComponents: true,
-                        inLayerSpacingFactor: 2.0,    // mehr Platz innerhalb einer Ebene
-                        layerConstraint:    'NONE',
+                        inLayerSpacingFactor: 2.0,
                     },
                 };
                 break;
@@ -408,9 +527,6 @@ window.addEventListener('load', function() {
                 break;
             case 'breadthfirst':
                 config = { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
-                break;
-            case 'cose':
-                config = { name: 'cose', animate: true, animationDuration: 600, idealEdgeLength: 100, nodeRepulsion: 400000, gravity: 80 };
                 break;
             default:
                 config = { name: name, animate: true, animationDuration: 600 };
@@ -429,7 +545,9 @@ window.addEventListener('load', function() {
         Object.keys(families).sort().forEach(function(name) {
             var item = document.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML = '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div><span>' + name + '</span>';
+            item.innerHTML =
+                '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div>' +
+                '<span>' + name + '</span>';
             item.addEventListener('click', function() {
                 document.getElementById('filter-name').value = name;
                 applyFilter(allPersons.filter(function(p) { return p.family_name === name; }), allRels);
