@@ -219,8 +219,25 @@ window.addEventListener('load', function() {
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
     var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // ── Manueller Korrektur-Cache ────────────────────────────────
+    // Orte die Nominatim nicht findet oder falsch platziert:
+    // Format: 'Ortsname': { lat: XX.XXXX, lng: YY.YYYY }
+    // Koordinaten findest du auf openstreetmap.org per Rechtsklick → "Was ist hier?"
+    var manualCache = {
+        // Beispiele – bitte anpassen oder erweitern:
+        // 'Gr. Kummerfeld':   { lat: 53.7850, lng:  9.8920 },
+        // 'Lütjenbg.':        { lat: 54.2969, lng: 10.5986 },
+        // 'Preetz i. Holst.': { lat: 54.2333, lng: 10.2833 },
+        // 'Kiel i.H.':        { lat: 54.3233, lng: 10.1394 },
+    };
+
     // Geocoding-Cache: Ortsname → {lat, lng} oder null
+    // Wird beim Laden mit manualCache vorbelegt
     var geoCache = {};
+    // Manuelle Einträge direkt übernehmen
+    Object.keys(manualCache).forEach(function(place) {
+        geoCache[place] = manualCache[place];
+    });
 
     // Marker-Layer
     var birthLayer = L.layerGroup();
@@ -275,6 +292,7 @@ window.addEventListener('load', function() {
                 var persons = result.data;
 
                 // Alle einzigartigen Orte sammeln
+                // Bereits manuell bekannte Orte werden beim Geocoding übersprungen
                 var placesToGeocode = {};
                 persons.forEach(function(p) {
                     if (p.birth_place) placesToGeocode[p.birth_place] = true;
@@ -282,6 +300,13 @@ window.addEventListener('load', function() {
                 });
 
                 var places = Object.keys(placesToGeocode);
+                // Zähle wie viele davon manuell bekannt sind
+                var manualCount = places.filter(function(p) {
+                    return manualCache.hasOwnProperty(p);
+                }).length;
+                if (manualCount > 0) {
+                    console.log(manualCount + ' Orte aus manuellem Cache übernommen');
+                }
                 geocodePlaces(places, persons);
             });
     }
@@ -312,6 +337,12 @@ window.addEventListener('load', function() {
             var place = places[index];
             progText.textContent = 'Geocoding: ' + place + ' (' + (index+1) + '/' + total + ')';
             progBar.style.width = Math.round((index+1) / total * 100) + '%';
+
+            // Bereits im Cache (manuell oder vorher geocoded)? Überspringen
+            if (geoCache.hasOwnProperty(place)) {
+                setTimeout(function() { geocodeNext(index + 1); }, 0);
+                return;
+            }
 
             // Nominatim-Anfrage
             var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
@@ -409,10 +440,17 @@ window.addEventListener('load', function() {
         });
 
         // Statistik anzeigen
-        var notFound = Object.values(geoCache).filter(function(v) { return v === null; }).length;
-        document.getElementById('stats').textContent =
-            birthCount + ' Geburtsorte · ' + deathCount + ' Sterbeorte' +
-            (notFound > 0 ? ' · ' + notFound + ' nicht gefunden' : '');
+        var notFoundPlaces = Object.keys(geoCache).filter(function(k) { return geoCache[k] === null; });
+        var statsEl = document.getElementById('stats');
+        statsEl.textContent = birthCount + ' Geburtsorte · ' + deathCount + ' Sterbeorte';
+        if (notFoundPlaces.length > 0) {
+            statsEl.textContent += ' · ' + notFoundPlaces.length + ' nicht gefunden';
+            statsEl.title = 'Nicht gefunden:
+' + notFoundPlaces.join('
+');
+            statsEl.style.cursor = 'help';
+            statsEl.style.color  = '#c0392b';
+        }
 
         // Auf alle Marker einzoomen
         fitAll();
