@@ -174,6 +174,12 @@
            style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            ✏️ Eintrag hinzufügen
         </a>
+        <a href="admin.html" id="admin-btn"
+           style="display:none; color:white; font-size:0.85em; text-decoration:none;
+                  background:rgba(200,150,12,0.4); border:1px solid rgba(200,150,12,0.7);
+                  padding:0.35em 0.9em; border-radius:5px;">
+           🔐 Admin
+        </a>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
@@ -259,9 +265,16 @@ window.addEventListener('load', function() {
     let allRels    = [];
     let showLabels = true;
 
+    var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
+
     client.auth.getSession().then(function(result) {
         if (!result.data.session) { window.location.href = 'login.html'; }
-        else { loadData(); }
+        else {
+            if (result.data.session.user.email === ADMIN_EMAIL) {
+                document.getElementById('admin-btn').style.display = 'inline-block';
+            }
+            loadData();
+        }
     });
 
     document.getElementById('logout-btn').addEventListener('click', function() {
