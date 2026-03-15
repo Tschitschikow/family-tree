@@ -159,6 +159,35 @@
         }
         #info-close:hover { color: #333; }
         #status-bar { text-align: center; padding: 2em; color: #5a3e2b; font-size: 1.1em; }
+
+        /* ── Pfadsuche Panel ── */
+        #path-panel {
+            display: none;
+            background: #f7f0e6;
+            border-bottom: 1px solid #ddd;
+            padding: 0.8em 1.5em;
+            gap: 1em;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #path-panel.open { display: flex; }
+        #path-panel label { font-size: 0.9em; color: #5a3e2b; }
+        #path-panel select {
+            padding: 0.4em 0.8em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-family: Georgia, serif;
+            width: 220px;
+            background: white;
+        }
+        #path-result {
+            font-size: 0.85em;
+            color: #5a3e2b;
+            font-style: italic;
+            margin-left: 0.5em;
+        }
+        .path-highlight { background-color: #ffe066 !important; }
     </style>
 </head>
 <body>
@@ -211,6 +240,25 @@
         <span id="repulsion-value">2.5M</span>
     </label>
     <span id="person-count"></span>
+    <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
+</div>
+
+<!-- Pfadsuche Panel -->
+<div id="path-panel">
+    <label>Person A:</label>
+    <select id="path-person-a"><option value="">– Person wählen –</option></select>
+    <label>Person B:</label>
+    <select id="path-person-b"><option value="">– Person wählen –</option></select>
+    <label>Max. Schritte:</label>
+    <select id="path-max-steps" style="width:80px;">
+        <option value="4">4</option>
+        <option value="6" selected>6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+    </select>
+    <button class="tool-btn" id="path-search-btn">Suchen</button>
+    <button class="tool-btn" id="path-reset-btn" style="background:#888;">Zurücksetzen</button>
+    <span id="path-result"></span>
 </div>
 
 <div id="status-bar">Lade Stammbaum...</div>
@@ -309,6 +357,7 @@ window.addEventListener('load', function() {
             buildLegend(allPersons);
             initCy();
             applyFilter(allPersons, allRels);
+            fillPathDropdowns();
         });
     }
 
@@ -719,6 +768,159 @@ window.addEventListener('load', function() {
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
+
+    // ── Pfadsuche ─────────────────────────────────────────────────
+
+    // Panel öffnen/schließen
+    document.getElementById('path-toggle').addEventListener('click', function() {
+        var panel = document.getElementById('path-panel');
+        panel.classList.toggle('open');
+    });
+
+    // Dropdowns befüllen wenn Daten geladen sind
+    function fillPathDropdowns() {
+        var selA = document.getElementById('path-person-a');
+        var selB = document.getElementById('path-person-b');
+        // Bestehende Optionen außer erste löschen
+        while (selA.options.length > 1) selA.remove(1);
+        while (selB.options.length > 1) selB.remove(1);
+
+        var sorted = allPersons.slice().sort(function(a, b) {
+            return a.display_name.localeCompare(b.display_name);
+        });
+        sorted.forEach(function(p) {
+            var optA = document.createElement('option');
+            optA.value = p.id;
+            optA.textContent = p.display_name;
+            selA.appendChild(optA);
+
+            var optB = document.createElement('option');
+            optB.value = p.id;
+            optB.textContent = p.display_name;
+            selB.appendChild(optB);
+        });
+    }
+
+    // Alle Pfade zwischen zwei Knoten per BFS finden
+    function findAllPaths(startId, endId, maxSteps) {
+        var allPaths = [];
+        // Queue: { nodeId, path (node-ids), edgeIds }
+        var queue = [{ nodeId: startId, nodePath: [startId], edgePath: [] }];
+
+        while (queue.length > 0) {
+            var current = queue.shift();
+
+            // Ziel erreicht?
+            if (current.nodeId === endId && current.nodePath.length > 1) {
+                allPaths.push({ nodes: current.nodePath, edges: current.edgePath });
+                continue; // Pfad gefunden, aber weitersuchen nach anderen
+            }
+
+            // Max-Tiefe erreicht?
+            if (current.nodePath.length > maxSteps + 1) continue;
+
+            // Ziel nicht nochmal als Zwischenstopp
+            if (current.nodeId === endId) continue;
+
+            // Nachbarn durchsuchen (ungerichtet)
+            var node = cy.getElementById(current.nodeId);
+            node.connectedEdges().forEach(function(edge) {
+                var otherId = edge.source().id() === current.nodeId
+                    ? edge.target().id()
+                    : edge.source().id();
+
+                // Kein Rückweg (Zyklen vermeiden)
+                if (current.nodePath.indexOf(otherId) !== -1) return;
+
+                queue.push({
+                    nodeId:   otherId,
+                    nodePath: current.nodePath.concat([otherId]),
+                    edgePath: current.edgePath.concat([edge.id()]),
+                });
+            });
+        }
+        return allPaths;
+    }
+
+    // Suche starten
+    document.getElementById('path-search-btn').addEventListener('click', function() {
+        var idA      = Number(document.getElementById('path-person-a').value);
+        var idB      = Number(document.getElementById('path-person-b').value);
+        var maxSteps = Number(document.getElementById('path-max-steps').value);
+        var result   = document.getElementById('path-result');
+
+        if (!idA || !idB) {
+            result.textContent = '⚠️ Bitte beide Personen wählen.';
+            return;
+        }
+        if (idA === idB) {
+            result.textContent = '⚠️ Bitte zwei verschiedene Personen wählen.';
+            return;
+        }
+
+        result.textContent = '⏳ Suche läuft...';
+
+        // Kurze Verzögerung damit UI aktualisiert
+        setTimeout(function() {
+            var paths = findAllPaths(idA, idB, maxSteps);
+
+            if (paths.length === 0) {
+                cy.elements().removeClass('faded');
+                result.textContent = '❌ Keine Verbindung gefunden (max. ' + maxSteps + ' Schritte).';
+                return;
+            }
+
+            // Alle beteiligten Knoten und Kanten sammeln
+            var highlightNodes = new Set();
+            var highlightEdges = new Set();
+            paths.forEach(function(p) {
+                p.nodes.forEach(function(nId) { highlightNodes.add(String(nId)); });
+                p.edges.forEach(function(eId) { highlightEdges.add(eId); });
+            });
+
+            // Alles ausblenden, Pfade highlighten
+            cy.elements().addClass('faded');
+            highlightNodes.forEach(function(nId) {
+                cy.getElementById(nId).removeClass('faded');
+            });
+            highlightEdges.forEach(function(eId) {
+                cy.getElementById(eId).removeClass('faded');
+            });
+
+            // Start- und Zielknoten extra hervorheben
+            cy.getElementById(idA).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
+            cy.getElementById(idB).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
+
+            // Kürze­sten Pfad berechnen
+            var shortest = paths.reduce(function(a, b) {
+                return a.nodes.length < b.nodes.length ? a : b;
+            });
+
+            result.textContent = '✅ ' + paths.length + ' Pfad' +
+                (paths.length > 1 ? 'e' : '') + ' gefunden · kürzester: ' +
+                (shortest.nodes.length - 1) + ' Schritt' +
+                (shortest.nodes.length - 1 !== 1 ? 'e' : '');
+
+            // Graph auf Pfad fokussieren
+            var pathEls = cy.collection();
+            highlightNodes.forEach(function(nId) { pathEls = pathEls.union(cy.getElementById(nId)); });
+            highlightEdges.forEach(function(eId) { pathEls = pathEls.union(cy.getElementById(eId)); });
+            cy.fit(pathEls, 80);
+
+        }, 50);
+    });
+
+    // Zurücksetzen
+    document.getElementById('path-reset-btn').addEventListener('click', function() {
+        cy.elements().removeClass('faded');
+        // Knotenränder zurücksetzen
+        cy.nodes().forEach(function(n) {
+            n.removeStyle('border-color');
+            n.removeStyle('border-width');
+        });
+        document.getElementById('path-result').textContent = '';
+    });
+
 });
 </script>
 </body>
