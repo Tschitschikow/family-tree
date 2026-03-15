@@ -250,6 +250,13 @@ window.addEventListener('load', function() {
         cy = cytoscape({
             container: document.getElementById('cy'),
             elements:  [],
+            // ── Interaktivität explizit einschalten ──────────────
+            userZoomingEnabled:   true,
+            userPanningEnabled:   true,
+            boxSelectionEnabled:  true,
+            autounselectify:      false,
+            // Knoten per Maus verschiebbar
+            autoungrabify:        false,
             style: [
                 // ── Knoten Standard ──────────────────────────────
                 {
@@ -458,8 +465,8 @@ window.addEventListener('load', function() {
             case 'cose':
                 config = {
                     name: 'cose',
-                    animate: true,
-                    animationDuration: 800,
+                    animate: 'end',
+                    animationDuration: 600,
                     animationEasing: 'ease-out',
                     refresh: 20,
                     fit: true,
