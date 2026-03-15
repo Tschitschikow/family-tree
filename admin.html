@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin – Bahrs Familienstammbaum</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #fdf8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #3a1a0a;
+            color: white;
+            padding: 0.8em 2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        header h1 { font-size: 1.2em; }
+        #logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.4em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        #logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        main {
+            max-width: 860px;
+            margin: 2em auto;
+            padding: 0 1em;
+            width: 100%;
+        }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5em;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #3a1a0a;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.7em;
+            text-align: center;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.95em;
+            background: #fdf8f0;
+            color: #3a1a0a;
+            border: none;
+        }
+        .tab-btn.active { background: #3a1a0a; color: white; font-weight: bold; }
+        .tab-btn:not(.active):hover { background: #f0e8dc; }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Karten ── */
+        .pending-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.2em 1.5em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom: 1em;
+            border-left: 4px solid #c8960c;
+        }
+        .pending-card.rejected {
+            border-left-color: #c0392b;
+            opacity: 0.5;
+        }
+        .pending-card.approved {
+            border-left-color: #1e8449;
+            opacity: 0.5;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.8em;
+        }
+        .card-name {
+            font-size: 1.1em;
+            color: #3a1a0a;
+            font-weight: bold;
+        }
+        .card-id {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 0.2em;
+        }
+        .card-actions { display: flex; gap: 0.5em; flex-shrink: 0; }
+
+        .btn-approve {
+            background: #1e8449;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 0.4em 1em;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.85em;
+        }
+        .btn-approve:hover { background: #27ae60; }
+        .btn-reject {
+            background: #c0392b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 0.4em 1em;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.85em;
+        }
+        .btn-reject:hover { background: #e74c3c; }
+        .btn-approve:disabled,
+        .btn-reject:disabled { opacity: 0.4; cursor: default; }
+
+        .card-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.3em 1em;
+            font-size: 0.85em;
+            color: #555;
+        }
+        .card-field { display: flex; gap: 0.4em; }
+        .card-field .lbl { color: #999; min-width: 90px; }
+        .card-field .val { color: #222; }
+        .est-badge {
+            font-size: 0.75em;
+            background: #fff3cd;
+            color: #856404;
+            border-radius: 3px;
+            padding: 0.1em 0.4em;
+            margin-left: 0.3em;
+        }
+
+        .empty-hint {
+            text-align: center;
+            padding: 3em;
+            color: #aaa;
+            font-size: 1em;
+        }
+
+        #status-bar {
+            text-align: center;
+            padding: 3em;
+            color: #5a3e2b;
+            font-size: 1.1em;
+        }
+
+        .count-badge {
+            display: inline-block;
+            background: #c8960c;
+            color: white;
+            border-radius: 10px;
+            padding: 0.1em 0.5em;
+            font-size: 0.75em;
+            margin-left: 0.4em;
+            vertical-align: middle;
+        }
+
+        .approve-all-btn {
+            background: #1e8449;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5em 1.2em;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.9em;
+            margin-bottom: 1em;
+        }
+        .approve-all-btn:hover { background: #27ae60; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🔐 Admin – Freigaben</h1>
+    <nav style="display:flex; gap:1em; align-items:center;">
+        <a href="stammbaum.html"
+           style="color:rgba(255,255,255,0.8); font-size:0.9em; text-decoration:none;">
+           ← Zum Stammbaum
+        </a>
+        <button id="logout-btn">Ausloggen</button>
+    </nav>
+</header>
+
+<main>
+    <div id="status-bar">Lade ausstehende Einträge...</div>
+
+    <div id="main-content" style="display:none;">
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('persons')">
+                👤 Personen <span class="count-badge" id="count-persons">0</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('relationships')">
+                🔗 Beziehungen <span class="count-badge" id="count-rels">0</span>
+            </button>
+        </div>
+
+        <!-- Personen -->
+        <div class="tab-panel active" id="panel-persons">
+            <button class="approve-all-btn" id="approve-all-persons">✅ Alle Personen freigeben</button>
+            <div id="persons-list"></div>
+        </div>
+
+        <!-- Beziehungen -->
+        <div class="tab-panel" id="panel-relationships">
+            <button class="approve-all-btn" id="approve-all-rels">✅ Alle Beziehungen freigeben</button>
+            <div id="rels-list"></div>
+        </div>
+
+    </div>
+</main>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+
+var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
+
+var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var allPersonsMap = {};   // id → display_name für Beziehungs-Anzeige
+
+window.addEventListener('load', function() {
+
+    // ── Auth + Admin-Check ────────────────────────────────────────
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) {
+            window.location.href = 'login.html';
+            return;
+        }
+        if (result.data.session.user.email !== ADMIN_EMAIL) {
+            window.location.href = 'stammbaum.html';
+            return;
+        }
+        loadAll();
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
+    });
+
+    // ── Alles laden ──────────────────────────────────────────────
+    function loadAll() {
+        // Erst alle Personen (für Namens-Lookup bei Beziehungen)
+        client.from('persons').select('*').then(function(allResult) {
+            if (!allResult.error) {
+                allResult.data.forEach(function(p) {
+                    allPersonsMap[Number(p.id)] = p.display_name;
+                });
+            }
+
+            // Pending Personen laden
+            Promise.all([
+                client.from('persons').select('*').eq('status', 'pending').order('id'),
+                client.from('relationships').select('*').eq('status', 'pending').order('id'),
+            ]).then(function(results) {
+                document.getElementById('status-bar').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+
+                var persons = results[0].data || [];
+                var rels    = results[1].data || [];
+
+                renderPersons(persons);
+                renderRelationships(rels);
+
+                document.getElementById('count-persons').textContent = persons.length;
+                document.getElementById('count-rels').textContent    = rels.length;
+            });
+        });
+    }
+
+    // ── Personen rendern ─────────────────────────────────────────
+    function renderPersons(persons) {
+        var list = document.getElementById('persons-list');
+        if (persons.length === 0) {
+            list.innerHTML = '<div class="empty-hint">✅ Keine ausstehenden Personen</div>';
+            document.getElementById('approve-all-persons').style.display = 'none';
+            return;
+        }
+
+        list.innerHTML = '';
+        persons.forEach(function(p) {
+            var card = document.createElement('div');
+            card.className = 'pending-card';
+            card.id = 'person-card-' + p.id;
+
+            var birthStr = formatDate(p.birth_date) || '–';
+            if (p.birth_date_estimated) birthStr += ' <span class="est-badge">🔮 geschätzt</span>';
+
+            var deathStr = formatDate(p.death_date) || '–';
+            if (p.death_date_estimated) deathStr += ' <span class="est-badge">🔮 geschätzt</span>';
+
+            card.innerHTML =
+                '<div class="card-header">' +
+                    '<div>' +
+                        '<div class="card-name">' + (p.display_name || p.family_name + ' ' + p.given_name) + '</div>' +
+                        '<div class="card-id">ID: ' + p.id + ' · eingetragen von: ' + (p.changed_by || '–') + '</div>' +
+                    '</div>' +
+                    '<div class="card-actions">' +
+                        '<button class="btn-approve" onclick="approvePerson(' + p.id + ')">✅ Freigeben</button>' +
+                        '<button class="btn-reject"  onclick="rejectPerson(' + p.id + ')">❌ Ablehnen</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="card-fields">' +
+                    '<div class="card-field"><span class="lbl">Geschlecht:</span><span class="val">' + (p.sex === 'm' ? 'männlich' : p.sex === 'f' ? 'weiblich' : '–') + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Mädchenname:</span><span class="val">' + (p.maiden_name || '–') + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Geboren:</span><span class="val">' + birthStr + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Gestorben:</span><span class="val">' + deathStr + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Geburtsort:</span><span class="val">' + (p.birth_place || '–') + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Sterbeort:</span><span class="val">' + (p.death_place || '–') + '</span></div>' +
+                    '<div class="card-field"><span class="lbl">Beruf:</span><span class="val">' + (p.profession || '–') + '</span></div>' +
+                '</div>';
+
+            list.appendChild(card);
+        });
+    }
+
+    // ── Beziehungen rendern ──────────────────────────────────────
+    function renderRelationships(rels) {
+        var list = document.getElementById('rels-list');
+        if (rels.length === 0) {
+            list.innerHTML = '<div class="empty-hint">✅ Keine ausstehenden Beziehungen</div>';
+            document.getElementById('approve-all-rels').style.display = 'none';
+            return;
+        }
+
+        list.innerHTML = '';
+        rels.forEach(function(r) {
+            var card = document.createElement('div');
+            card.className = 'pending-card';
+            card.id = 'rel-card-' + r.id;
+
+            var personName  = allPersonsMap[Number(r.person_id)]         || 'ID ' + r.person_id;
+            var relatedName = allPersonsMap[Number(r.related_person_id)] || 'ID ' + r.related_person_id;
+
+            var typeLabels = {
+                hasMother:  'hat Mutter',
+                hasFather:  'hat Vater',
+                hasWife:    'verheiratet mit (Ehefrau)',
+                hasHusband: 'verheiratet mit (Ehemann)',
+            };
+            var typeLabel = typeLabels[r.relationship_type] || r.relationship_type;
+
+            card.innerHTML =
+                '<div class="card-header">' +
+                    '<div>' +
+                        '<div class="card-name">' + personName + ' → ' + relatedName + '</div>' +
+                        '<div class="card-id">ID: ' + r.id + ' · Typ: ' + typeLabel + '</div>' +
+                    '</div>' +
+                    '<div class="card-actions">' +
+                        '<button class="btn-approve" onclick="approveRel(' + r.id + ')">✅ Freigeben</button>' +
+                        '<button class="btn-reject"  onclick="rejectRel(' + r.id + ')">❌ Ablehnen</button>' +
+                    '</div>' +
+                '</div>';
+
+            list.appendChild(card);
+        });
+    }
+
+    // ── Einzelne Person freigeben/ablehnen ───────────────────────
+    window.approvePerson = function(id) {
+        setPersonStatus(id, 'approved');
+    };
+    window.rejectPerson = function(id) {
+        if (!confirm('Person wirklich ablehnen?')) return;
+        setPersonStatus(id, 'rejected');
+    };
+
+    function setPersonStatus(id, status) {
+        client.from('persons').update({ status: status }).eq('id', id).then(function(result) {
+            if (result.error) { alert('Fehler: ' + result.error.message); return; }
+            logChange(status === 'approved' ? 'APPROVE' : 'REJECT', 'persons', id, { status: status });
+            var card = document.getElementById('person-card-' + id);
+            if (card) {
+                card.classList.add(status);
+                card.querySelector('.btn-approve').disabled = true;
+                card.querySelector('.btn-reject').disabled  = true;
+            }
+            updateCount('persons');
+        });
+    }
+
+    // ── Einzelne Beziehung freigeben/ablehnen ────────────────────
+    window.approveRel = function(id) {
+        setRelStatus(id, 'approved');
+    };
+    window.rejectRel = function(id) {
+        if (!confirm('Beziehung wirklich ablehnen?')) return;
+        setRelStatus(id, 'rejected');
+    };
+
+    function setRelStatus(id, status) {
+        client.from('relationships').update({ status: status }).eq('id', id).then(function(result) {
+            if (result.error) { alert('Fehler: ' + result.error.message); return; }
+            logChange(status === 'approved' ? 'APPROVE' : 'REJECT', 'relationships', id, { status: status });
+            var card = document.getElementById('rel-card-' + id);
+            if (card) {
+                card.classList.add(status);
+                card.querySelector('.btn-approve').disabled = true;
+                card.querySelector('.btn-reject').disabled  = true;
+            }
+            updateCount('rels');
+        });
+    }
+
+    // ── Alle freigeben ───────────────────────────────────────────
+    document.getElementById('approve-all-persons').addEventListener('click', function() {
+        if (!confirm('Alle ausstehenden Personen freigeben?')) return;
+        var cards = document.querySelectorAll('#persons-list .pending-card:not(.approved):not(.rejected)');
+        cards.forEach(function(card) {
+            var id = Number(card.id.replace('person-card-', ''));
+            setPersonStatus(id, 'approved');
+        });
+    });
+
+    document.getElementById('approve-all-rels').addEventListener('click', function() {
+        if (!confirm('Alle ausstehenden Beziehungen freigeben?')) return;
+        var cards = document.querySelectorAll('#rels-list .pending-card:not(.approved):not(.rejected)');
+        cards.forEach(function(card) {
+            var id = Number(card.id.replace('rel-card-', ''));
+            setRelStatus(id, 'approved');
+        });
+    });
+
+    // ── Tab wechseln ─────────────────────────────────────────────
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(function(b, i) {
+            b.classList.toggle('active', (i === 0 && tab === 'persons') || (i === 1 && tab === 'relationships'));
+        });
+        document.getElementById('panel-persons').classList.toggle('active',       tab === 'persons');
+        document.getElementById('panel-relationships').classList.toggle('active', tab === 'relationships');
+    };
+
+    // ── Zähler aktualisieren ─────────────────────────────────────
+    function updateCount(type) {
+        var selector = type === 'persons'
+            ? '#persons-list .pending-card:not(.approved):not(.rejected)'
+            : '#rels-list .pending-card:not(.approved):not(.rejected)';
+        var remaining = document.querySelectorAll(selector).length;
+        document.getElementById('count-' + (type === 'persons' ? 'persons' : 'rels')).textContent = remaining;
+    }
+
+    // ── Changelog ────────────────────────────────────────────────
+    function logChange(action, tableName, recordId, details) {
+        client.auth.getSession().then(function(s) {
+            var email = s.data.session ? s.data.session.user.email : ADMIN_EMAIL;
+            client.from('changelog').insert([{
+                changed_by: email,
+                action:     action,
+                table_name: tableName,
+                record_id:  String(recordId),
+                details:    details,
+            }]).then(function() {});
+        });
+    }
+
+    // ── Datum formatieren ────────────────────────────────────────
+    function formatDate(d) {
+        if (!d) return '';
+        var parts = d.split('T')[0].split('-');
+        return parts.length === 3 ? parts[2]+'.'+parts[1]+'.'+parts[0] : d;
+    }
+
+});
+</script>
+</body>
+</html>
