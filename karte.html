@@ -105,6 +105,8 @@
         /* Karte */
         #map {
             flex: 1;
+            width: 100%;
+            height: calc(100vh - 115px);
             min-height: 400px;
             z-index: 1;
         }
@@ -263,7 +265,10 @@ window.addEventListener('load', function() {
     // ── Karte initialisieren ─────────────────────────────────────
     var map;
     function initMap() {
-        map = L.map('map').setView([53.5, 10.0], 6); // Norddeutschland als Startansicht
+        map = L.map('map', {
+            center: [53.5, 10.0],
+            zoom: 6,
+        });
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -272,6 +277,10 @@ window.addEventListener('load', function() {
 
         birthLayer.addTo(map);
         deathLayer.addTo(map);
+
+        // Leaflet braucht invalidateSize wenn der Container
+        // erst nach dem Laden seine endgültige Größe bekommt
+        setTimeout(function() { map.invalidateSize(); }, 100);
     }
 
     // ── Daten laden ──────────────────────────────────────────────
