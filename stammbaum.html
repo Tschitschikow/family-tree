@@ -203,6 +203,13 @@
         <input type="checkbox" id="show-labels" checked style="width:auto;">
         Beziehungslabels
     </label>
+    <label id="repulsion-wrap" style="font-size:0.85em; display:flex; align-items:center; gap:6px;">
+        💥
+        <input type="range" id="repulsion-slider"
+               min="100000" max="10000000" step="100000" value="2500000"
+               style="width:100px; cursor:pointer; accent-color:#5a3e2b;">
+        <span id="repulsion-value">2.5M</span>
+    </label>
     <span id="person-count"></span>
 </div>
 
@@ -264,6 +271,7 @@ window.addEventListener('load', function() {
     let allPersons = [];
     let allRels    = [];
     let showLabels = true;
+    var repulsionValue = 2500000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
@@ -393,28 +401,28 @@ window.addEventListener('load', function() {
         });
 
         // ── Nur vertikales Verschieben im Zeitachsen-Layout ──────
-        // Ansatz: Y-Position beim Grab merken, bei jedem position-Event zurücksetzen
-        var _lockedY = null;
+        // Ansatz: X-Position beim Grab merken, bei jedem position-Event zurücksetzen
+        var _lockedX = null;
         var _isDragging = false;
 
         cy.on('grabon', 'node', function(e) {
             if (document.getElementById('layout-select').value === 'timeline') {
-                _lockedY    = e.target.position('y');
+                _lockedX    = e.target.position('x');
                 _isDragging = true;
             }
         });
 
         cy.on('free', 'node', function(e) {
-            if (_isDragging && _lockedy !== null) {
-                e.target.position('y', _lockedY);
+            if (_isDragging && _lockedX !== null) {
+                e.target.position('x', _lockedX);
             }
             _isDragging = false;
-            _lockedY    = null;
+            _lockedX    = null;
         });
 
         cy.on('drag', 'node', function(e) {
-            if (_isDragging && _lockedY !== null) {
-                e.target.position('y', _lockedY);
+            if (_isDragging && _lockedX !== null) {
+                e.target.position('x', _lockedX);
             }
         });
     }
@@ -589,7 +597,7 @@ window.addEventListener('load', function() {
                 fit: false,
                 padding: 40,
                 idealEdgeLength: 100,
-                nodeRepulsion: 400000,
+                nodeRepulsion: repulsionValue,
                 gravity: 80,
                 numIter: 1000,
                 initialTemp: 200,
@@ -612,7 +620,7 @@ window.addEventListener('load', function() {
                 config = {
                     name: 'cose', animate: true, animationDuration: 600,
                     refresh: 20, fit: true, padding: 40,
-                    idealEdgeLength: 100, nodeRepulsion: 400000, gravity: 80,
+                    idealEdgeLength: 100, nodeRepulsion: repulsionValue, gravity: 80,
                     numIter: 1000, initialTemp: 200, coolingFactor: 0.95,
                     minTemp: 1.0, randomize: true,
                 };
@@ -684,6 +692,23 @@ window.addEventListener('load', function() {
             .selector('edge[type = "hasFather"]').style('label', lv)
             .selector('edge[type = "hasWife"]').style('label',   lv)
             .update();
+    });
+
+    // Schieberegler: Abstossung live ändern
+    document.getElementById('repulsion-slider').addEventListener('input', function() {
+        repulsionValue = Number(this.value);
+        document.getElementById('repulsion-value').textContent =
+            (repulsionValue / 1000000).toFixed(1) + 'M';
+        var current = document.getElementById('layout-select').value;
+        if (current === 'cose' || current === 'timeline') {
+            runLayout(current);
+        }
+    });
+
+    // Schieberegler nur bei cose/timeline anzeigen
+    document.getElementById('layout-select').addEventListener('change', function() {
+        var show = this.value === 'cose' || this.value === 'timeline';
+        document.getElementById('repulsion-wrap').style.display = show ? 'flex' : 'none';
     });
 
     function formatDate(d) {
