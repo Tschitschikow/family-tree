@@ -409,12 +409,12 @@ window.addEventListener('load', function() {
                 e.target.position('y', _lockedY);
             }
             _isDragging = false;
-            _lockedX    = null;
+            _lockedY    = null;
         });
 
         cy.on('drag', 'node', function(e) {
             if (_isDragging && _lockedY !== null) {
-                e.target.position('y', _lockedX);
+                e.target.position('y', _lockedY);
             }
         });
     }
