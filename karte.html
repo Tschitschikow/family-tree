@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karte – Bahrs Familie</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Georgia, serif;
+            background: #fdf8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #5a3e2b;
+            color: white;
+            padding: 0.8em 2em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            z-index: 1000;
+        }
+        header h1 { font-size: 1.2em; }
+        #logout-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.4em 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+        }
+        #logout-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* Toolbar */
+        #toolbar {
+            background: #f0e8dc;
+            border-bottom: 1px solid #ddd;
+            padding: 0.6em 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 1em;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            z-index: 999;
+        }
+        #toolbar label { font-size: 0.9em; color: #5a3e2b; }
+        .tool-btn {
+            padding: 0.4em 0.9em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: Georgia, serif;
+        }
+        .tool-btn:hover { background: #7a5e4b; }
+        .toggle-btn {
+            padding: 0.35em 0.8em;
+            border: 1px solid #5a3e2b;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: Georgia, serif;
+            background: white;
+            color: #5a3e2b;
+        }
+        .toggle-btn.active {
+            background: #5a3e2b;
+            color: white;
+        }
+        #progress-wrap {
+            display: none;
+            align-items: center;
+            gap: 0.6em;
+            font-size: 0.85em;
+            color: #5a3e2b;
+        }
+        #progress-wrap.visible { display: flex; }
+        #progress-bar-outer {
+            width: 150px;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        #progress-bar-inner {
+            height: 100%;
+            background: #5a3e2b;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.2s;
+        }
+        #stats {
+            font-size: 0.85em;
+            color: #888;
+            margin-left: auto;
+        }
+
+        /* Karte */
+        #map {
+            flex: 1;
+            min-height: 400px;
+            z-index: 1;
+        }
+
+        /* Legende */
+        #legend {
+            position: fixed;
+            bottom: 30px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 0.8em 1.1em;
+            font-size: 0.82em;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        #legend h4 {
+            color: #5a3e2b;
+            margin-bottom: 0.5em;
+            font-size: 0.9em;
+        }
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            margin-bottom: 0.3em;
+        }
+        .legend-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid rgba(0,0,0,0.3);
+        }
+
+        #status-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 1.5em 2em;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 2000;
+            text-align: center;
+            font-size: 1em;
+            color: #5a3e2b;
+            display: none;
+        }
+        #status-overlay.visible { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🗺️ Bahrs Familie – Orte</h1>
+    <nav style="display:flex; gap:1em; align-items:center;">
+        <a href="stammbaum.html"
+           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
+           🌳 Stammbaum
+        </a>
+        <button id="logout-btn">Ausloggen</button>
+    </nav>
+</header>
+
+<div id="toolbar">
+    <label>Anzeigen:</label>
+    <button class="toggle-btn active" id="toggle-birth">🔵 Geburtsorte</button>
+    <button class="toggle-btn active" id="toggle-death">🔴 Sterbeorte</button>
+    <button class="tool-btn" id="fit-btn">🎯 Alle anzeigen</button>
+
+    <div id="progress-wrap">
+        <span id="progress-text">Lade Orte...</span>
+        <div id="progress-bar-outer">
+            <div id="progress-bar-inner"></div>
+        </div>
+    </div>
+
+    <span id="stats"></span>
+</div>
+
+<div id="map"></div>
+
+<div id="legend">
+    <h4>Legende</h4>
+    <div class="legend-row">
+        <div class="legend-dot" style="background:#3388ff;"></div>
+        <span>Geburtsort</span>
+    </div>
+    <div class="legend-row">
+        <div class="legend-dot" style="background:#e74c3c;"></div>
+        <span>Sterbeort</span>
+    </div>
+    <div class="legend-row">
+        <div class="legend-dot" style="background:#8e44ad;"></div>
+        <span>Geburts- und Sterbeort</span>
+    </div>
+</div>
+
+<div id="status-overlay">
+    <div>🗺️ Lade Karte und Orte...</div>
+</div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+
+window.addEventListener('load', function() {
+
+    var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
+    var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Geocoding-Cache: Ortsname → {lat, lng} oder null
+    var geoCache = {};
+
+    // Marker-Layer
+    var birthLayer = L.layerGroup();
+    var deathLayer = L.layerGroup();
+
+    var showBirth = true;
+    var showDeath = true;
+
+    // ── Auth ─────────────────────────────────────────────────────
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) {
+            window.location.href = 'login.html';
+            return;
+        }
+        initMap();
+        loadData();
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
+    });
+
+    // ── Karte initialisieren ─────────────────────────────────────
+    var map;
+    function initMap() {
+        map = L.map('map').setView([53.5, 10.0], 6); // Norddeutschland als Startansicht
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 18,
+        }).addTo(map);
+
+        birthLayer.addTo(map);
+        deathLayer.addTo(map);
+    }
+
+    // ── Daten laden ──────────────────────────────────────────────
+    function loadData() {
+        document.getElementById('status-overlay').classList.add('visible');
+
+        client.from('persons')
+            .select('id, display_name, birth_date, death_date, birth_place, death_place, birth_date_estimated, death_date_estimated')
+            .eq('status', 'approved')
+            .then(function(result) {
+                document.getElementById('status-overlay').classList.remove('visible');
+
+                if (result.error) {
+                    alert('Fehler beim Laden: ' + result.error.message);
+                    return;
+                }
+
+                var persons = result.data;
+
+                // Alle einzigartigen Orte sammeln
+                var placesToGeocode = {};
+                persons.forEach(function(p) {
+                    if (p.birth_place) placesToGeocode[p.birth_place] = true;
+                    if (p.death_place) placesToGeocode[p.death_place] = true;
+                });
+
+                var places = Object.keys(placesToGeocode);
+                geocodePlaces(places, persons);
+            });
+    }
+
+    // ── Geocoding mit Rate-Limit ──────────────────────────────────
+    // Nominatim: max 1 Anfrage/Sekunde
+    function geocodePlaces(places, persons) {
+        var total    = places.length;
+        var done     = 0;
+        var progress = document.getElementById('progress-wrap');
+        var progText = document.getElementById('progress-text');
+        var progBar  = document.getElementById('progress-bar-inner');
+
+        if (total === 0) {
+            renderMarkers(persons);
+            return;
+        }
+
+        progress.classList.add('visible');
+
+        function geocodeNext(index) {
+            if (index >= places.length) {
+                progress.classList.remove('visible');
+                renderMarkers(persons);
+                return;
+            }
+
+            var place = places[index];
+            progText.textContent = 'Geocoding: ' + place + ' (' + (index+1) + '/' + total + ')';
+            progBar.style.width = Math.round((index+1) / total * 100) + '%';
+
+            // Nominatim-Anfrage
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+                      encodeURIComponent(place);
+
+            fetch(url, {
+                headers: { 'Accept-Language': 'de', 'User-Agent': 'BahrsFamilyTree/1.0' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    geoCache[place] = {
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon),
+                        displayName: data[0].display_name,
+                    };
+                } else {
+                    geoCache[place] = null; // Nicht gefunden
+                }
+                done++;
+                // 1.1 Sekunden warten (Nominatim Rate-Limit)
+                setTimeout(function() { geocodeNext(index + 1); }, 1100);
+            })
+            .catch(function() {
+                geoCache[place] = null;
+                done++;
+                setTimeout(function() { geocodeNext(index + 1); }, 1100);
+            });
+        }
+
+        geocodeNext(0);
+    }
+
+    // ── Marker setzen ────────────────────────────────────────────
+    function renderMarkers(persons) {
+        birthLayer.clearLayers();
+        deathLayer.clearLayers();
+
+        var birthCount = 0;
+        var deathCount = 0;
+
+        // Pro Ort: Personen sammeln
+        var birthPlaces = {};  // place → [persons]
+        var deathPlaces = {};
+
+        persons.forEach(function(p) {
+            if (p.birth_place && geoCache[p.birth_place]) {
+                if (!birthPlaces[p.birth_place]) birthPlaces[p.birth_place] = [];
+                birthPlaces[p.birth_place].push(p);
+            }
+            if (p.death_place && geoCache[p.death_place]) {
+                if (!deathPlaces[p.death_place]) deathPlaces[p.death_place] = [];
+                deathPlaces[p.death_place].push(p);
+            }
+        });
+
+        // Geburtsorte (blau)
+        Object.keys(birthPlaces).forEach(function(place) {
+            var geo  = geoCache[place];
+            var pList = birthPlaces[place];
+
+            var marker = L.circleMarker([geo.lat, geo.lng], {
+                radius:      7 + Math.min(pList.length * 2, 10),
+                color:       '#1a5f9e',
+                fillColor:   '#3388ff',
+                fillOpacity: 0.75,
+                weight:      2,
+            });
+
+            marker.bindPopup(buildPopup(place, pList, 'birth'));
+            birthLayer.addLayer(marker);
+            birthCount++;
+        });
+
+        // Sterbeorte (rot)
+        Object.keys(deathPlaces).forEach(function(place) {
+            var geo   = geoCache[place];
+            var pList = deathPlaces[place];
+
+            // Wenn Ort auch Geburtsort ist → lila, leicht versetzt
+            var isAlsoBirth = birthPlaces[place] !== undefined;
+            var latOffset   = isAlsoBirth ? 0.003 : 0;
+
+            var marker = L.circleMarker([geo.lat + latOffset, geo.lng], {
+                radius:      7 + Math.min(pList.length * 2, 10),
+                color:       isAlsoBirth ? '#6c1e8f' : '#c0392b',
+                fillColor:   isAlsoBirth ? '#8e44ad' : '#e74c3c',
+                fillOpacity: 0.75,
+                weight:      2,
+            });
+
+            marker.bindPopup(buildPopup(place, pList, 'death'));
+            deathLayer.addLayer(marker);
+            deathCount++;
+        });
+
+        // Statistik anzeigen
+        var notFound = Object.values(geoCache).filter(function(v) { return v === null; }).length;
+        document.getElementById('stats').textContent =
+            birthCount + ' Geburtsorte · ' + deathCount + ' Sterbeorte' +
+            (notFound > 0 ? ' · ' + notFound + ' nicht gefunden' : '');
+
+        // Auf alle Marker einzoomen
+        fitAll();
+    }
+
+    // ── Popup-Inhalt bauen ───────────────────────────────────────
+    function buildPopup(place, persons, type) {
+        var html = '<div style="font-family:Georgia,serif; max-width:220px;">';
+        html += '<div style="font-weight:bold; color:#5a3e2b; margin-bottom:0.4em;">📍 ' + place + '</div>';
+        html += '<div style="font-size:0.85em; color:#888; margin-bottom:0.6em;">' +
+                (type === 'birth' ? '🔵 Geburtsort' : '🔴 Sterbeort') + ' von ' +
+                persons.length + ' Person' + (persons.length > 1 ? 'en' : '') + '</div>';
+
+        persons.slice(0, 10).forEach(function(p) {
+            html += '<div style="border-top:1px solid #eee; padding:0.3em 0; font-size:0.88em;">';
+            html += '<strong>' + p.display_name + '</strong><br>';
+            if (type === 'birth' && p.birth_date) {
+                html += '* ' + formatDate(p.birth_date) +
+                        (p.birth_date_estimated ? ' <span style="color:#c8960c">🔮</span>' : '');
+            }
+            if (type === 'death' && p.death_date) {
+                html += '† ' + formatDate(p.death_date) +
+                        (p.death_date_estimated ? ' <span style="color:#c8960c">🔮</span>' : '');
+            }
+            html += '</div>';
+        });
+
+        if (persons.length > 10) {
+            html += '<div style="font-size:0.8em; color:#aaa; margin-top:0.3em;">... und ' +
+                    (persons.length - 10) + ' weitere</div>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // ── Auf alle Marker einzoomen ────────────────────────────────
+    function fitAll() {
+        var bounds = [];
+        birthLayer.eachLayer(function(l) { bounds.push(l.getLatLng()); });
+        deathLayer.eachLayer(function(l) { bounds.push(l.getLatLng()); });
+        if (bounds.length > 0) {
+            map.fitBounds(L.latLngBounds(bounds), { padding: [40, 40] });
+        }
+    }
+
+    document.getElementById('fit-btn').addEventListener('click', fitAll);
+
+    // ── Layer ein-/ausblenden ────────────────────────────────────
+    document.getElementById('toggle-birth').addEventListener('click', function() {
+        showBirth = !showBirth;
+        this.classList.toggle('active', showBirth);
+        if (showBirth) { birthLayer.addTo(map); }
+        else           { map.removeLayer(birthLayer); }
+    });
+
+    document.getElementById('toggle-death').addEventListener('click', function() {
+        showDeath = !showDeath;
+        this.classList.toggle('active', showDeath);
+        if (showDeath) { deathLayer.addTo(map); }
+        else           { map.removeLayer(deathLayer); }
+    });
+
+    // ── Hilfsfunktionen ──────────────────────────────────────────
+    function formatDate(d) {
+        if (!d) return '';
+        var parts = d.split('T')[0].split('-');
+        return parts.length === 3 ? parts[2]+'.'+parts[1]+'.'+parts[0] : d;
+    }
+
+});
+</script>
+</body>
+</html>
