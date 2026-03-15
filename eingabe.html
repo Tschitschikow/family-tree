@@ -44,6 +44,51 @@
             padding: 0 1em;
             width: 100%;
         }
+
+        /* ── Modus-Umschalter ── */
+        .mode-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5em;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #5a3e2b;
+        }
+        .mode-tab {
+            flex: 1;
+            padding: 0.7em;
+            text-align: center;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.95em;
+            background: #fdf8f0;
+            color: #5a3e2b;
+            border: none;
+            transition: background 0.2s;
+        }
+        .mode-tab.active {
+            background: #5a3e2b;
+            color: white;
+            font-weight: bold;
+        }
+        .mode-tab:not(.active):hover { background: #f0e8dc; }
+
+        /* ── Bearbeiten-Suche ── */
+        #edit-search-block {
+            display: none;
+            margin-bottom: 1.5em;
+        }
+        #edit-search-block.visible { display: block; }
+        #edit-person-select {
+            width: 100%;
+            padding: 0.6em 0.8em;
+            border: 1px solid #5a3e2b;
+            border-radius: 5px;
+            font-size: 0.95em;
+            font-family: Georgia, serif;
+            background: #fafafa;
+        }
+
         h2 {
             color: #5a3e2b;
             font-size: 1.3em;
@@ -51,11 +96,7 @@
             padding-bottom: 0.4em;
             border-bottom: 2px solid #e0d0c0;
         }
-        h3 {
-            color: #7a5e4b;
-            font-size: 1em;
-            margin: 1.2em 0 0.8em 0;
-        }
+        h3 { color: #7a5e4b; font-size: 1em; margin: 1.2em 0 0.8em 0; }
         .card {
             background: white;
             border-radius: 10px;
@@ -71,7 +112,10 @@
             margin-bottom: 0.3em;
             font-weight: bold;
         }
-        input, select {
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
             width: 100%;
             padding: 0.6em 0.8em;
             border: 1px solid #ddd;
@@ -90,6 +134,37 @@
             grid-template-columns: 1fr 1fr;
             gap: 1em;
         }
+
+        /* ── Datums-Block ── */
+        .date-block {
+            border: 1px solid #e8d8c8;
+            border-radius: 7px;
+            padding: 0.8em;
+            background: #fdf8f2;
+        }
+        .date-block > label { margin-bottom: 0.5em; }
+        .date-type-tabs {
+            display: flex;
+            gap: 0.4em;
+            margin-bottom: 0.6em;
+        }
+        .date-tab {
+            padding: 0.25em 0.7em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: #f0e8dc;
+            color: #5a3e2b;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-family: Georgia, serif;
+        }
+        .date-tab.active { background: #5a3e2b; color: white; border-color: #5a3e2b; }
+        .date-input-exact   { display: block; }
+        .date-input-est     { display: none;  }
+        .date-input-unknown { display: none;  }
+        .est-hint { font-size: 0.78em; color: #c8960c; margin-top: 0.3em; }
+
+        /* ── Beziehungsblöcke ── */
         .rel-block {
             background: #fdf6ee;
             border: 1px solid #e8d8c8;
@@ -97,7 +172,17 @@
             padding: 1em;
             margin-bottom: 0.8em;
         }
-        .rel-block .row { grid-template-columns: 1fr 1fr; }
+        .rel-block.existing {
+            background: #f0f8ff;
+            border-color: #b0c8e8;
+        }
+        .rel-block.existing .rel-tag {
+            font-size: 0.75em;
+            color: #5a8ab0;
+            margin-bottom: 0.4em;
+            font-style: italic;
+        }
+
         .submit-btn {
             width: 100%;
             padding: 0.8em;
@@ -111,6 +196,9 @@
             margin-top: 0.5em;
         }
         .submit-btn:hover { background: #7a5e4b; }
+        .submit-btn.edit-mode { background: #1a6b3a; }
+        .submit-btn.edit-mode:hover { background: #2a8a4a; }
+
         .add-rel-btn {
             background: none;
             border: 1px dashed #5a3e2b;
@@ -134,6 +222,7 @@
             margin-top: -0.2em;
         }
         .remove-rel-btn:hover { color: #c0392b; }
+
         .message {
             margin-top: 1em;
             padding: 0.8em;
@@ -141,39 +230,41 @@
             font-size: 0.9em;
             display: none;
         }
-        .message.success {
-            background: #eafaf1;
-            color: #1e8449;
-            border: 1px solid #a9dfbf;
-            display: block;
-        }
-        .message.error {
-            background: #fdedec;
-            color: #c0392b;
-            border: 1px solid #f1948a;
-            display: block;
-        }
+        .message.success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; display: block; }
+        .message.error   { background: #fdedec; color: #c0392b; border: 1px solid #f1948a; display: block; }
+
         .hint { font-size: 0.8em; color: #aaa; margin-top: 0.2em; }
-        .divider {
-            border: none;
-            border-top: 1px dashed #e0d0c0;
-            margin: 1.2em 0;
-        }
+        .divider { border: none; border-top: 1px dashed #e0d0c0; margin: 1.2em 0; }
     </style>
 </head>
 <body>
 
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
-    <nav>
-        <a href="stammbaum.html">← Zum Stammbaum</a>
-    </nav>
+    <nav><a href="stammbaum.html">← Zum Stammbaum</a></nav>
     <button id="logout-btn">Ausloggen</button>
 </header>
 
 <main>
+
+    <!-- Modus-Umschalter -->
+    <div class="mode-tabs">
+        <button class="mode-tab active" id="tab-new"  onclick="switchMode('new')">👤 Neue Person eintragen</button>
+        <button class="mode-tab"        id="tab-edit" onclick="switchMode('edit')">✏️ Bestehende Person bearbeiten</button>
+    </div>
+
+    <!-- Personen-Suche (nur im Bearbeiten-Modus) -->
+    <div id="edit-search-block">
+        <div class="field">
+            <label>Person auswählen</label>
+            <select id="edit-person-select">
+                <option value="">– Person suchen und auswählen –</option>
+            </select>
+        </div>
+    </div>
+
     <div class="card">
-        <h2>👤 Neue Person + Beziehungen eintragen</h2>
+        <h2 id="form-title">👤 Neue Person + Beziehungen eintragen</h2>
 
         <!-- Personendaten -->
         <div class="row">
@@ -200,18 +291,53 @@
                 <input type="text" id="p-maiden" placeholder="nur bei verheirateten Frauen" />
             </div>
         </div>
+
+        <!-- Geburtsdatum -->
         <div class="row">
             <div class="field">
-                <label>Geburtsdatum</label>
-                <input type="date" id="p-birth" />
-                <div class="hint">Leer lassen wenn unbekannt</div>
+                <div class="date-block" id="birth-block">
+                    <label>Geburtsdatum</label>
+                    <div class="date-type-tabs">
+                        <button class="date-tab active" id="birth-tab-exact"   onclick="setDateMode('birth','exact',this)">Exakt</button>
+                        <button class="date-tab"        id="birth-tab-est"     onclick="setDateMode('birth','est',this)">Schätzung</button>
+                        <button class="date-tab"        id="birth-tab-unknown" onclick="setDateMode('birth','unknown',this)">Unbekannt</button>
+                    </div>
+                    <div class="date-input-exact" id="birth-exact">
+                        <input type="date" id="p-birth-exact" />
+                    </div>
+                    <div class="date-input-est" id="birth-est">
+                        <input type="number" id="p-birth-year" placeholder="z.B. 1842" min="1600" max="2025" />
+                        <div class="est-hint">🔮 Nur Jahreszahl – wird als 01.07. gespeichert</div>
+                    </div>
+                    <div class="date-input-unknown" id="birth-unknown">
+                        <div class="hint" style="padding:0.5em 0;">Kein Datum wird gespeichert.</div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Sterbedatum -->
             <div class="field">
-                <label>Sterbedatum</label>
-                <input type="date" id="p-death" />
-                <div class="hint">Leer lassen wenn unbekannt</div>
+                <div class="date-block" id="death-block">
+                    <label>Sterbedatum</label>
+                    <div class="date-type-tabs">
+                        <button class="date-tab active" id="death-tab-exact"   onclick="setDateMode('death','exact',this)">Exakt</button>
+                        <button class="date-tab"        id="death-tab-est"     onclick="setDateMode('death','est',this)">Schätzung</button>
+                        <button class="date-tab"        id="death-tab-unknown" onclick="setDateMode('death','unknown',this)">Unbekannt</button>
+                    </div>
+                    <div class="date-input-exact" id="death-exact">
+                        <input type="date" id="p-death-exact" />
+                    </div>
+                    <div class="date-input-est" id="death-est">
+                        <input type="number" id="p-death-year" placeholder="z.B. 1901" min="1600" max="2025" />
+                        <div class="est-hint">🔮 Nur Jahreszahl – wird als 01.07. gespeichert</div>
+                    </div>
+                    <div class="date-input-unknown" id="death-unknown">
+                        <div class="hint" style="padding:0.5em 0;">Kein Datum wird gespeichert.</div>
+                    </div>
+                </div>
             </div>
         </div>
+
         <div class="row">
             <div class="field">
                 <label>Geburtsort</label>
@@ -230,13 +356,11 @@
         <hr class="divider">
 
         <!-- Beziehungen -->
-        <h3>🔗 Beziehungen zur neuen Person (optional)</h3>
+        <h3>🔗 Beziehungen <span id="rel-section-hint" style="font-weight:normal; color:#aaa;">(optional)</span></h3>
         <div id="rel-container"></div>
         <button class="add-rel-btn" id="add-rel-btn">+ Beziehung hinzufügen</button>
 
-        <button class="submit-btn" id="btn-submit">
-            Alles eintragen (zur Freigabe)
-        </button>
+        <button class="submit-btn" id="btn-submit">💾 Alles eintragen (zur Freigabe)</button>
         <div class="message" id="msg-main"></div>
     </div>
 </main>
@@ -244,14 +368,30 @@
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+
+// ── Datums-Modus ──────────────────────────────────────────────────
+var dateModes = { birth: 'exact', death: 'exact' };
+
+window.setDateMode = function(field, mode, btn) {
+    dateModes[field] = mode;
+    var tabs = btn.parentElement.querySelectorAll('.date-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById(field + '-exact').style.display   = mode === 'exact'   ? 'block' : 'none';
+    document.getElementById(field + '-est').style.display     = mode === 'est'      ? 'block' : 'none';
+    document.getElementById(field + '-unknown').style.display = mode === 'unknown'  ? 'block' : 'none';
+};
+
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    let currentUser = null;
-    let allPersons  = [];
-    let relCount    = 0;
+    let currentUser    = null;
+    let allPersons     = [];
+    let relCount       = 0;
+    let currentMode    = 'new';    // 'new' oder 'edit'
+    let editPersonId   = null;     // ID der Person im Bearbeiten-Modus
 
-    // Zugangsschutz
+    // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
         if (!result.data.session) {
             window.location.href = 'login.html';
@@ -261,26 +401,171 @@ window.addEventListener('load', function() {
         }
     });
 
-    // Logout
     document.getElementById('logout-btn').addEventListener('click', function() {
-        client.auth.signOut().then(function() {
-            window.location.href = 'login.html';
-        });
+        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // Alle approved Personen für Dropdowns laden
+    // ── Personen laden ───────────────────────────────────────────
     function loadPersons() {
         client.from('persons')
-            .select('id, display_name, family_name')
+            .select('id, display_name, family_name, given_name, sex, maiden_name, ' +
+                    'birth_date, birth_date_estimated, death_date, death_date_estimated, ' +
+                    'birth_place, death_place, profession')
             .eq('status', 'approved')
             .order('family_name')
             .then(function(result) {
                 if (result.error) return;
-                allPersons = result.data;
+                allPersons = result.data.map(function(p) {
+                    p.id = Number(p.id); return p;
+                });
+                // Dropdown für Bearbeiten-Modus befüllen
+                var sel = document.getElementById('edit-person-select');
+                allPersons.forEach(function(p) {
+                    var opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = p.display_name + ' (ID: ' + p.id + ')';
+                    sel.appendChild(opt);
+                });
             });
     }
 
-    // Beziehungsblock hinzufügen
+    // ── Modus umschalten ─────────────────────────────────────────
+    window.switchMode = function(mode) {
+        currentMode = mode;
+        document.getElementById('tab-new').classList.toggle('active',  mode === 'new');
+        document.getElementById('tab-edit').classList.toggle('active', mode === 'edit');
+
+        var searchBlock = document.getElementById('edit-search-block');
+        if (mode === 'edit') {
+            searchBlock.classList.add('visible');
+            document.getElementById('form-title').textContent = '✏️ Person bearbeiten';
+            document.getElementById('btn-submit').textContent = '💾 Änderungen speichern';
+            document.getElementById('btn-submit').classList.add('edit-mode');
+            document.getElementById('rel-section-hint').textContent = '– neue hinzufügen oder bestehende entfernen';
+        } else {
+            searchBlock.classList.remove('visible');
+            document.getElementById('form-title').textContent = '👤 Neue Person + Beziehungen eintragen';
+            document.getElementById('btn-submit').textContent = '💾 Alles eintragen (zur Freigabe)';
+            document.getElementById('btn-submit').classList.remove('edit-mode');
+            document.getElementById('rel-section-hint').textContent = '(optional)';
+            clearForm();
+        }
+    };
+
+    // ── Person im Bearbeiten-Modus laden ─────────────────────────
+    document.getElementById('edit-person-select').addEventListener('change', function() {
+        var id = Number(this.value);
+        if (!id) { clearForm(); editPersonId = null; return; }
+
+        var p = allPersons.find(function(x) { return x.id === id; });
+        if (!p) return;
+
+        editPersonId = p.id;
+
+        // Felder vorausfüllen
+        document.getElementById('p-family').value     = p.family_name  || '';
+        document.getElementById('p-given').value      = p.given_name   || '';
+        document.getElementById('p-sex').value        = p.sex          || '';
+        document.getElementById('p-maiden').value     = p.maiden_name  || '';
+        document.getElementById('p-birthplace').value = p.birth_place  || '';
+        document.getElementById('p-deathplace').value = p.death_place  || '';
+        document.getElementById('p-profession').value = p.profession   || '';
+
+        // Geburtsdatum vorausfüllen
+        fillDateField('birth', p.birth_date, p.birth_date_estimated);
+        fillDateField('death', p.death_date, p.death_date_estimated);
+
+        // Bestehende Beziehungen laden
+        loadExistingRelationships(p.id);
+    });
+
+    // Datumfeld vorausfüllen inkl. Modus-Tab
+    function fillDateField(field, dateVal, estimated) {
+        if (!dateVal) {
+            // Unbekannt
+            setDateModeById(field, 'unknown');
+        } else if (estimated === true) {
+            // Schätzung: nur Jahr anzeigen
+            setDateModeById(field, 'est');
+            document.getElementById('p-' + field + '-year').value =
+                dateVal.substring(0, 4);
+        } else {
+            // Exakt
+            setDateModeById(field, 'exact');
+            document.getElementById('p-' + field + '-exact').value = dateVal.substring(0, 10);
+        }
+    }
+
+    function setDateModeById(field, mode) {
+        dateModes[field] = mode;
+        document.getElementById(field + '-exact').style.display   = mode === 'exact'   ? 'block' : 'none';
+        document.getElementById(field + '-est').style.display     = mode === 'est'      ? 'block' : 'none';
+        document.getElementById(field + '-unknown').style.display = mode === 'unknown'  ? 'block' : 'none';
+        // Tabs aktualisieren
+        ['exact','est','unknown'].forEach(function(m) {
+            var tab = document.getElementById(field + '-tab-' + m);
+            if (tab) tab.classList.toggle('active', m === mode);
+        });
+    }
+
+    // Bestehende Beziehungen laden und anzeigen
+    function loadExistingRelationships(personId) {
+        document.getElementById('rel-container').innerHTML = '';
+        relCount = 0;
+
+        client.from('relationships')
+            .select('id, person_id, related_person_id, relationship_type, status')
+            .or('person_id.eq.' + personId + ',related_person_id.eq.' + personId)
+            .eq('status', 'approved')
+            .then(function(result) {
+                if (result.error || !result.data.length) return;
+
+                result.data.forEach(function(r) {
+                    // Lesbaren Text bestimmen
+                    var otherPersonId = (r.person_id === personId)
+                        ? r.related_person_id : r.person_id;
+                    var other = allPersons.find(function(x) { return x.id === otherPersonId; });
+                    var otherName = other ? other.display_name : 'ID ' + otherPersonId;
+
+                    var typeLabel = {
+                        hasMother:  'hat Mutter',
+                        hasFather:  'hat Vater',
+                        hasWife:    'verheiratet mit',
+                        hasHusband: 'verheiratet mit',
+                    }[r.relationship_type] || r.relationship_type;
+
+                    // Richtung aus Perspektive der bearbeiteten Person
+                    var desc;
+                    if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                        if (r.person_id === personId) {
+                            desc = typeLabel + ': ' + otherName;
+                        } else {
+                            desc = (r.relationship_type === 'hasMother' ? 'Mutter' : 'Vater') +
+                                   ' von: ' + otherName;
+                        }
+                    } else {
+                        desc = typeLabel + ': ' + otherName;
+                    }
+
+                    // Bestehenden Block anzeigen (nur lesbar, kann entfernt werden)
+                    relCount++;
+                    var div = document.createElement('div');
+                    div.className = 'rel-block existing';
+                    div.id = 'rel-block-' + relCount;
+                    div.dataset.relId = r.id;
+                    div.dataset.existing = '1';
+                    div.innerHTML =
+                        '<button class="remove-rel-btn" onclick="removeRel(' + relCount + ')">✕</button>' +
+                        '<div class="rel-tag">📎 Bestehende Beziehung</div>' +
+                        '<div style="font-size:0.9em; color:#444; padding:0.2em 0;">' +
+                            desc +
+                        '</div>';
+                    document.getElementById('rel-container').appendChild(div);
+                });
+            });
+    }
+
+    // ── Beziehungsblock hinzufügen ───────────────────────────────
     document.getElementById('add-rel-btn').addEventListener('click', function() {
         addRelBlock();
     });
@@ -292,18 +577,21 @@ window.addEventListener('load', function() {
         div.className = 'rel-block';
         div.id = 'rel-block-' + id;
 
-        // Personen-Optionen aufbauen
         var options = '<option value="">– Person wählen –</option>';
         allPersons.forEach(function(p) {
+            // Im Bearbeiten-Modus: die Person selbst nicht anbieten
+            if (editPersonId && p.id === editPersonId) return;
             options += '<option value="' + p.id + '">' +
                        p.display_name + ' (ID: ' + p.id + ')</option>';
         });
+
+        var relLabel = currentMode === 'edit' ? 'Diese Person ist...' : 'Neue Person ist...';
 
         div.innerHTML =
             '<button class="remove-rel-btn" onclick="removeRel(' + id + ')">✕</button>' +
             '<div class="row">' +
               '<div class="field">' +
-                '<label>Neue Person ist...</label>' +
+                '<label>' + relLabel + '</label>' +
                 '<select id="r-type-' + id + '">' +
                   '<option value="">– Beziehungstyp –</option>' +
                   '<option value="hasMother">Mutter von...</option>' +
@@ -325,14 +613,52 @@ window.addEventListener('load', function() {
         document.getElementById('rel-container').appendChild(div);
     }
 
-    // Beziehungsblock entfernen
     window.removeRel = function(id) {
         var el = document.getElementById('rel-block-' + id);
-        if (el) el.remove();
+        if (!el) return;
+        // Wenn bestehende Beziehung: in DB auf 'rejected' setzen
+        if (el.dataset.existing === '1' && el.dataset.relId) {
+            var relId = Number(el.dataset.relId);
+            client.from('relationships')
+                .update({ status: 'rejected' })
+                .eq('id', relId)
+                .then(function(result) {
+                    if (!result.error) {
+                        logChange('DELETE', 'relationships', relId,
+                            { reason: 'removed via edit form' });
+                    }
+                });
+        }
+        el.remove();
     };
 
-    // Alles absenden
+    // ── Datumswert auslesen ──────────────────────────────────────
+    function getDateValue(field) {
+        var mode = dateModes[field];
+        if (mode === 'unknown') return { date: null, estimated: null };
+        if (mode === 'exact') {
+            var val = document.getElementById('p-' + field + '-exact').value;
+            return { date: val || null, estimated: val ? false : null };
+        }
+        if (mode === 'est') {
+            var year = document.getElementById('p-' + field + '-year').value;
+            if (!year) return { date: null, estimated: null };
+            return { date: year + '-07-01', estimated: true };
+        }
+        return { date: null, estimated: null };
+    }
+
+    // ── Absenden ─────────────────────────────────────────────────
     document.getElementById('btn-submit').addEventListener('click', function() {
+        if (currentMode === 'edit') {
+            submitEdit();
+        } else {
+            submitNew();
+        }
+    });
+
+    // ── Neue Person speichern ────────────────────────────────────
+    function submitNew() {
         var familyName = document.getElementById('p-family').value.trim().toUpperCase();
         var givenName  = document.getElementById('p-given').value.trim();
         var sex        = document.getElementById('p-sex').value;
@@ -343,93 +669,141 @@ window.addEventListener('load', function() {
             return;
         }
 
-        // Kein id, kein display_name – beides setzt die Datenbank automatisch
+        var birthData = getDateValue('birth');
+        var deathData = getDateValue('death');
+
         var newPerson = {
-            family_name:  familyName,
-            given_name:   givenName,
-            sex:          sex,
-            maiden_name:  document.getElementById('p-maiden').value.trim()     || null,
-            birth_date:   document.getElementById('p-birth').value             || null,
-            death_date:   document.getElementById('p-death').value             || null,
-            birth_place:  document.getElementById('p-birthplace').value.trim() || null,
-            death_place:  document.getElementById('p-deathplace').value.trim() || null,
-            profession:   document.getElementById('p-profession').value.trim() || null,
-            status:       'pending',
+            family_name:           familyName,
+            given_name:            givenName,
+            sex:                   sex,
+            maiden_name:           document.getElementById('p-maiden').value.trim()     || null,
+            birth_date:            birthData.date,
+            birth_date_estimated:  birthData.estimated,
+            death_date:            deathData.date,
+            death_date_estimated:  deathData.estimated,
+            birth_place:           document.getElementById('p-birthplace').value.trim() || null,
+            death_place:           document.getElementById('p-deathplace').value.trim() || null,
+            profession:            document.getElementById('p-profession').value.trim() || null,
+            status:                'pending',
         };
 
-        // Erst Person speichern, dann Beziehungen
         client.from('persons').insert([newPerson]).select().then(function(result) {
             if (result.error) {
-                showMsg(msg, 'error', 'Fehler beim Speichern: ' + result.error.message);
+                showMsg(msg, 'error', 'Fehler: ' + result.error.message);
                 return;
             }
+            var saved = result.data[0];
+            logChange('INSERT', 'persons', saved.id, newPerson);
 
-            var savedPerson = result.data[0];
-            logChange('INSERT', 'persons', savedPerson.id, newPerson);
-
-            // Beziehungen sammeln
-            var rels = collectRelationships(savedPerson.id);
-
+            var rels = collectNewRelationships(saved.id);
             if (rels.length === 0) {
-                showSuccess(msg, savedPerson.display_name, 0);
+                showSuccess(msg, saved.display_name, 0);
                 clearForm();
                 return;
             }
-
-            // Beziehungen speichern
             client.from('relationships').insert(rels).select().then(function(relResult) {
                 if (relResult.error) {
-                    showMsg(msg, 'error',
-                        'Person gespeichert, aber Fehler bei Beziehungen: ' +
-                        relResult.error.message);
+                    showMsg(msg, 'error', 'Person gespeichert, Fehler bei Beziehungen: ' + relResult.error.message);
                     return;
                 }
-                relResult.data.forEach(function(r) {
-                    logChange('INSERT', 'relationships', r.id, r);
-                });
-                showSuccess(msg, savedPerson.display_name, rels.length);
+                relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r); });
+                showSuccess(msg, saved.display_name, rels.length);
                 clearForm();
             });
         });
-    });
+    }
 
-    // Beziehungen aus den Blöcken auslesen
-    function collectRelationships(newPersonId) {
+    // ── Bestehende Person aktualisieren ──────────────────────────
+    function submitEdit() {
+        var msg = document.getElementById('msg-main');
+        if (!editPersonId) {
+            showMsg(msg, 'error', 'Bitte zuerst eine Person auswählen.');
+            return;
+        }
+
+        var familyName = document.getElementById('p-family').value.trim().toUpperCase();
+        var givenName  = document.getElementById('p-given').value.trim();
+        var sex        = document.getElementById('p-sex').value;
+
+        if (!familyName || !givenName || !sex) {
+            showMsg(msg, 'error', 'Familienname, Vorname und Geschlecht sind Pflichtfelder.');
+            return;
+        }
+
+        var birthData = getDateValue('birth');
+        var deathData = getDateValue('death');
+
+        var updates = {
+            family_name:           familyName,
+            given_name:            givenName,
+            sex:                   sex,
+            maiden_name:           document.getElementById('p-maiden').value.trim()     || null,
+            birth_date:            birthData.date,
+            birth_date_estimated:  birthData.estimated,
+            death_date:            deathData.date,
+            death_date_estimated:  deathData.estimated,
+            birth_place:           document.getElementById('p-birthplace').value.trim() || null,
+            death_place:           document.getElementById('p-deathplace').value.trim() || null,
+            profession:            document.getElementById('p-profession').value.trim() || null,
+            // Status bleibt erhalten – kein Reset auf pending beim Bearbeiten
+        };
+
+        client.from('persons')
+            .update(updates)
+            .eq('id', editPersonId)
+            .select()
+            .then(function(result) {
+                if (result.error) {
+                    showMsg(msg, 'error', 'Fehler beim Speichern: ' + result.error.message);
+                    return;
+                }
+                var saved = result.data[0];
+                logChange('UPDATE', 'persons', editPersonId, updates);
+
+                // Neue Beziehungen eintragen
+                var rels = collectNewRelationships(editPersonId);
+                if (rels.length === 0) {
+                    showMsg(msg, 'success', '✓ ' + saved.display_name + ' wurde aktualisiert.');
+                    return;
+                }
+                client.from('relationships').insert(rels).select().then(function(relResult) {
+                    if (relResult.error) {
+                        showMsg(msg, 'error', 'Personendaten gespeichert, Fehler bei neuen Beziehungen: ' + relResult.error.message);
+                        return;
+                    }
+                    relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r); });
+                    showMsg(msg, 'success',
+                        '✓ ' + saved.display_name + ' aktualisiert + ' +
+                        rels.length + ' neue Beziehung(en) eingetragen.');
+                });
+            });
+    }
+
+    // ── Neue Beziehungsblöcke auslesen (nicht die bestehenden) ───
+    function collectNewRelationships(personId) {
         var rels = [];
-        var blocks = document.querySelectorAll('.rel-block');
+        var blocks = document.querySelectorAll('.rel-block:not(.existing)');
         blocks.forEach(function(block) {
             var blockId   = block.id.replace('rel-block-', '');
             var relType   = document.getElementById('r-type-'    + blockId).value;
             var relatedId = parseInt(document.getElementById('r-related-' + blockId).value);
-
             if (!relType || !relatedId) return;
 
-            var personId, relatedPersonId, type;
-
+            var pId, rId, type;
             if (relType === 'hasMother' || relType === 'hasFather') {
-                // Neue Person IST Mutter/Vater von relatedId
-                personId        = relatedId;
-                relatedPersonId = newPersonId;
-                type            = relType;
+                pId = relatedId; rId = personId; type = relType;
             } else if (relType === 'isMother' || relType === 'isFather') {
-                // Neue Person HAT diese Mutter/diesen Vater
-                personId        = newPersonId;
-                relatedPersonId = relatedId;
-                type            = relType === 'isMother' ? 'hasMother' : 'hasFather';
+                pId = personId; rId = relatedId;
+                type = relType === 'isMother' ? 'hasMother' : 'hasFather';
             } else if (relType === 'hasWife' || relType === 'isWife') {
-                personId        = newPersonId;
-                relatedPersonId = relatedId;
-                type            = 'hasWife';
+                pId = personId; rId = relatedId; type = 'hasWife';
             } else if (relType === 'hasHusband' || relType === 'isHusband') {
-                personId        = newPersonId;
-                relatedPersonId = relatedId;
-                type            = 'hasHusband';
+                pId = personId; rId = relatedId; type = 'hasHusband';
             }
 
-            // Kein id – wird automatisch von der Datenbank vergeben
             rels.push({
-                person_id:         personId,
-                related_person_id: relatedPersonId,
+                person_id:         pId,
+                related_person_id: rId,
                 relationship_type: type,
                 status:            'pending',
             });
@@ -437,7 +811,7 @@ window.addEventListener('load', function() {
         return rels;
     }
 
-    // Changelog
+    // ── Changelog ────────────────────────────────────────────────
     function logChange(action, tableName, recordId, details) {
         client.from('changelog').insert([{
             changed_by: currentUser.email,
@@ -448,12 +822,9 @@ window.addEventListener('load', function() {
         }]).then(function() {});
     }
 
-    function showSuccess(msg, name, relCount) {
-        var relText = relCount > 0
-            ? ' mit ' + relCount + ' Beziehung(en)'
-            : ' (ohne Beziehungen)';
-        showMsg(msg, 'success',
-            '✓ ' + name + relText + ' eingetragen – wartet auf Freigabe.');
+    function showSuccess(msg, name, count) {
+        var relText = count > 0 ? ' mit ' + count + ' Beziehung(en)' : ' (ohne Beziehungen)';
+        showMsg(msg, 'success', '✓ ' + name + relText + ' eingetragen – wartet auf Freigabe.');
     }
 
     function showMsg(el, type, text) {
@@ -462,13 +833,33 @@ window.addEventListener('load', function() {
     }
 
     function clearForm() {
-        ['p-family','p-given','p-maiden','p-birth','p-death',
+        ['p-family','p-given','p-maiden',
+         'p-birth-exact','p-birth-year',
+         'p-death-exact','p-death-year',
          'p-birthplace','p-deathplace','p-profession'].forEach(function(id) {
             document.getElementById(id).value = '';
         });
         document.getElementById('p-sex').value = '';
         document.getElementById('rel-container').innerHTML = '';
         relCount = 0;
+        editPersonId = null;
+        // Datumsmodi zurücksetzen
+        dateModes = { birth: 'exact', death: 'exact' };
+        ['birth','death'].forEach(function(f) {
+            setDateModeById(f, 'exact');
+        });
+        document.getElementById('edit-person-select').value = '';
+    }
+
+    function setDateModeById(field, mode) {
+        dateModes[field] = mode;
+        document.getElementById(field + '-exact').style.display   = mode === 'exact'   ? 'block' : 'none';
+        document.getElementById(field + '-est').style.display     = mode === 'est'      ? 'block' : 'none';
+        document.getElementById(field + '-unknown').style.display = mode === 'unknown'  ? 'block' : 'none';
+        ['exact','est','unknown'].forEach(function(m) {
+            var tab = document.getElementById(field + '-tab-' + m);
+            if (tab) tab.classList.toggle('active', m === mode);
+        });
     }
 
 });
