@@ -104,6 +104,11 @@
             height: 1px;
             background: #ddd;
         }
+        .tl-band {
+            position: absolute;
+            left: 0; right: 0;
+            pointer-events: none;
+        }
 
         #cy {
             flex: 1;
@@ -385,8 +390,15 @@ window.addEventListener('load', function() {
                         'color':            '#1a1a2e',
                     }
                 },
-                { selector: 'node[sex = "f"]', style: { 'border-style': 'dashed' } },
-                { selector: 'node[sex = "m"]', style: { 'border-style': 'solid'  } },
+                { selector: 'node[sex = "f"]', style: {
+                    'shape': 'ellipse',
+                    'border-style': 'dashed',
+                }},
+                { selector: 'node[sex = "m"]', style: {
+                    'shape': 'rectangle',
+                    'border-style': 'solid',
+                    'corner-radius': '4px',
+                }},
                 {
                     selector: 'node.married',
                     style: { 'border-color': '#c8960c', 'border-width': '4px' }
@@ -584,42 +596,86 @@ window.addEventListener('load', function() {
         updateTimeline();
     }
 
-    // ── Zeitachsen-Beschriftung ───────────────────────────────────
+    // ── Zeitachsen-Beschriftung + Hintergrundbänder ─────────────
     function updateTimeline() {
-        var tlDiv = document.getElementById('timeline');
+        var tlDiv  = document.getElementById('timeline');
+        var cyDiv  = document.getElementById('cy');
         tlDiv.innerHTML = '';
+
+        // Alte Bänder entfernen
+        var oldBands = cyDiv.querySelectorAll('.tl-band-overlay');
+        oldBands.forEach(function(b) { b.remove(); });
 
         if (!cy || cy.nodes().length === 0) return;
 
-        // Jahreszahlen berechnen
         var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
                               .filter(function(y) { return y; });
         var minYear = Math.min.apply(null, years);
         var maxYear = Math.max.apply(null, years);
 
-        // Alle Jahrzehnte anzeigen
-        var step = 25;
+        var step        = 25;
         var startDecade = Math.floor(minYear / step) * step;
         var endDecade   = Math.ceil(maxYear  / step) * step;
 
-        for (var yr = startDecade; yr <= endDecade; yr += step) {
-            // Graph-Koordinate → Bildschirmkoordinate
-            var graphY  = 100 + (yr - minYear) * PX_PER_YEAR;
-            var screenY = cy.pan().y + graphY * cy.zoom();
+        // cy-Container braucht position:relative für absolute Kinder
+        if (cyDiv.style.position !== 'relative') {
+            cyDiv.style.position = 'relative';
+        }
 
-            // Nur anzeigen wenn im sichtbaren Bereich
-            if (screenY < -20 || screenY > tlDiv.offsetHeight + 20) continue;
+        // Abwechselnde Farben für die Bänder
+        var bandColors = [
+            'rgba(90, 62, 43, 0.04)',   // warmes Braun
+            'rgba(90, 62, 43, 0.00)',   // transparent (Wechsel)
+        ];
 
-            var line = document.createElement('div');
-            line.className = 'tl-line';
-            line.style.top = screenY + 'px';
-            tlDiv.appendChild(line);
+        var bandIndex = 0;
+        for (var yr = startDecade; yr < endDecade; yr += step) {
+            var graphY1  = 100 + (yr       - minYear) * PX_PER_YEAR;
+            var graphY2  = 100 + (yr + step - minYear) * PX_PER_YEAR;
+            var screenY1 = cy.pan().y + graphY1 * cy.zoom();
+            var screenY2 = cy.pan().y + graphY2 * cy.zoom();
+            var bandH    = screenY2 - screenY1;
 
-            var label = document.createElement('div');
-            label.className = 'tl-label';
-            label.style.top = screenY + 'px';
-            label.textContent = yr;
-            tlDiv.appendChild(label);
+            // Band im cy-Container
+            var band = document.createElement('div');
+            band.className = 'tl-band-overlay';
+            band.style.cssText =
+                'position:absolute; left:0; right:0; pointer-events:none; z-index:0;' +
+                'top:' + screenY1 + 'px;' +
+                'height:' + bandH + 'px;' +
+                'background:' + bandColors[bandIndex % 2] + ';';
+            cyDiv.appendChild(band);
+            bandIndex++;
+
+            // Linie + Label in der Timeline-Leiste
+            var screenYTl = cy.pan().y + graphY1 * cy.zoom();
+            if (screenYTl >= -20 && screenYTl <= tlDiv.offsetHeight + 20) {
+                var line = document.createElement('div');
+                line.className = 'tl-line';
+                line.style.top = screenYTl + 'px';
+                tlDiv.appendChild(line);
+
+                var label = document.createElement('div');
+                label.className = 'tl-label';
+                label.style.top = screenYTl + 'px';
+                label.textContent = yr;
+                tlDiv.appendChild(label);
+            }
+        }
+        // Letzte Linie
+        var lastGraphY  = 100 + (endDecade - minYear) * PX_PER_YEAR;
+        var lastScreenY = cy.pan().y + lastGraphY * cy.zoom();
+        if (lastScreenY >= -20 && lastScreenY <= tlDiv.offsetHeight + 20) {
+            var lastLine = document.createElement('div');
+            lastLine.className = 'tl-line';
+            lastLine.style.top = lastScreenY + 'px';
+            tlDiv.appendChild(lastLine);
+
+            var lastLabel = document.createElement('div');
+            lastLabel.className = 'tl-label';
+            lastLabel.style.top = lastScreenY + 'px';
+            lastLabel.textContent = endDecade;
+            tlDiv.appendChild(lastLabel);
         }
     }
 
