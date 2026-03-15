@@ -802,40 +802,52 @@ window.addEventListener('load', function() {
     }
 
     // Alle Pfade zwischen zwei Knoten per BFS finden
+    // Wichtig: Cytoscape gibt IDs immer als Strings zurück – alles als String vergleichen
     function findAllPaths(startId, endId, maxSteps) {
+        var start = String(startId);
+        var end   = String(endId);
         var allPaths = [];
-        // Queue: { nodeId, path (node-ids), edgeIds }
-        var queue = [{ nodeId: startId, nodePath: [startId], edgePath: [] }];
+
+        // Prüfen ob Startknoten im Graph existiert
+        if (cy.getElementById(start).length === 0) {
+            console.warn('Startknoten nicht gefunden:', start);
+            return allPaths;
+        }
+        if (cy.getElementById(end).length === 0) {
+            console.warn('Endknoten nicht gefunden:', end);
+            return allPaths;
+        }
+
+        var queue = [{ nodeId: start, nodePath: [start], edgePath: [] }];
 
         while (queue.length > 0) {
             var current = queue.shift();
 
             // Ziel erreicht?
-            if (current.nodeId === endId && current.nodePath.length > 1) {
+            if (current.nodeId === end && current.nodePath.length > 1) {
                 allPaths.push({ nodes: current.nodePath, edges: current.edgePath });
-                continue; // Pfad gefunden, aber weitersuchen nach anderen
+                continue;
             }
 
-            // Max-Tiefe erreicht?
+            // Max-Tiefe erreicht oder Ziel als Zwischenstopp überspringen
             if (current.nodePath.length > maxSteps + 1) continue;
-
-            // Ziel nicht nochmal als Zwischenstopp
-            if (current.nodeId === endId) continue;
+            if (current.nodeId === end) continue;
 
             // Nachbarn durchsuchen (ungerichtet)
             var node = cy.getElementById(current.nodeId);
             node.connectedEdges().forEach(function(edge) {
-                var otherId = edge.source().id() === current.nodeId
-                    ? edge.target().id()
-                    : edge.source().id();
+                // IDs immer als String
+                var srcId = String(edge.source().id());
+                var tgtId = String(edge.target().id());
+                var otherId = srcId === current.nodeId ? tgtId : srcId;
 
-                // Kein Rückweg (Zyklen vermeiden)
+                // Zyklen vermeiden
                 if (current.nodePath.indexOf(otherId) !== -1) return;
 
                 queue.push({
                     nodeId:   otherId,
                     nodePath: current.nodePath.concat([otherId]),
-                    edgePath: current.edgePath.concat([edge.id()]),
+                    edgePath: current.edgePath.concat([String(edge.id())]),
                 });
             });
         }
@@ -844,8 +856,8 @@ window.addEventListener('load', function() {
 
     // Suche starten
     document.getElementById('path-search-btn').addEventListener('click', function() {
-        var idA      = Number(document.getElementById('path-person-a').value);
-        var idB      = Number(document.getElementById('path-person-b').value);
+        var idA      = String(document.getElementById('path-person-a').value);
+        var idB      = String(document.getElementById('path-person-b').value);
         var maxSteps = Number(document.getElementById('path-max-steps').value);
         var result   = document.getElementById('path-result');
 
@@ -888,8 +900,8 @@ window.addEventListener('load', function() {
             });
 
             // Start- und Zielknoten extra hervorheben
-            cy.getElementById(idA).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
-            cy.getElementById(idB).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
+            cy.getElementById(String(idA)).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
+            cy.getElementById(String(idB)).style({ 'border-color': '#e74c3c', 'border-width': '5px' });
 
             // Kürze­sten Pfad berechnen
             var shortest = paths.reduce(function(a, b) {
