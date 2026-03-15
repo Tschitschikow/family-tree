@@ -393,15 +393,28 @@ window.addEventListener('load', function() {
         });
 
         // ── Nur vertikales Verschieben im Zeitachsen-Layout ──────
-        cy.on('dragstart', 'node', function(e) {
-            e.target.scratch('_dragStartX', e.target.position('x'));
-        });
-        cy.on('drag', 'node', function(e) {
+        // Ansatz: X-Position beim Grab merken, bei jedem position-Event zurücksetzen
+        var _lockedX = null;
+        var _isDragging = false;
+
+        cy.on('grabon', 'node', function(e) {
             if (document.getElementById('layout-select').value === 'timeline') {
-                var lockedX = e.target.scratch('_dragStartX');
-                if (lockedX !== undefined) {
-                    e.target.position('x', lockedX);
-                }
+                _lockedX    = e.target.position('x');
+                _isDragging = true;
+            }
+        });
+
+        cy.on('free', 'node', function(e) {
+            if (_isDragging && _lockedX !== null) {
+                e.target.position('x', _lockedX);
+            }
+            _isDragging = false;
+            _lockedX    = null;
+        });
+
+        cy.on('drag', 'node', function(e) {
+            if (_isDragging && _lockedX !== null) {
+                e.target.position('x', _lockedX);
             }
         });
     }
