@@ -396,9 +396,12 @@ window.addEventListener('load', function() {
         cy.on('dragstart', 'node', function(e) {
             e.target.scratch('_dragStartX', e.target.position('x'));
         });
-        cy.on('dragfree', 'node', function(e) {
+        cy.on('drag', 'node', function(e) {
             if (document.getElementById('layout-select').value === 'timeline') {
-                e.target.position('x', e.target.scratch('_dragStartX'));
+                var lockedX = e.target.scratch('_dragStartX');
+                if (lockedX !== undefined) {
+                    e.target.position('x', lockedX);
+                }
             }
         });
     }
