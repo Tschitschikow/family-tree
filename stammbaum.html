@@ -206,6 +206,15 @@ var FAMILY_COLORS = {
 };
 function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 
+// ── Feste Positionen ─────────────────────────────────────────────
+// x: negativ = links, positiv = rechts  (Mittelpunkt = 0)
+// y: negativ = oben,  positiv = unten   (Mittelpunkt = 0)
+// Abstand zwischen den beiden: 150px (auf gleicher Höhe y = -500)
+var FIXED_POSITIONS = {
+    'MARTENS Simon':         { x: -650, y: -500 },
+    'MARTENS Martha Johanna':{ x: -500, y: -500 },
+};
+
 window.addEventListener('load', function() {
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -278,6 +287,15 @@ window.addEventListener('load', function() {
                     style: {
                         'border-color': '#c8960c',
                         'border-width': '4px',
+                    }
+                },
+                // Fixierte Person: zusätzlich mit Pin-Symbol angedeutet
+                {
+                    selector: 'node.fixed',
+                    style: {
+                        'border-color': '#c8960c',
+                        'border-width': '4px',
+                        'border-style': 'double',
                     }
                 },
                 { selector: 'node:selected', style: { 'border-width': '5px', 'border-color': '#5a3e2b' } },
@@ -372,17 +390,38 @@ window.addEventListener('load', function() {
 
         var elements = [];
         persons.forEach(function(p) {
-            var r = calcRadius(p.birth_date);
-            elements.push({ group: 'nodes', data: {
-                id: p.id, label: p.display_name, sex: p.sex,
-                family_name: p.family_name,
-                birth_date: p.birth_date || '', death_date: p.death_date || '',
-                birth_place: p.birth_place || '', profession: p.profession || '',
-                maiden_name: p.maiden_name || '',
-                radius: r, famColor: getFamilyColor(p.family_name),
-            },
-            classes: marriedIds.has(p.id) ? 'married' : '',
-            });
+            var r        = calcRadius(p.birth_date);
+            var fixedPos = FIXED_POSITIONS[p.display_name] || null;
+
+            // Klassen zusammenstellen
+            var classes = [];
+            if (marriedIds.has(p.id)) classes.push('married');
+            if (fixedPos)             classes.push('fixed');
+
+            var node = {
+                group:   'nodes',
+                data: {
+                    id:          p.id,
+                    label:       p.display_name,
+                    sex:         p.sex,
+                    family_name: p.family_name,
+                    birth_date:  p.birth_date  || '',
+                    death_date:  p.death_date  || '',
+                    birth_place: p.birth_place || '',
+                    profession:  p.profession  || '',
+                    maiden_name: p.maiden_name || '',
+                    radius:      r,
+                    famColor:    getFamilyColor(p.family_name),
+                },
+                classes: classes.join(' '),
+            };
+
+            // Feste Position nur setzen wenn definiert
+            if (fixedPos) {
+                node.position = { x: fixedPos.x, y: fixedPos.y };
+            }
+
+            elements.push(node);
         });
 
         relationships.forEach(function(r) {
@@ -413,6 +452,9 @@ window.addEventListener('load', function() {
             .selector('edge[type = "hasFather"]').style('label', lv)
             .selector('edge[type = "hasWife"]').style('label',   lv)
             .update();
+
+        // Fixierte Knoten vor dem Layout sperren
+        cy.nodes('.fixed').lock();
 
         var config;
         switch(name) {
@@ -456,7 +498,11 @@ window.addEventListener('load', function() {
         }
 
         var layout = cy.layout(config);
-        layout.on('layoutstop', function() { cy.fit(40); });
+        layout.on('layoutstop', function() {
+            // Nach Layout wieder verschiebbar – aber fixierte Knoten bleiben gesperrt
+            cy.nodes(':not(.fixed)').unlock();
+            cy.fit(40);
+        });
         layout.run();
     }
 
