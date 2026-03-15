@@ -71,7 +71,44 @@
         }
         .tool-btn:hover { background: #7a5e4b; }
         #person-count { font-size: 0.85em; color: #888; margin-left: auto; }
-        #cy { flex: 1; width: 100%; min-height: 500px; }
+
+        /* Graph-Container relativ für Zeitachse */
+        #graph-wrap {
+            flex: 1;
+            position: relative;
+            display: flex;
+        }
+
+        /* Zeitachse links */
+        #timeline {
+            width: 56px;
+            flex-shrink: 0;
+            position: relative;
+            background: #f7f0e6;
+            border-right: 1px solid #ddd;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .tl-label {
+            position: absolute;
+            right: 6px;
+            font-size: 0.7em;
+            color: #8a6a4a;
+            font-family: Georgia, serif;
+            transform: translateY(-50%);
+            white-space: nowrap;
+        }
+        .tl-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 1px;
+            background: #ddd;
+        }
+
+        #cy {
+            flex: 1;
+            min-height: 500px;
+        }
 
         #legend {
             position: fixed;
@@ -146,6 +183,7 @@
     <input type="text" id="filter-name" placeholder="Familienname..." />
     <label>Layout:</label>
     <select id="layout-select">
+        <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
         <option value="klay">Stammbaum (klay)</option>
         <option value="dagre">Hierarchisch (dagre)</option>
@@ -163,7 +201,11 @@
 </div>
 
 <div id="status-bar">Lade Stammbaum...</div>
-<div id="cy"></div>
+
+<div id="graph-wrap">
+    <div id="timeline"></div>
+    <div id="cy"></div>
+</div>
 
 <div id="legend">
     <h4>🎨 Familiennamen</h4>
@@ -206,16 +248,8 @@ var FAMILY_COLORS = {
 };
 function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 
-// ── Feste Positionen ─────────────────────────────────────────────
-// x: negativ = links, positiv = rechts  (Mittelpunkt = 0)
-// y: negativ = oben,  positiv = unten   (Mittelpunkt = 0)
-// Abstand zwischen den beiden: 150px (auf gleicher Höhe y = -500)
-var FIXED_POSITIONS = {
-    'MARTENS Simon':                 { x: -650, y: -500 },
-    'MARTENS Martha Johanna':        { x: -500, y: -500 },
-    'PETERS Christian':             { x: -300, y: -500 },
-    'PETERS Lucia':                { x: -150, y: -500 },
-};
+// Pixel pro Jahr in der Zeitachsen-Ansicht
+var PX_PER_YEAR = 8;
 
 window.addEventListener('load', function() {
 
@@ -283,22 +317,9 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'node[sex = "f"]', style: { 'border-style': 'dashed' } },
                 { selector: 'node[sex = "m"]', style: { 'border-style': 'solid'  } },
-                // Verheiratete Person: goldene Umrandung
                 {
                     selector: 'node.married',
-                    style: {
-                        'border-color': '#c8960c',
-                        'border-width': '4px',
-                    }
-                },
-                // Fixierte Person: zusätzlich mit Pin-Symbol angedeutet
-                {
-                    selector: 'node.fixed',
-                    style: {
-                        'border-color': '#c8960c',
-                        'border-width': '4px',
-                        'border-style': 'double',
-                    }
+                    style: { 'border-color': '#c8960c', 'border-width': '4px' }
                 },
                 { selector: 'node:selected', style: { 'border-width': '5px', 'border-color': '#5a3e2b' } },
                 {
@@ -314,20 +335,22 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'edge[type = "hasMother"]', style: { 'line-color': '#c0607a', 'target-arrow-color': '#c0607a', 'color': '#c0607a' } },
                 { selector: 'edge[type = "hasFather"]', style: { 'line-color': '#5a8ab0', 'target-arrow-color': '#5a8ab0', 'color': '#5a8ab0' } },
-                // Ehe: goldfarben, dick, durchgezogen
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
-                        'line-color':         '#c8960c',
-                        'target-arrow-shape': 'none',
-                        'line-style':         'solid',
-                        'width':              6,
-                        'opacity':            0.85,
-                        'color':              '#c8960c',
+                        'line-color': '#c8960c', 'target-arrow-shape': 'none',
+                        'line-style': 'solid', 'width': 6, 'opacity': 0.85, 'color': '#c8960c',
                     }
                 },
                 { selector: '.faded', style: { 'opacity': 0.1 } }
             ],
+        });
+
+        // Zeitachse beim Zoomen/Panen mitbewegen
+        cy.on('viewport', function() {
+            if (document.getElementById('layout-select').value === 'timeline') {
+                updateTimeline();
+            }
         });
 
         cy.on('tap', 'node', function(e) {
@@ -379,7 +402,6 @@ window.addEventListener('load', function() {
             return Math.round(20 + ratio * 80);
         }
 
-        // Verheiratete IDs für goldene Umrandung
         var personIds = new Set(persons.map(function(p) { return p.id; }));
         var marriedIds = new Set();
         relationships.forEach(function(r) {
@@ -392,38 +414,25 @@ window.addEventListener('load', function() {
 
         var elements = [];
         persons.forEach(function(p) {
-            var r        = calcRadius(p.birth_date);
-            var fixedPos = FIXED_POSITIONS[p.display_name] || null;
-
-            // Klassen zusammenstellen
-            var classes = [];
-            if (marriedIds.has(p.id)) classes.push('married');
-            if (fixedPos)             classes.push('fixed');
-
-            var node = {
-                group:   'nodes',
-                data: {
-                    id:          p.id,
-                    label:       p.display_name,
-                    sex:         p.sex,
-                    family_name: p.family_name,
-                    birth_date:  p.birth_date  || '',
-                    death_date:  p.death_date  || '',
-                    birth_place: p.birth_place || '',
-                    profession:  p.profession  || '',
-                    maiden_name: p.maiden_name || '',
-                    radius:      r,
-                    famColor:    getFamilyColor(p.family_name),
-                },
-                classes: classes.join(' '),
-            };
-
-            // Feste Position nur setzen wenn definiert
-            if (fixedPos) {
-                node.position = { x: fixedPos.x, y: fixedPos.y };
-            }
-
-            elements.push(node);
+            var r = calcRadius(p.birth_date);
+            // Geburtsjahr für spätere Y-Positionierung im data speichern
+            var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
+            elements.push({ group: 'nodes', data: {
+                id:          p.id,
+                label:       p.display_name,
+                sex:         p.sex,
+                family_name: p.family_name,
+                birth_date:  p.birth_date  || '',
+                death_date:  p.death_date  || '',
+                birth_place: p.birth_place || '',
+                profession:  p.profession  || '',
+                maiden_name: p.maiden_name || '',
+                radius:      r,
+                famColor:    getFamilyColor(p.family_name),
+                birthYear:   birthYear,
+            },
+            classes: marriedIds.has(p.id) ? 'married' : '',
+            });
         });
 
         relationships.forEach(function(r) {
@@ -445,8 +454,79 @@ window.addEventListener('load', function() {
         return elements;
     }
 
+    // ── Zeitachsen-Layout ─────────────────────────────────────────
+    // Schritt 1: cose läuft normal
+    // Schritt 2: Y-Koordinaten werden durch Geburtsjahr ersetzt
+    // Schritt 3: X-Koordinaten bleiben wie cose sie berechnet hat
+    function applyTimelineLayout() {
+        // Geburtsjahr-Grenzen aus aktuellen Knoten
+        var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
+                              .filter(function(y) { return y; });
+        var minYear = Math.min.apply(null, years);
+        var maxYear = Math.max.apply(null, years);
+        var avgYear = Math.round(years.reduce(function(a,b){return a+b;},0) / years.length);
+
+        // Y-Spanne: 80px pro Jahr, Padding oben/unten
+        var padding = 100;
+        var totalHeight = (maxYear - minYear) * PX_PER_YEAR;
+
+        cy.nodes().forEach(function(node) {
+            var year = node.data('birthYear') || avgYear;
+            // Ältere Person = kleineres Jahr = weiter oben (kleinere Y)
+            var y = padding + (year - minYear) * PX_PER_YEAR;
+            node.position('y', y);
+        });
+
+        cy.fit(60);
+        updateTimeline();
+    }
+
+    // ── Zeitachsen-Beschriftung ───────────────────────────────────
+    function updateTimeline() {
+        var tlDiv = document.getElementById('timeline');
+        tlDiv.innerHTML = '';
+
+        if (!cy || cy.nodes().length === 0) return;
+
+        // Jahreszahlen berechnen
+        var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
+                              .filter(function(y) { return y; });
+        var minYear = Math.min.apply(null, years);
+        var maxYear = Math.max.apply(null, years);
+
+        // Alle Jahrzehnte anzeigen
+        var step = 25;
+        var startDecade = Math.floor(minYear / step) * step;
+        var endDecade   = Math.ceil(maxYear  / step) * step;
+
+        for (var yr = startDecade; yr <= endDecade; yr += step) {
+            // Graph-Koordinate → Bildschirmkoordinate
+            var graphY  = 100 + (yr - minYear) * PX_PER_YEAR;
+            var screenY = cy.pan().y + graphY * cy.zoom();
+
+            // Nur anzeigen wenn im sichtbaren Bereich
+            if (screenY < -20 || screenY > tlDiv.offsetHeight + 20) continue;
+
+            var line = document.createElement('div');
+            line.className = 'tl-line';
+            line.style.top = screenY + 'px';
+            tlDiv.appendChild(line);
+
+            var label = document.createElement('div');
+            label.className = 'tl-label';
+            label.style.top = screenY + 'px';
+            label.textContent = yr;
+            tlDiv.appendChild(label);
+        }
+    }
+
     function runLayout(name) {
         if (!cy || cy.nodes().length === 0) return;
+
+        // Zeitachse ein/ausblenden
+        var tlDiv = document.getElementById('timeline');
+        tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
+        if (name !== 'timeline') tlDiv.innerHTML = '';
 
         var lv = showLabels ? 'data(label)' : '';
         cy.style()
@@ -455,27 +535,40 @@ window.addEventListener('load', function() {
             .selector('edge[type = "hasWife"]').style('label',   lv)
             .update();
 
-        // Fixierte Knoten vor dem Layout sperren
-        cy.nodes('.fixed').lock();
+        if (name === 'timeline') {
+            // Erst cose laufen lassen für X-Positionen
+            var coseConfig = {
+                name: 'cose',
+                animate: false,       // kein animate – wir überschreiben Y danach
+                fit: false,
+                padding: 40,
+                idealEdgeLength: 100,
+                nodeRepulsion: 400000,
+                gravity: 80,
+                numIter: 1000,
+                initialTemp: 200,
+                coolingFactor: 0.95,
+                minTemp: 1.0,
+                randomize: true,
+            };
+            var layout = cy.layout(coseConfig);
+            layout.on('layoutstop', function() {
+                // Y-Koordinaten durch Geburtsjahr ersetzen
+                applyTimelineLayout();
+            });
+            layout.run();
+            return;
+        }
 
         var config;
         switch(name) {
             case 'cose':
                 config = {
-                    name: 'cose',
-                    animate: true,
-                    animationDuration: 600,
-                    refresh: 20,
-                    fit: true,
-                    padding: 40,
-                    idealEdgeLength: 100,
-                    nodeRepulsion: 400000,
-                    gravity: 80,
-                    numIter: 1000,
-                    initialTemp: 200,
-                    coolingFactor: 0.95,
-                    minTemp: 1.0,
-                    randomize: true,
+                    name: 'cose', animate: true, animationDuration: 600,
+                    refresh: 20, fit: true, padding: 40,
+                    idealEdgeLength: 100, nodeRepulsion: 400000, gravity: 80,
+                    numIter: 1000, initialTemp: 200, coolingFactor: 0.95,
+                    minTemp: 1.0, randomize: true,
                 };
                 break;
             case 'klay':
@@ -500,11 +593,7 @@ window.addEventListener('load', function() {
         }
 
         var layout = cy.layout(config);
-        layout.on('layoutstop', function() {
-            // Nach Layout wieder verschiebbar – aber fixierte Knoten bleiben gesperrt
-            cy.nodes(':not(.fixed)').unlock();
-            cy.fit(40);
-        });
+        layout.on('layoutstop', function() { cy.fit(40); });
         layout.run();
     }
 
