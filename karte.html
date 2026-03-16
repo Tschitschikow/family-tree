@@ -123,6 +123,16 @@
             width: 12px; height: 12px; border-radius: 50%;
             flex-shrink: 0; border: 2px solid rgba(0,0,0,0.25);
         }
+        .line-tooltip {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: Georgia, serif;
+            font-size: 0.82em;
+            color: #5a3e2b;
+            padding: 2px 6px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
@@ -143,6 +153,7 @@
     <button class="toggle-btn active" id="toggle-birth">🔵 Geburtsorte</button>
     <button class="toggle-btn active" id="toggle-death">🔴 Sterbeorte</button>
     <button class="tool-btn"          id="fit-btn">🎯 Alle anzeigen</button>
+    <button class="toggle-btn active"  id="toggle-lines">〰️ Lebenslinien</button>
     <div id="progress-wrap">
         <span id="progress-text">Lade Orte...</span>
         <div id="progress-bar-outer">
@@ -175,7 +186,6 @@ var manualCache = {
     'Rönfeldholz':             { lat: 54.2862618,  lng: 10.5387596 },
     'Vergünne, Lüneburg':      { lat: 53.14811,    lng: 11.09475   },
     'Stücker Hof':             { lat: 53.583239,   lng: 11.209944  },
-    'Rosenkranz, Niebüll':     { lat: 54.8949176,  lng:  8.7516438 },
 };
 
 window.addEventListener('load', function() {
@@ -190,6 +200,7 @@ window.addEventListener('load', function() {
 
     var showBirth = true;
     var showDeath = true;
+    var showLines = true;
 
     // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
@@ -208,6 +219,7 @@ window.addEventListener('load', function() {
     var map = null;
     var birthLayer = null;
     var deathLayer = null;
+    var linesLayer = null;
 
     function initMap() {
         // Leaflet initialisieren
@@ -220,6 +232,7 @@ window.addEventListener('load', function() {
 
         birthLayer = L.layerGroup().addTo(map);
         deathLayer = L.layerGroup().addTo(map);
+        linesLayer = L.layerGroup().addTo(map);
 
         // Legende als Leaflet-Control
         var legend = L.control({ position: 'bottomright' });
@@ -370,6 +383,28 @@ window.addEventListener('load', function() {
             deathLayer.addLayer(m);
         });
 
+        // Lebenslinien: Geburtsort → Sterbeort pro Person
+        linesLayer.clearLayers();
+        persons.forEach(function(p) {
+            if (!p.birth_place || !p.death_place) return;
+            if (p.birth_place === p.death_place) return;  // gleicher Ort → keine Linie
+            var geoB = geoCache[p.birth_place];
+            var geoD = geoCache[p.death_place];
+            if (!geoB || !geoD) return;
+
+            var line = L.polyline(
+                [[geoB.lat, geoB.lng], [geoD.lat, geoD.lng]],
+                {
+                    color:     '#5a3e2b',
+                    weight:    1,
+                    opacity:   0.35,
+                    dashArray: '4 4',   // fein gestrichelt
+                }
+            );
+            line.bindTooltip(p.display_name, { sticky: true, className: 'line-tooltip' });
+            linesLayer.addLayer(line);
+        });
+
         // Statistik
         var notFound = Object.keys(geoCache).filter(function(k) { return geoCache[k] === null; });
         var statsEl  = document.getElementById('stats');
@@ -440,6 +475,13 @@ window.addEventListener('load', function() {
         this.classList.toggle('active', showDeath);
         if (showDeath) deathLayer.addTo(map);
         else map.removeLayer(deathLayer);
+    });
+
+    document.getElementById('toggle-lines').addEventListener('click', function() {
+        showLines = !showLines;
+        this.classList.toggle('active', showLines);
+        if (showLines) linesLayer.addTo(map);
+        else map.removeLayer(linesLayer);
     });
 
     // ── Datum formatieren ─────────────────────────────────────────
