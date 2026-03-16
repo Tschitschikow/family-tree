@@ -168,14 +168,13 @@ var manualCache = {
     // Beispiele – bitte anpassen:
     // 'Gr. Kummerfeld':   { lat: 53.7850, lng:  9.8920 },
     // 'Lütjenbg.':        { lat: 54.2969, lng: 10.5986 },
-    'Pforzheim': { lat: 48.89463, lng: 8.70272 },
-    'Ciry-Salsogne, Soissons': { lat: 49.36147, lng: 3.46215 },
-    'Seegalendorf, Eutin': { lat: 54.3120838, lng: 10.9516438 },
-    'Rönfeldholz': { lat: 54.2862618, lng: 10.5387596 },
-    'Vergünne, Lüneburg': { lat: 53.14811, lng: 11.09475},
-    'Stücker Hof':  { lat: 53.583239, lng: 11.209944},
-
-
+    // 'Preetz i. Holst.': { lat: 54.2333, lng: 10.2833 },
+    'Pforzheim':               { lat: 48.89463,    lng:  8.70272   },
+    'Ciry-Salsogne, Soissons': { lat: 49.36147,    lng:  3.46215   },
+    'Seegalendorf, Eutin':     { lat: 54.3120838,  lng: 10.9516438 },
+    'Rönfeldholz':             { lat: 54.2862618,  lng: 10.5387596 },
+    'Vergünne, Lüneburg':      { lat: 53.14811,    lng: 11.09475   },
+    'Stücker Hof':             { lat: 53.583239,   lng: 11.209944  },
 };
 
 window.addEventListener('load', function() {
@@ -251,10 +250,17 @@ window.addEventListener('load', function() {
                 var persons = result.data;
 
                 // Einzigartige Orte sammeln
+                // trim() entfernt führende/nachfolgende Leerzeichen
                 var placesSet = {};
                 persons.forEach(function(p) {
-                    if (p.birth_place) placesSet[p.birth_place] = true;
-                    if (p.death_place) placesSet[p.death_place] = true;
+                    if (p.birth_place) {
+                        p.birth_place = p.birth_place.trim();
+                        placesSet[p.birth_place] = true;
+                    }
+                    if (p.death_place) {
+                        p.death_place = p.death_place.trim();
+                        placesSet[p.death_place] = true;
+                    }
                 });
                 var places = Object.keys(placesSet);
 
