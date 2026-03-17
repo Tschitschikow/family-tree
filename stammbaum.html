@@ -200,10 +200,12 @@
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
     <nav style="display:flex; gap:1em; align-items:center;">
+        <!-- 3D-Ansicht ausgeblendet
         <a href="stammbaum3d.html"
            style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            🌐 3D-Ansicht
         </a>
+        -->
         <a href="karte.html"
            style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            🗺️ Karte
@@ -229,11 +231,11 @@
     <select id="layout-select">
         <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
-        <option value="klay">Stammbaum (klay)</option>
-        <option value="dagre">Hierarchisch (dagre)</option>
-        <option value="breadthfirst">Breitensuche</option>
+        <!-- <option value="klay">Stammbaum (klay)</option> -->
+        <!-- <option value="dagre">Hierarchisch (dagre)</option> -->
+        <!-- <option value="breadthfirst">Breitensuche</option> -->
         <option value="circle">Kreis</option>
-        <option value="grid">Raster</option>
+        <!-- <option value="grid">Raster</option> -->
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
@@ -396,7 +398,7 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'node[sex = "f"]', style: {
                     'shape': 'ellipse',
-                    'border-style': 'dashed',
+                    'border-style': 'solid',
                 }},
                 { selector: 'node[sex = "m"]', style: {
                     'shape': 'rectangle',
@@ -779,9 +781,35 @@ window.addEventListener('load', function() {
 
     document.getElementById('filter-name').addEventListener('input', function() {
         var q = this.value.trim().toLowerCase();
-        applyFilter(q ? allPersons.filter(function(p) {
-            return p.family_name.toLowerCase().includes(q) || p.display_name.toLowerCase().includes(q);
-        }) : allPersons, allRels);
+        if (!q) {
+            applyFilter(allPersons, allRels);
+            return;
+        }
+
+        // Direkt passende Personen
+        var directMatches = allPersons.filter(function(p) {
+            return p.family_name.toLowerCase().includes(q) ||
+                   p.display_name.toLowerCase().includes(q);
+        });
+
+        // IDs der direkt passenden Personen
+        var directIds = new Set(directMatches.map(function(p) { return p.id; }));
+
+        // Eine Ebene weiter: alle Personen die mit den direkten Treffern verbunden sind
+        var neighbourIds = new Set();
+        allRels.forEach(function(r) {
+            if (directIds.has(r.person_id))         neighbourIds.add(r.related_person_id);
+            if (directIds.has(r.related_person_id)) neighbourIds.add(r.person_id);
+        });
+
+        // Nachbarn die nicht schon in directIds sind
+        var neighbours = allPersons.filter(function(p) {
+            return neighbourIds.has(p.id) && !directIds.has(p.id);
+        });
+
+        // Zusammenführen: direkte Treffer + Nachbarn
+        var filtered = directMatches.concat(neighbours);
+        applyFilter(filtered, allRels);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
