@@ -377,6 +377,9 @@ function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 
 // Pixel pro Jahr in der Zeitachsen-Ansicht
 var PX_PER_YEAR = 8;
+var TL_MIN_YEAR = 1660;   // wird von applyTimelineLayout gesetzt
+var TL_MAX_YEAR = 2025;
+var TL_PADDING  = 100;
 
 window.addEventListener('load', function() {
 
@@ -646,19 +649,15 @@ window.addEventListener('load', function() {
         // Geburtsjahr-Grenzen aus aktuellen Knoten
         var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
                               .filter(function(y) { return y; });
-        var minYear = Math.min.apply(null, years);
-        var maxYear = Math.max.apply(null, years);
+        TL_MIN_YEAR = Math.min.apply(null, years);
+        TL_MAX_YEAR = Math.max.apply(null, years);
+        TL_PADDING  = 80;
         var avgYear = Math.round(years.reduce(function(a,b){return a+b;},0) / years.length);
-
-        // Y-Spanne: 80px pro Jahr, Padding oben/unten
-        var padding = 100;
-        var totalHeight = (maxYear - minYear) * PX_PER_YEAR;
 
         cy.nodes().forEach(function(node) {
             var year = node.data('birthYear') || avgYear;
-            // Jüngere Person = größeres Jahr = weiter oben (kleinere Y)
-            // Alt unten, Jung oben
-            var y = padding + (maxYear - year) * PX_PER_YEAR;
+            // Jung oben (kleine Y), Alt unten (große Y)
+            var y = TL_PADDING + (TL_MAX_YEAR - year) * PX_PER_YEAR;
             node.position('y', y);
         });
 
@@ -678,10 +677,9 @@ window.addEventListener('load', function() {
 
         if (!cy || cy.nodes().length === 0) return;
 
-        var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
-                              .filter(function(y) { return y; });
-        var minYear = Math.min.apply(null, years);
-        var maxYear = Math.max.apply(null, years);
+        // Dieselben Grenzen wie applyTimelineLayout verwenden!
+        var minYear = TL_MIN_YEAR;
+        var maxYear = TL_MAX_YEAR;
 
         var step        = 25;
         var startDecade = Math.floor(minYear / step) * step;
@@ -700,8 +698,8 @@ window.addEventListener('load', function() {
 
         var bandIndex = 0;
         for (var yr = startDecade; yr < endDecade; yr += step) {
-            var graphY1  = 100 + (maxYear - yr      ) * PX_PER_YEAR;
-            var graphY2  = 100 + (maxYear - yr - step) * PX_PER_YEAR;
+            var graphY1  = TL_PADDING + (maxYear - yr      ) * PX_PER_YEAR;
+            var graphY2  = TL_PADDING + (maxYear - yr - step) * PX_PER_YEAR;
             var screenY1 = cy.pan().y + graphY1 * cy.zoom();
             var screenY2 = cy.pan().y + graphY2 * cy.zoom();
             var bandH    = screenY2 - screenY1;
@@ -733,7 +731,7 @@ window.addEventListener('load', function() {
             }
         }
         // Letzte Linie
-        var lastGraphY  = 100 + (maxYear - startDecade) * PX_PER_YEAR;
+        var lastGraphY  = TL_PADDING + (maxYear - startDecade) * PX_PER_YEAR;
         var lastScreenY = cy.pan().y + lastGraphY * cy.zoom();
         if (lastScreenY >= -20 && lastScreenY <= tlDiv.offsetHeight + 20) {
             var lastLine = document.createElement('div');
@@ -754,7 +752,7 @@ window.addEventListener('load', function() {
         oldLines.forEach(function(l) { l.remove(); });
 
         for (var yr2 = startDecade; yr2 <= endDecade; yr2 += step) {
-            var gY   = 100 + (maxYear - yr2) * PX_PER_YEAR;
+            var gY   = TL_PADDING + (maxYear - yr2) * PX_PER_YEAR;
             var sY   = cy.pan().y + gY * cy.zoom();
 
             if (sY < -20 || sY > cyDiv.offsetHeight + 20) continue;
