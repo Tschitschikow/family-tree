@@ -628,13 +628,13 @@ window.addEventListener('load', function() {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
                     type: r.relationship_type,
-                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
+                    label: r.relationship_type === 'hasMother' ? 'ist Mutter von' : 'ist Vater von',
                 }});
             }
             if (r.relationship_type === 'hasWife') {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                    type: r.relationship_type, label: '💍 Ehepaar',
+                    type: r.relationship_type, label: 'sind verheiratet',
                 }});
             }
         });
