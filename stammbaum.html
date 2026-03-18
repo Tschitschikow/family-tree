@@ -446,7 +446,7 @@ window.addEventListener('load', function() {
                         'height':           'data(radius)',
                         'shape':            'ellipse',
                         'background-color': 'data(famColor)',
-                        'border-width':     '1.5px',
+                        'border-width':     '0.5px',
                         'border-color':     'rgba(0,0,0,0.18)',
                         'color':            '#444',
                     }
@@ -766,7 +766,7 @@ window.addEventListener('load', function() {
         if (name === 'timeline') {
             // Im Timeline-Layout alle Knoten gleich groß setzen
             cy.nodes().forEach(function(n) {
-                n.style({ 'width': 30, 'height': 30 });
+                n.style({ 'width': 100, 'height': 50 });
             });
 
             // Erst cose laufen lassen für X-Positionen
