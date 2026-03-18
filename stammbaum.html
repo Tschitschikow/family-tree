@@ -446,7 +446,7 @@ window.addEventListener('load', function() {
                         'height':           'data(radius)',
                         'shape':            'ellipse',
                         'background-color': 'data(famColor)',
-                        'border-width':     '0.5px',
+                        'border-width':     '1.5px',
                         'border-color':     'rgba(0,0,0,0.18)',
                         'color':            '#444',
                     }
@@ -462,7 +462,7 @@ window.addEventListener('load', function() {
                 }},
                 {
                     selector: 'node.married',
-                    style: { 'border-color': '#d4a820', 'border-width': '3px' }
+                    style: { 'border-color': '#d4a820', 'border-width': '0.5px' }
                 },
                 { selector: 'node:selected', style: { 'border-width': '3px', 'border-color': '#666', 'border-style': 'solid' } },
                 {
@@ -656,8 +656,9 @@ window.addEventListener('load', function() {
 
         cy.nodes().forEach(function(node) {
             var year = node.data('birthYear') || avgYear;
-            // Ältere Person = kleineres Jahr = weiter oben (kleinere Y)
-            var y = padding + (year - minYear) * PX_PER_YEAR;
+            // Jüngere Person = größeres Jahr = weiter oben (kleinere Y)
+            // Alt unten, Jung oben
+            var y = padding + (maxYear - year) * PX_PER_YEAR;
             node.position('y', y);
         });
 
@@ -699,8 +700,8 @@ window.addEventListener('load', function() {
 
         var bandIndex = 0;
         for (var yr = startDecade; yr < endDecade; yr += step) {
-            var graphY1  = 100 + (yr       - minYear) * PX_PER_YEAR;
-            var graphY2  = 100 + (yr + step - minYear) * PX_PER_YEAR;
+            var graphY1  = 100 + (maxYear - yr      ) * PX_PER_YEAR;
+            var graphY2  = 100 + (maxYear - yr - step) * PX_PER_YEAR;
             var screenY1 = cy.pan().y + graphY1 * cy.zoom();
             var screenY2 = cy.pan().y + graphY2 * cy.zoom();
             var bandH    = screenY2 - screenY1;
@@ -717,7 +718,7 @@ window.addEventListener('load', function() {
             bandIndex++;
 
             // Linie + Label in der Timeline-Leiste
-            var screenYTl = cy.pan().y + graphY1 * cy.zoom();
+            var screenYTl = cy.pan().y + Math.min(graphY1, graphY2) * cy.zoom();
             if (screenYTl >= -20 && screenYTl <= tlDiv.offsetHeight + 20) {
                 var line = document.createElement('div');
                 line.className = 'tl-line';
@@ -732,7 +733,7 @@ window.addEventListener('load', function() {
             }
         }
         // Letzte Linie
-        var lastGraphY  = 100 + (endDecade - minYear) * PX_PER_YEAR;
+        var lastGraphY  = 100 + (maxYear - startDecade) * PX_PER_YEAR;
         var lastScreenY = cy.pan().y + lastGraphY * cy.zoom();
         if (lastScreenY >= -20 && lastScreenY <= tlDiv.offsetHeight + 20) {
             var lastLine = document.createElement('div');
@@ -766,7 +767,7 @@ window.addEventListener('load', function() {
         if (name === 'timeline') {
             // Im Timeline-Layout alle Knoten gleich groß setzen
             cy.nodes().forEach(function(n) {
-                n.style({ 'width': 100, 'height': 50 });
+                n.style({ 'width': 30, 'height': 30 });
             });
 
             // Erst cose laufen lassen für X-Positionen
