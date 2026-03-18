@@ -586,19 +586,18 @@ window.addEventListener('load', function() {
             var r = calcRadius(p.birth_date);
             // Geburtsjahr für spätere Y-Positionierung im data speichern
             var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
-            // Label aufbauen: Name + Mädchenname + Kreuz + Schätzung
-            var label = p.display_name;
-            // Mädchenname darunter
+            // Label aufbauen: Name [† *] + Mädchenname
+            // Symbole direkt hinter dem Namen in Zeile 1, klar getrennt
+            var nameLine = p.display_name;
+            var symbols = '';
+            if (p.death_date)                                        symbols += ' †';
+            if (p.birth_date_estimated || p.death_date_estimated)    symbols += ' *';
+            nameLine = nameLine + symbols;
+
+            // Mädchenname als zweite Zeile
+            var label = nameLine;
             if (p.maiden_name) {
-                label = label + '\nGeb. ' + p.maiden_name;
-            }
-            // Kreuz für Verstorbene
-            if (p.death_date) {
-                label = label + ' †';
-            }
-            // Schätzungs-Marker
-            if (p.birth_date_estimated || p.death_date_estimated) {
-                label = label + ' *';
+                label = nameLine + '\nGeb. ' + p.maiden_name;
             }
             elements.push({ group: 'nodes', data: {
                 id:          p.id,
@@ -767,7 +766,7 @@ window.addEventListener('load', function() {
         if (name === 'timeline') {
             // Im Timeline-Layout alle Knoten gleich groß setzen
             cy.nodes().forEach(function(n) {
-                n.style({ 'width': 100, 'height': 50 });
+                n.style({ 'width': 30, 'height': 30 });
             });
 
             // Erst cose laufen lassen für X-Positionen
