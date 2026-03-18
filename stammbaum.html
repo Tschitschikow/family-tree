@@ -628,13 +628,13 @@ window.addEventListener('load', function() {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
                     type: r.relationship_type,
-                    label: r.relationship_type === 'hasMother' ? 'ist Mutter von' : 'ist Vater von',
+                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
                 }});
             }
             if (r.relationship_type === 'hasWife') {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                    type: r.relationship_type, label: 'sind verheiratet',
+                    type: r.relationship_type, label: '💍 Ehepaar',
                 }});
             }
         });
@@ -705,18 +705,19 @@ window.addEventListener('load', function() {
             var bandH    = screenY2 - screenY1;
 
             // Band im cy-Container
+            // Math.min/abs wegen gespiegelter Y-Achse
             var band = document.createElement('div');
             band.className = 'tl-band-overlay';
             band.style.cssText =
                 'position:absolute; left:0; right:0; pointer-events:none; z-index:0;' +
-                'top:' + screenY1 + 'px;' +
-                'height:' + bandH + 'px;' +
+                'top:' + Math.min(screenY1, screenY2) + 'px;' +
+                'height:' + Math.abs(bandH) + 'px;' +
                 'background:' + bandColors[bandIndex % 2] + ';';
             cyDiv.appendChild(band);
             bandIndex++;
 
             // Linie + Label in der Timeline-Leiste
-            var screenYTl = cy.pan().y + Math.min(graphY1, graphY2) * cy.zoom();
+            var screenYTl = cy.pan().y + graphY1 * cy.zoom();
             if (screenYTl >= -20 && screenYTl <= tlDiv.offsetHeight + 20) {
                 var line = document.createElement('div');
                 line.className = 'tl-line';
@@ -742,7 +743,7 @@ window.addEventListener('load', function() {
             var lastLabel = document.createElement('div');
             lastLabel.className = 'tl-label';
             lastLabel.style.top = lastScreenY + 'px';
-            lastLabel.textContent = startDecade;
+            lastLabel.textContent = endDecade;
             tlDiv.appendChild(lastLabel);
         }
 
