@@ -327,6 +327,7 @@
     <div class="field">Geboren: <span id="info-birth"></span></div>
     <div class="field">Gestorben: <span id="info-death"></span></div>
     <div class="field">Geburtsort: <span id="info-birthplace"></span></div>
+    <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
     <div class="field">Beruf: <span id="info-profession"></span></div>
     <div class="field">Mädchenname: <span id="info-maiden"></span></div>
 </div>
@@ -506,6 +507,7 @@ window.addEventListener('load', function() {
             document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' 🔮 geschätzt' : '');
             document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' 🔮 geschätzt' : '');
             document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
+            document.getElementById('info-deathplace').textContent = d.death_place  || '–';
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-panel').style.display    = 'block';
@@ -610,6 +612,7 @@ window.addEventListener('load', function() {
                 birth_date:  p.birth_date  || '',
                 death_date:  p.death_date  || '',
                 birth_place: p.birth_place || '',
+                death_place: p.death_place || '',
                 profession:  p.profession  || '',
                 maiden_name: p.maiden_name || '',
                 radius:      r,
@@ -628,13 +631,13 @@ window.addEventListener('load', function() {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
                     type: r.relationship_type,
-                    label: r.relationship_type === 'hasMother' ? 'ist Mutter von' : 'ist Vater von',
+                    label: r.relationship_type === 'hasMother' ? '👩 Mutter' : '👨 Vater',
                 }});
             }
             if (r.relationship_type === 'hasWife') {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                    type: r.relationship_type, label: 'sind verheiratet',
+                    type: r.relationship_type, label: '💍 Ehepaar',
                 }});
             }
         });
@@ -732,7 +735,7 @@ window.addEventListener('load', function() {
             }
         }
         // Letzte Linie
-        var lastGraphY  = TL_PADDING + (maxYear - startDecade) * PX_PER_YEAR;
+        var lastGraphY  = TL_PADDING + (maxYear - endDecade) * PX_PER_YEAR;
         var lastScreenY = cy.pan().y + lastGraphY * cy.zoom();
         if (lastScreenY >= -20 && lastScreenY <= tlDiv.offsetHeight + 20) {
             var lastLine = document.createElement('div');
