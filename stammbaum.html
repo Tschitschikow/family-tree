@@ -446,7 +446,7 @@ window.addEventListener('load', function() {
                         'height':           'data(radius)',
                         'shape':            'ellipse',
                         'background-color': 'data(famColor)',
-                        'border-width':     '1.5px',
+                        'border-width':     '0.5px',
                         'border-color':     'rgba(0,0,0,0.18)',
                         'color':            '#444',
                     }
@@ -464,7 +464,7 @@ window.addEventListener('load', function() {
                     selector: 'node.married',
                     style: { 'border-color': '#d4a820', 'border-width': '0.5px' }
                 },
-                { selector: 'node:selected', style: { 'border-width': '3px', 'border-color': '#666', 'border-style': 'solid' } },
+                { selector: 'node:selected', style: { 'border-width': '2px', 'border-color': '#666', 'border-style': 'solid' } },
                 {
                     selector: 'edge',
                     style: {
@@ -744,8 +744,41 @@ window.addEventListener('load', function() {
             var lastLabel = document.createElement('div');
             lastLabel.className = 'tl-label';
             lastLabel.style.top = lastScreenY + 'px';
-            lastLabel.textContent = endDecade;
+            lastLabel.textContent = startDecade;
             tlDiv.appendChild(lastLabel);
+        }
+
+        // ── Horizontale Linien quer durch den Graph ──────────────
+        // Alte Graph-Linien entfernen
+        var oldLines = cyDiv.querySelectorAll('.cy-timeline-line');
+        oldLines.forEach(function(l) { l.remove(); });
+
+        for (var yr2 = startDecade; yr2 <= endDecade; yr2 += step) {
+            var gY   = 100 + (maxYear - yr2) * PX_PER_YEAR;
+            var sY   = cy.pan().y + gY * cy.zoom();
+
+            if (sY < -20 || sY > cyDiv.offsetHeight + 20) continue;
+
+            // Horizontale Linie
+            var hLine = document.createElement('div');
+            hLine.className = 'cy-timeline-line';
+            hLine.style.cssText =
+                'position:absolute; left:0; right:0; height:1px;' +
+                'background:#ebebeb; pointer-events:none; z-index:1;' +
+                'top:' + sY + 'px;';
+            cyDiv.appendChild(hLine);
+
+            // Jahreszahl-Label rechts im Graph
+            var hLabel = document.createElement('div');
+            hLabel.className = 'cy-timeline-line';
+            hLabel.style.cssText =
+                'position:absolute; right:8px;' +
+                'font-size:0.62em; color:#ccc; pointer-events:none; z-index:1;' +
+                'font-family:inherit; letter-spacing:0.02em;' +
+                'transform:translateY(-50%);' +
+                'top:' + sY + 'px;';
+            hLabel.textContent = yr2;
+            cyDiv.appendChild(hLabel);
         }
     }
 
@@ -755,7 +788,12 @@ window.addEventListener('load', function() {
         // Zeitachse ein/ausblenden
         var tlDiv = document.getElementById('timeline');
         tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
-        if (name !== 'timeline') tlDiv.innerHTML = '';
+        if (name !== 'timeline') {
+            tlDiv.innerHTML = '';
+            // Horizontale Graph-Linien entfernen
+            var cyDiv = document.getElementById('cy');
+            cyDiv.querySelectorAll('.cy-timeline-line, .tl-band-overlay').forEach(function(el) { el.remove(); });
+        }
 
         var lv = showLabels ? 'data(label)' : '';
         cy.style()
@@ -767,7 +805,7 @@ window.addEventListener('load', function() {
         if (name === 'timeline') {
             // Im Timeline-Layout alle Knoten gleich groß setzen
             cy.nodes().forEach(function(n) {
-                n.style({ 'width': 30, 'height': 30 });
+                n.style({ 'width': 100, 'height': 50 });
             });
 
             // Erst cose laufen lassen für X-Positionen
