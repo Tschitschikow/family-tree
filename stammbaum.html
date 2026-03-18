@@ -284,13 +284,7 @@
         <input type="checkbox" id="show-labels" checked style="width:auto;">
         Beziehungslabels
     </label>
-    <label id="repulsion-wrap" style="font-size:0.85em; display:flex; align-items:center; gap:6px;">
-        💥
-        <input type="range" id="repulsion-slider"
-               min="100000" max="10000000" step="100000" value="2500000"
-               style="width:100px; cursor:pointer; accent-color:#5a3e2b;">
-        <span id="repulsion-value">2.5M</span>
-    </label>
+
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
 </div>
@@ -347,37 +341,37 @@
 
 <script>
 var FAMILY_COLORS = {
-    'ALLERHOLZ': '#ffb3b3',
-    'APPEL':     '#ffbda8',
-    'BAHRS':     '#ffc8a0',
-    'BERG':      '#ffd4a0',
-    'DAVIDS':    '#ffe0a0',
-    'DEPNER':    '#ffeca0',
-    'FRANCK':    '#fff8a0',
-    'FRANSSEN':  '#f0ffa0',
-    'GAVRIKOV':  '#e0ffa0',
-    'GAVRIKOVA': '#d0ffa8',
-    'GLASHOFF':  '#b8ffb8',
-    'GROTH':     '#a8ffc8',
-    'HEIDEMANN': '#a0ffd8',
-    'HEINRICHS': '#a0ffe8',
-    'KARSTENS':  '#a0fff4',
-    'KÜHL':      '#a0f8ff',
-    'MARTENS':   '#a0eaff',
-    'MEYER':     '#a0d8ff',
-    'MÖLLER':    '#a0c8ff',
-    'PETERS':    '#a8b8ff',
-    'RISCHE':    '#b8a8ff',
-    'RÜHMANN':   '#c8a0ff',
-    'RÜHTER':    '#d8a0ff',
-    'SCHMIDT':   '#e8a0ff',
-    'SCHNAAK':   '#f4a0ff',
-    'SCHUBERT':  '#ffa0f4',
-    'STEINKAMP': '#ffa0e4',
-    'TEGTMEYER': '#ffa0d0',
-    'UHLMANN':   '#ffa0bc',
-    'ULMER':     '#ffb0b0',
-    'WIPPERMANN':'#ffc0c0',
+    'ALLERHOLZ': '#f5caca',
+    'APPEL': '#f5d3ca',
+    'BAHRS': '#f5dbca',
+    'BERG': '#f5e3ca',
+    'DAVIDS': '#f5ecca',
+    'DEPNER': '#f5f4ca',
+    'FRANCK': '#eef5ca',
+    'FRANSSEN': '#e6f5ca',
+    'GAVRIKOV': '#def5ca',
+    'GAVRIKOVA': '#d6f5ca',
+    'GLASHOFF': '#cdf5ca',
+    'GROTH': '#caf5d0',
+    'HEIDEMANN': '#caf5d8',
+    'HEINRICHS': '#caf5e1',
+    'KARSTENS': '#caf5e9',
+    'KÜHL': '#caf5f1',
+    'MARTENS': '#caf1f5',
+    'MEYER': '#cae9f5',
+    'MÖLLER': '#cae1f5',
+    'PETERS': '#cad8f5',
+    'RISCHE': '#cad0f5',
+    'RÜHMANN': '#cdcaf5',
+    'RÜHTER': '#d6caf5',
+    'SCHMIDT': '#decaf5',
+    'SCHNAAK': '#e6caf5',
+    'SCHUBERT': '#eecaf5',
+    'STEINKAMP': '#f5caf4',
+    'TEGTMEYER': '#f5caec',
+    'UHLMANN': '#f5cae3',
+    'ULMER': '#f5cadb',
+    'WIPPERMANN': '#f5cad3',
 };
 function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
 
@@ -391,7 +385,7 @@ window.addEventListener('load', function() {
     let allPersons = [];
     let allRels    = [];
     let showLabels = true;
-    var repulsionValue = 2500000;
+    var repulsionValue = 10000000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
@@ -504,7 +498,7 @@ window.addEventListener('load', function() {
 
         cy.on('tap', 'node', function(e) {
             var node = e.target, d = node.data();
-            document.getElementById('info-name').textContent       = d.label.replace(' *','');
+            document.getElementById('info-name').textContent       = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
             document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' 🔮 geschätzt' : '');
             document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' 🔮 geschätzt' : '');
@@ -592,8 +586,17 @@ window.addEventListener('load', function() {
             var r = calcRadius(p.birth_date);
             // Geburtsjahr für spätere Y-Positionierung im data speichern
             var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
-            // Label mit Schätzungs-Symbol ergänzen
+            // Label aufbauen: Name + Mädchenname + Kreuz + Schätzung
             var label = p.display_name;
+            // Mädchenname darunter
+            if (p.maiden_name) {
+                label = label + '\nGeb. ' + p.maiden_name;
+            }
+            // Kreuz für Verstorbene
+            if (p.death_date) {
+                label = label + ' †';
+            }
+            // Schätzungs-Marker
             if (p.birth_date_estimated || p.death_date_estimated) {
                 label = label + ' *';
             }
@@ -762,10 +765,15 @@ window.addEventListener('load', function() {
             .update();
 
         if (name === 'timeline') {
+            // Im Timeline-Layout alle Knoten gleich groß setzen
+            cy.nodes().forEach(function(n) {
+                n.style({ 'width': 30, 'height': 30 });
+            });
+
             // Erst cose laufen lassen für X-Positionen
             var coseConfig = {
                 name: 'cose',
-                animate: false,       // kein animate – wir überschreiben Y danach
+                animate: false,
                 fit: false,
                 padding: 40,
                 idealEdgeLength: 100,
@@ -819,7 +827,13 @@ window.addEventListener('load', function() {
         }
 
         var layout = cy.layout(config);
-        layout.on('layoutstop', function() { cy.fit(40); });
+        layout.on('layoutstop', function() {
+            // Knotengrößen zurücksetzen auf berechneten Radius
+            cy.nodes().forEach(function(n) {
+                n.style({ 'width': n.data('radius'), 'height': n.data('radius') });
+            });
+            cy.fit(40);
+        });
         layout.run();
     }
 
@@ -841,8 +855,15 @@ window.addEventListener('load', function() {
             return h;
         }
 
+        // Sortierung nach Reihenfolge im FAMILY_COLORS Objekt (bereits als Spektrum definiert)
+        var spectrumOrder = Object.keys(FAMILY_COLORS);
         var sorted = Object.keys(families).sort(function(a, b) {
-            return hexToHue(getFamilyColor(a)) - hexToHue(getFamilyColor(b));
+            var ia = spectrumOrder.indexOf(a);
+            var ib = spectrumOrder.indexOf(b);
+            // Unbekannte Familiennamen ans Ende
+            if (ia < 0) return 1;
+            if (ib < 0) return -1;
+            return ia - ib;
         });
 
         var container = document.getElementById('legend-items');
@@ -911,22 +932,7 @@ window.addEventListener('load', function() {
             .update();
     });
 
-    // Schieberegler: Abstossung live ändern
-    document.getElementById('repulsion-slider').addEventListener('input', function() {
-        repulsionValue = Number(this.value);
-        document.getElementById('repulsion-value').textContent =
-            (repulsionValue / 1000000).toFixed(1) + 'M';
-        var current = document.getElementById('layout-select').value;
-        if (current === 'cose' || current === 'timeline') {
-            runLayout(current);
-        }
-    });
 
-    // Schieberegler nur bei cose/timeline anzeigen
-    document.getElementById('layout-select').addEventListener('change', function() {
-        var show = this.value === 'cose' || this.value === 'timeline';
-        document.getElementById('repulsion-wrap').style.display = show ? 'flex' : 'none';
-    });
 
     function formatDate(d) {
         if (!d) return '';
