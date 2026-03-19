@@ -136,6 +136,18 @@
             background: #f8f8f8;
         }
 
+        /* Zeitlinien-Container liegt hinter cy-Canvas */
+        #timeline-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        #cy canvas {
+            position: relative;
+            z-index: 1;
+        }
+
         /* ── Legende ── */
         #legend {
             position: fixed;
@@ -319,7 +331,10 @@
 
 <div id="graph-wrap">
     <div id="timeline"></div>
-    <div id="cy"></div>
+    <div style="position:relative; flex:1; display:flex; flex-direction:column;">
+        <div id="timeline-overlay"></div>
+        <div id="cy" style="flex:1;"></div>
+    </div>
 </div>
 
 <div id="legend">
@@ -821,36 +836,33 @@ window.addEventListener('load', function() {
         }
 
         // ── Horizontale Linien quer durch den Graph ──────────────
-        // Alte Graph-Linien entfernen
-        var oldLines = cyDiv.querySelectorAll('.cy-timeline-line');
-        oldLines.forEach(function(l) { l.remove(); });
+        var overlayDiv = document.getElementById('timeline-overlay');
+        overlayDiv.innerHTML = '';   // alte Linien löschen
 
         for (var yr2 = startDecade; yr2 <= endDecade; yr2 += step) {
             var gY   = TL_PADDING + (maxYear - yr2) * PX_PER_YEAR;
             var sY   = cy.pan().y + gY * cy.zoom();
 
-            if (sY < -20 || sY > cyDiv.offsetHeight + 20) continue;
+            if (sY < -20 || sY > overlayDiv.offsetHeight + 20) continue;
 
-            // Horizontale Linie
+            // Horizontale Linie – im overlay-div HINTER cy-Canvas
             var hLine = document.createElement('div');
-            hLine.className = 'cy-timeline-line';
             hLine.style.cssText =
                 'position:absolute; left:0; right:0; height:1px;' +
-                'background:#ebebeb; pointer-events:none; z-index:0;' +
+                'background:#ddd; pointer-events:none;' +
                 'top:' + sY + 'px;';
-            cyDiv.appendChild(hLine);
+            overlayDiv.appendChild(hLine);
 
-            // Jahreszahl-Label rechts im Graph
+            // Jahreszahl-Label rechts
             var hLabel = document.createElement('div');
-            hLabel.className = 'cy-timeline-line';
             hLabel.style.cssText =
                 'position:absolute; right:8px;' +
-                'font-size:0.62em; color:#ccc; pointer-events:none; z-index:1;' +
+                'font-size:0.62em; color:#ccc; pointer-events:none;' +
                 'font-family:inherit; letter-spacing:0.02em;' +
                 'transform:translateY(-50%);' +
                 'top:' + sY + 'px;';
             hLabel.textContent = yr2;
-            cyDiv.appendChild(hLabel);
+            overlayDiv.appendChild(hLabel);
         }
     }
 
@@ -863,8 +875,10 @@ window.addEventListener('load', function() {
         if (name !== 'timeline') {
             tlDiv.innerHTML = '';
             // Horizontale Graph-Linien entfernen
+            var overlayDiv = document.getElementById('timeline-overlay');
+            if (overlayDiv) overlayDiv.innerHTML = '';
             var cyDiv = document.getElementById('cy');
-            cyDiv.querySelectorAll('.cy-timeline-line, .tl-band-overlay').forEach(function(el) { el.remove(); });
+            cyDiv.querySelectorAll('.tl-band-overlay').forEach(function(el) { el.remove(); });
         }
 
         cy.style()
@@ -900,8 +914,9 @@ window.addEventListener('load', function() {
                 padding: 40,
                 idealEdgeLength: 100,
                 nodeRepulsion: repulsionValue,
+                nodeOverlap: 20,        // Überlappungen aktiv verhindern
                 gravity: 80,
-                numIter: 1000,
+                numIter: 1500,
                 initialTemp: 200,
                 coolingFactor: 0.95,
                 minTemp: 1.0,
@@ -922,8 +937,10 @@ window.addEventListener('load', function() {
                 config = {
                     name: 'cose', animate: true, animationDuration: 600,
                     refresh: 20, fit: true, padding: 40,
-                    idealEdgeLength: 100, nodeRepulsion: repulsionValue, gravity: 80,
-                    numIter: 1000, initialTemp: 200, coolingFactor: 0.95,
+                    idealEdgeLength: 100, nodeRepulsion: repulsionValue,
+                    nodeOverlap: 20,        // Überlappungen aktiv verhindern
+                    gravity: 80,
+                    numIter: 1500, initialTemp: 200, coolingFactor: 0.95,
                     minTemp: 1.0, randomize: true,
                 };
                 break;
