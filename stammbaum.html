@@ -280,9 +280,17 @@
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
-    <label style="font-size:0.85em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="show-labels" checked style="width:auto;">
-        Beziehungslabels
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="show-parent" checked style="width:auto;">
+        Eltern-Kind
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="show-married" checked style="width:auto;">
+        Verheiratet
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="show-siblings" checked style="width:auto;">
+        Geschwister
     </label>
 
     <span id="person-count"></span>
@@ -388,7 +396,9 @@ window.addEventListener('load', function() {
     let cy         = null;
     let allPersons = [];
     let allRels    = [];
-    let showLabels = true;
+    let showParent  = true;
+    let showMarried = true;
+    let showSiblings = true;
     var repulsionValue = 10000000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
@@ -450,7 +460,7 @@ window.addEventListener('load', function() {
                         'height':           'data(radius)',
                         'shape':            'ellipse',
                         'background-color': 'data(famColor)',
-                        'border-width':     '1.0px',
+                        'border-width':     '0.5px',
                         'border-color':     'rgba(0,0,0,0.18)',
                         'color':            '#444',
                     }
@@ -466,7 +476,7 @@ window.addEventListener('load', function() {
                 }},
                 {
                     selector: 'node.married',
-                    style: { 'border-color': '#d4a820', 'border-width': '1.0px' }
+                    style: { 'border-color': '#d4a820', 'border-width': '0.5px' }
                 },
                 { selector: 'node:selected', style: { 'border-width': '2px', 'border-color': '#666', 'border-style': 'solid' } },
                 {
@@ -487,6 +497,26 @@ window.addEventListener('load', function() {
                     style: {
                         'line-color': '#e8c84a', 'target-arrow-shape': 'none',
                         'line-style': 'solid', 'width': 3.5, 'opacity': 0.7, 'color': '#e8c84a',
+                    }
+                },
+                {
+                    selector: 'edge[type = "sibling"]',
+                    style: {
+                        'line-color': '#6abf69',
+                        'source-arrow-shape': 'triangle',
+                        'source-arrow-color': '#6abf69',
+                        'target-arrow-shape': 'triangle',
+                        'target-arrow-color': '#6abf69',
+                        'line-style': 'solid',
+                        'width': 1,
+                        'opacity': 0.7,
+                        'color': '#6abf69',
+                        'curve-style': 'bezier',
+                        'font-size': '7px',
+                        'font-family': 'Helvetica Neue, Arial, sans-serif',
+                        'text-rotation': 'autorotate',
+                        'text-margin-y': '-8px',
+                        'label': '',
                     }
                 },
                 { selector: '.faded', style: { 'opacity': 0.08 } }
@@ -641,6 +671,46 @@ window.addEventListener('load', function() {
                 }});
             }
         });
+
+        // ── Geschwister berechnen ────────────────────────────────
+        // Elternteil → Liste der Kinder
+        var childrenOf = {};
+        relationships.forEach(function(r) {
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                var parentId = r.related_person_id;
+                var childId  = r.person_id;
+                if (!childrenOf[parentId]) childrenOf[parentId] = [];
+                childrenOf[parentId].push(childId);
+            }
+        });
+
+        // Geschwister-Paare ermitteln (jedes Paar nur einmal)
+        var siblingPairs = new Set();
+        Object.values(childrenOf).forEach(function(children) {
+            for (var i = 0; i < children.length; i++) {
+                for (var j = i + 1; j < children.length; j++) {
+                    var a = Math.min(children[i], children[j]);
+                    var b = Math.max(children[i], children[j]);
+                    siblingPairs.add(a + '_' + b);
+                }
+            }
+        });
+
+        siblingPairs.forEach(function(pair) {
+            var parts = pair.split('_');
+            var idA = Number(parts[0]);
+            var idB = Number(parts[1]);
+            if (!personIds.has(idA) || !personIds.has(idB)) return;
+            elements.push({ group: 'edges', data: {
+                id: 'sib_' + pair,
+                source: idA,
+                target: idB,
+                type: 'sibling',
+                label: 'Geschwister',
+            }});
+        });
+
         return elements;
     }
 
@@ -797,11 +867,23 @@ window.addEventListener('load', function() {
             cyDiv.querySelectorAll('.cy-timeline-line, .tl-band-overlay').forEach(function(el) { el.remove(); });
         }
 
-        var lv = showLabels ? 'data(label)' : '';
         cy.style()
-            .selector('edge[type = "hasMother"]').style('label', lv)
-            .selector('edge[type = "hasFather"]').style('label', lv)
-            .selector('edge[type = "hasWife"]').style('label',   lv)
+            .selector('edge[type = "hasMother"]').style({
+                'display': showParent  ? 'element' : 'none',
+                'label':   showParent  ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasFather"]').style({
+                'display': showParent  ? 'element' : 'none',
+                'label':   showParent  ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasWife"]').style({
+                'display': showMarried ? 'element' : 'none',
+                'label':   showMarried ? 'data(label)' : '',
+            })
+            .selector('edge[type = "sibling"]').style({
+                'display': showSiblings ? 'element' : 'none',
+                'label':   showSiblings ? 'data(label)' : '',
+            })
             .update();
 
         if (name === 'timeline') {
@@ -962,14 +1044,39 @@ window.addEventListener('load', function() {
         runLayout(document.getElementById('layout-select').value);
     });
 
-    document.getElementById('show-labels').addEventListener('change', function() {
-        showLabels = this.checked;
-        var lv = showLabels ? 'data(label)' : '';
-        if (cy) cy.style()
-            .selector('edge[type = "hasMother"]').style('label', lv)
-            .selector('edge[type = "hasFather"]').style('label', lv)
-            .selector('edge[type = "hasWife"]').style('label',   lv)
+    function updateEdgeVisibility() {
+        if (!cy) return;
+        cy.style()
+            .selector('edge[type = "hasMother"]').style({
+                'display': showParent   ? 'element' : 'none',
+                'label':   showParent   ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasFather"]').style({
+                'display': showParent   ? 'element' : 'none',
+                'label':   showParent   ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasWife"]').style({
+                'display': showMarried  ? 'element' : 'none',
+                'label':   showMarried  ? 'data(label)' : '',
+            })
+            .selector('edge[type = "sibling"]').style({
+                'display': showSiblings ? 'element' : 'none',
+                'label':   showSiblings ? 'data(label)' : '',
+            })
             .update();
+    }
+
+    document.getElementById('show-parent').addEventListener('change', function() {
+        showParent = this.checked;
+        updateEdgeVisibility();
+    });
+    document.getElementById('show-married').addEventListener('change', function() {
+        showMarried = this.checked;
+        updateEdgeVisibility();
+    });
+    document.getElementById('show-siblings').addEventListener('change', function() {
+        showSiblings = this.checked;
+        updateEdgeVisibility();
     });
 
 
