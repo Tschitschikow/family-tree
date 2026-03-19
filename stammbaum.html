@@ -749,6 +749,39 @@ window.addEventListener('load', function() {
             node.position('y', y);
         });
 
+        // ── Horizontale Überlappungen auflösen ──────────────────
+        // Knoten auf gleicher Y-Ebene (±30px) horizontal auseinanderschieben
+        var nodeList = cy.nodes().toArray();
+        var iterations = 50;
+        var minGap = 110;   // Mindestabstand horizontal (Knotenbreite 100 + 10px Luft)
+
+        for (var iter = 0; iter < iterations; iter++) {
+            var moved = false;
+            for (var i = 0; i < nodeList.length; i++) {
+                for (var j = i + 1; j < nodeList.length; j++) {
+                    var ni = nodeList[i];
+                    var nj = nodeList[j];
+                    var dy = Math.abs(ni.position('y') - nj.position('y'));
+                    if (dy > 60) continue;   // nicht auf gleicher Ebene
+
+                    var dx = nj.position('x') - ni.position('x');
+                    var dist = Math.abs(dx);
+                    if (dist < minGap) {
+                        var push = (minGap - dist) / 2 + 1;
+                        if (dx >= 0) {
+                            ni.position('x', ni.position('x') - push);
+                            nj.position('x', nj.position('x') + push);
+                        } else {
+                            ni.position('x', ni.position('x') + push);
+                            nj.position('x', nj.position('x') - push);
+                        }
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) break;
+        }
+
         cy.fit(60);
         updateTimeline();
     }
@@ -760,8 +793,8 @@ window.addEventListener('load', function() {
         tlDiv.innerHTML = '';
 
         // Alte Bänder entfernen
-        var oldBands = cyDiv.querySelectorAll('.tl-band-overlay');
-        oldBands.forEach(function(b) { b.remove(); });
+        var overlayDiv = document.getElementById('timeline-overlay');
+        if (overlayDiv) overlayDiv.innerHTML = '';
 
         if (!cy || cy.nodes().length === 0) return;
 
@@ -792,16 +825,16 @@ window.addEventListener('load', function() {
             var screenY2 = cy.pan().y + graphY2 * cy.zoom();
             var bandH    = screenY2 - screenY1;
 
-            // Band im cy-Container
-            // Math.min/abs wegen gespiegelter Y-Achse
+            // Band in timeline-overlay (hinter cy-Canvas)
+            var overlayDiv = document.getElementById('timeline-overlay');
             var band = document.createElement('div');
             band.className = 'tl-band-overlay';
             band.style.cssText =
-                'position:absolute; left:0; right:0; pointer-events:none; z-index:0;' +
+                'position:absolute; left:0; right:0; pointer-events:none;' +
                 'top:' + Math.min(screenY1, screenY2) + 'px;' +
                 'height:' + Math.abs(bandH) + 'px;' +
                 'background:' + bandColors[bandIndex % 2] + ';';
-            cyDiv.appendChild(band);
+            overlayDiv.appendChild(band);
             bandIndex++;
 
             // Linie + Label in der Timeline-Leiste
