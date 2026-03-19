@@ -140,8 +140,11 @@
         #timeline-overlay {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
             z-index: 0;
+            overflow: visible;
         }
         #cy canvas {
             position: relative;
@@ -331,9 +334,9 @@
 
 <div id="graph-wrap">
     <div id="timeline"></div>
-    <div style="position:relative; flex:1; display:flex; flex-direction:column;">
-        <div id="timeline-overlay"></div>
-        <div id="cy" style="flex:1;"></div>
+    <div style="position:relative; flex:1; min-height:0; display:flex; flex-direction:column;">
+        <div id="timeline-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0;"></div>
+        <div id="cy" style="flex:1; position:relative; z-index:1;"></div>
     </div>
 </div>
 
@@ -829,24 +832,22 @@ window.addEventListener('load', function() {
             }
 
             // ── Horizontale Linie quer durch den Graph (overlay) ─
-            if (sY >= -20 && sY <= overlayDiv.offsetHeight + 20) {
-                var hLine = document.createElement('div');
-                hLine.style.cssText =
-                    'position:absolute; left:0; right:0; height:1px;' +
-                    'background:#e0e0e0; pointer-events:none;' +
-                    'top:' + sY + 'px;';
-                overlayDiv.appendChild(hLine);
+            var hLine = document.createElement('div');
+            hLine.style.cssText =
+                'position:absolute; left:0; right:0; height:1px;' +
+                'background:#d0d0d0; pointer-events:none;' +
+                'top:' + sY + 'px;';
+            overlayDiv.appendChild(hLine);
 
-                var hLabel = document.createElement('div');
-                hLabel.style.cssText =
-                    'position:absolute; right:8px;' +
-                    'font-size:0.62em; color:#ccc; pointer-events:none;' +
-                    'font-family:inherit; letter-spacing:0.02em;' +
-                    'transform:translateY(-50%);' +
-                    'top:' + sY + 'px;';
-                hLabel.textContent = yr;
-                overlayDiv.appendChild(hLabel);
-            }
+            var hLabel = document.createElement('div');
+            hLabel.style.cssText =
+                'position:absolute; right:8px;' +
+                'font-size:0.62em; color:#bbb; pointer-events:none;' +
+                'font-family:inherit; letter-spacing:0.02em;' +
+                'transform:translateY(-50%);' +
+                'top:' + sY + 'px;';
+            hLabel.textContent = yr;
+            overlayDiv.appendChild(hLabel);
         }
     }
 
