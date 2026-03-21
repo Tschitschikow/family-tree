@@ -136,11 +136,17 @@
             min-height: 500px;
         }
 
-        /* cy-wrapper bekommt Linien als Hintergrundbild */
         #cy-wrapper {
             background-color: #f8f8f8;
             flex: 1;
             min-height: 0;
+        }
+        #tl-svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
         }
 
         /* ── Legende ── */
@@ -328,6 +334,7 @@
     <div id="timeline"></div>
     <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
         <div id="cy" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
+        <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0;"></svg>
     </div>
 </div>
 
@@ -512,9 +519,9 @@ window.addEventListener('load', function() {
                     selector: 'edge[type = "sibling"]',
                     style: {
                         'line-color': '#6abf69',
-                        'source-arrow-shape': 'none',
+                        'source-arrow-shape': 'triangle',
                         'source-arrow-color': '#6abf69',
-                        'target-arrow-shape': 'none',
+                        'target-arrow-shape': 'triangle',
                         'target-arrow-color': '#6abf69',
                         'line-style': 'solid',
                         'width': 1,
@@ -780,13 +787,14 @@ window.addEventListener('load', function() {
         updateTimeline();
     }
 
-    // ── Zeitachsen-Beschriftung + horizontale Linien ────────────
+    // ── Zeitachsen-Beschriftung + horizontale Linien (SVG) ─────
     function updateTimeline() {
-        var tlDiv     = document.getElementById('timeline');
-        var wrapDiv   = document.getElementById('cy-wrapper');
+        var tlDiv  = document.getElementById('timeline');
+        var svg    = document.getElementById('tl-svg');
 
-        // Timeline-Leiste leeren
+        // Leeren
         tlDiv.innerHTML = '';
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
 
         if (!cy || cy.nodes().length === 0) return;
 
@@ -796,48 +804,37 @@ window.addEventListener('load', function() {
         var startDecade = Math.floor(minYear / step) * step;
         var endDecade   = Math.ceil(maxYear  / step) * step;
 
-        // Hintergrundlinien als CSS gradient-Stops sammeln
-        var gradientStops = [];
-        var wrapH = wrapDiv.getBoundingClientRect().height || 800;
+        var svgW = svg.clientWidth  || svg.parentElement.clientWidth  || 800;
+        var svgH = svg.clientHeight || svg.parentElement.clientHeight || 600;
+
+        // SVG viewBox setzen
+        svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
 
         for (var yr = startDecade; yr <= endDecade; yr += step) {
             var gY = TL_PADDING + (maxYear - yr) * PX_PER_YEAR;
             var sY = cy.pan().y + gY * cy.zoom();
 
-            // ── Linie + Label in der linken Timeline-Leiste ──────
-            if (sY > -20 && sY < tlDiv.getBoundingClientRect().height + 20) {
-                var tlLine = document.createElement('div');
-                tlLine.className = 'tl-line';
-                tlLine.style.top = sY + 'px';
-                tlDiv.appendChild(tlLine);
+            // ── Linie links in Timeline-Leiste ───────────────────
+            var tlLine = document.createElement('div');
+            tlLine.className = 'tl-line';
+            tlLine.style.top = sY + 'px';
+            tlDiv.appendChild(tlLine);
 
-                var tlLabel = document.createElement('div');
-                tlLabel.className   = 'tl-label';
-                tlLabel.style.top   = sY + 'px';
-                tlLabel.textContent = yr;
-                tlDiv.appendChild(tlLabel);
-            }
+            var tlLabel = document.createElement('div');
+            tlLabel.className   = 'tl-label';
+            tlLabel.style.top   = sY + 'px';
+            tlLabel.textContent = yr;
+            tlDiv.appendChild(tlLabel);
 
-            // Gradient-Stop: nur wenn sY im sichtbaren Bereich und positiv
-            if (sY >= 0 && sY <= wrapH) {
-                var pct1 = ((sY - 0.5) / wrapH * 100).toFixed(4);
-                var pct2 = ((sY + 0.5) / wrapH * 100).toFixed(4);
-                gradientStops.push(
-                    'transparent ' + pct1 + '%',
-                    '#b0b0b0 '     + pct1 + '%',
-                    '#b0b0b0 '     + pct2 + '%',
-                    'transparent ' + pct2 + '%'
-                );
-            }
-        }
-
-        // Alle Linien als ein einziges background-image auf den Wrapper
-        if (gradientStops.length > 0) {
-            wrapDiv.style.backgroundImage =
-                'linear-gradient(to bottom, ' + gradientStops.join(', ') + ')';
-            wrapDiv.style.backgroundSize = '100% ' + wrapH + 'px';
-        } else {
-            wrapDiv.style.backgroundImage = 'none';
+            // ── Horizontale SVG-Linie quer durch den Graph ───────
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', '0');
+            line.setAttribute('x2', svgW);
+            line.setAttribute('y1', sY);
+            line.setAttribute('y2', sY);
+            line.setAttribute('stroke', '#b8b8b8');
+            line.setAttribute('stroke-width', '1');
+            svg.appendChild(line);
         }
     }
 
@@ -850,8 +847,8 @@ window.addEventListener('load', function() {
         tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
         if (name !== 'timeline') {
             tlDiv.innerHTML = '';
-            var wr = document.getElementById('cy-wrapper');
-            if (wr) wr.style.backgroundImage = 'none';
+            var svg = document.getElementById('tl-svg');
+            if (svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
         }
 
         cy.style()
