@@ -136,19 +136,9 @@
             background: #f8f8f8;
         }
 
-        /* Zeitlinien-Container liegt hinter cy-Canvas */
-        #timeline-overlay {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: visible;
-        }
-        #cy canvas {
-            position: relative;
-            z-index: 1;
+        /* cy-wrapper bekommt Linien als Hintergrundbild */
+        #cy-wrapper {
+            background-color: #f8f8f8;
         }
 
         /* ── Legende ── */
@@ -334,9 +324,8 @@
 
 <div id="graph-wrap">
     <div id="timeline"></div>
-    <div style="position:relative; flex:1; min-height:0; display:flex; flex-direction:column;">
-        <div id="timeline-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0;"></div>
-        <div id="cy" style="flex:1; position:relative; z-index:1;"></div>
+    <div id="cy-wrapper" style="position:relative; flex:1; min-height:0;">
+        <div id="cy" style="width:100%; height:100%;"></div>
     </div>
 </div>
 
@@ -521,9 +510,9 @@ window.addEventListener('load', function() {
                     selector: 'edge[type = "sibling"]',
                     style: {
                         'line-color': '#6abf69',
-                        'source-arrow-shape': 'none',
+                        'source-arrow-shape': 'triangle',
                         'source-arrow-color': '#6abf69',
-                        'target-arrow-shape': 'none',
+                        'target-arrow-shape': 'triangle',
                         'target-arrow-color': '#6abf69',
                         'line-style': 'solid',
                         'width': 1,
@@ -791,13 +780,11 @@ window.addEventListener('load', function() {
 
     // ── Zeitachsen-Beschriftung + horizontale Linien ────────────
     function updateTimeline() {
-        var tlDiv      = document.getElementById('timeline');
-        var cyDiv      = document.getElementById('cy');
-        var overlayDiv = document.getElementById('timeline-overlay');
+        var tlDiv     = document.getElementById('timeline');
+        var wrapDiv   = document.getElementById('cy-wrapper');
 
-        // Alles leeren – einmalig am Anfang
-        tlDiv.innerHTML      = '';
-        overlayDiv.innerHTML = '';
+        // Timeline-Leiste leeren
+        tlDiv.innerHTML = '';
 
         if (!cy || cy.nodes().length === 0) return;
 
@@ -807,47 +794,41 @@ window.addEventListener('load', function() {
         var startDecade = Math.floor(minYear / step) * step;
         var endDecade   = Math.ceil(maxYear  / step) * step;
 
-        // cy braucht position:relative damit overlay korrekt positioniert wird
-        if (cyDiv.style.position !== 'relative') {
-            cyDiv.style.position = 'relative';
-        }
+        // Hintergrundlinien als CSS gradient-Stops sammeln
+        var gradientStops = [];
 
-        // Alle Jahrzehnt-Markierungen in einem einzigen Durchlauf
         for (var yr = startDecade; yr <= endDecade; yr += step) {
             var gY = TL_PADDING + (maxYear - yr) * PX_PER_YEAR;
             var sY = cy.pan().y + gY * cy.zoom();
 
             // ── Linie + Label in der linken Timeline-Leiste ──────
-            if (sY >= -20 && sY <= tlDiv.offsetHeight + 20) {
-                var tlLine = document.createElement('div');
-                tlLine.className  = 'tl-line';
-                tlLine.style.top  = sY + 'px';
-                tlDiv.appendChild(tlLine);
+            var tlLine = document.createElement('div');
+            tlLine.className = 'tl-line';
+            tlLine.style.top = sY + 'px';
+            tlDiv.appendChild(tlLine);
 
-                var tlLabel = document.createElement('div');
-                tlLabel.className    = 'tl-label';
-                tlLabel.style.top    = sY + 'px';
-                tlLabel.textContent  = yr;
-                tlDiv.appendChild(tlLabel);
-            }
+            var tlLabel = document.createElement('div');
+            tlLabel.className   = 'tl-label';
+            tlLabel.style.top   = sY + 'px';
+            tlLabel.textContent = yr;
+            tlDiv.appendChild(tlLabel);
 
-            // ── Horizontale Linie quer durch den Graph (overlay) ─
-            var hLine = document.createElement('div');
-            hLine.style.cssText =
-                'position:absolute; left:0; right:0; height:1px;' +
-                'background:#d0d0d0; pointer-events:none;' +
-                'top:' + sY + 'px;';
-            overlayDiv.appendChild(hLine);
+            // Gradient-Stop für diese Linie sammeln
+            // Linie = 1px bei sY, transparent davor und danach
+            gradientStops.push(
+                'transparent ' + (sY - 1) + 'px',
+                '#c8c8c8 '     + (sY - 1) + 'px',
+                '#c8c8c8 '     +  sY      + 'px',
+                'transparent ' +  sY      + 'px'
+            );
+        }
 
-            var hLabel = document.createElement('div');
-            hLabel.style.cssText =
-                'position:absolute; right:8px;' +
-                'font-size:0.62em; color:#bbb; pointer-events:none;' +
-                'font-family:inherit; letter-spacing:0.02em;' +
-                'transform:translateY(-50%);' +
-                'top:' + sY + 'px;';
-            hLabel.textContent = yr;
-            overlayDiv.appendChild(hLabel);
+        // Alle Linien als ein einziges background-image auf den Wrapper
+        if (gradientStops.length > 0) {
+            wrapDiv.style.backgroundImage =
+                'linear-gradient(to bottom, ' + gradientStops.join(', ') + ')';
+        } else {
+            wrapDiv.style.backgroundImage = 'none';
         }
     }
 
@@ -860,8 +841,8 @@ window.addEventListener('load', function() {
         tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
         if (name !== 'timeline') {
             tlDiv.innerHTML = '';
-            var overlayDiv = document.getElementById('timeline-overlay');
-            if (overlayDiv) overlayDiv.innerHTML = '';
+            var wr = document.getElementById('cy-wrapper');
+            if (wr) wr.style.backgroundImage = 'none';
         }
 
         cy.style()
