@@ -831,8 +831,9 @@ window.addEventListener('load', function() {
             line.setAttribute('x2', svgW);
             line.setAttribute('y1', sY);
             line.setAttribute('y2', sY);
-            line.setAttribute('stroke', '#b8b8b8');
-            line.setAttribute('stroke-width', '1');
+            line.setAttribute('stroke', '#cccccc');
+            line.setAttribute('stroke-width', '0.5');
+            line.setAttribute('stroke-dasharray', '6 4');
             svg.appendChild(line);
         }
     }
