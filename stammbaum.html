@@ -471,8 +471,8 @@ window.addEventListener('load', function() {
                         'text-halign':      'center',
                         'text-wrap':        'wrap',
                         'text-max-width':   '75px',
-                        'width':            'data(radius)',
-                        'height':           'data(radius)',
+                        'width':            'data(nodeW)',
+                        'height':           'data(nodeH)',
                         'shape':            'ellipse',
                         'background-color': 'data(famColor)',
                         'border-width':     '0.5px',
@@ -615,10 +615,14 @@ window.addEventListener('load', function() {
         var avgYear = birthYears.length ? Math.round(
             birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length) : 1850;
 
-        function calcRadius(birth_date) {
+        function calcNodeSize(birth_date) {
+            // Älteste Person: 150x75, Jüngste: 50x25, linear dazwischen
             var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
             var ratio = (maxYear - minYear) > 0 ? (maxYear - year) / (maxYear - minYear) : 0.5;
-            return Math.round(20 + ratio * 80);
+            // ratio=1 → älteste Person (großer Knoten), ratio=0 → jüngste (kleiner Knoten)
+            var w = Math.round(50  + ratio * 100);  // 50..150
+            var h = Math.round(25  + ratio * 50);   // 25..75
+            return { w: w, h: h };
         }
 
         var personIds = new Set(persons.map(function(p) { return p.id; }));
@@ -633,7 +637,7 @@ window.addEventListener('load', function() {
 
         var elements = [];
         persons.forEach(function(p) {
-            var r = calcRadius(p.birth_date);
+            var sz = calcNodeSize(p.birth_date);
             // Geburtsjahr für spätere Y-Positionierung im data speichern
             var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
             // Label aufbauen: Name [† *] + Mädchenname
@@ -660,7 +664,8 @@ window.addEventListener('load', function() {
                 death_place: p.death_place || '',
                 profession:  p.profession  || '',
                 maiden_name: p.maiden_name || '',
-                radius:      r,
+                nodeW:       sz.w,
+                nodeH:       sz.h,
                 famColor:    getFamilyColor(p.family_name),
                 birthYear:   birthYear,
                 birth_date_estimated: p.birth_date_estimated || false,
@@ -831,9 +836,8 @@ window.addEventListener('load', function() {
             line.setAttribute('x2', svgW);
             line.setAttribute('y1', sY);
             line.setAttribute('y2', sY);
-            line.setAttribute('stroke', '#cccccc');
-            line.setAttribute('stroke-width', '0.5');
-            line.setAttribute('stroke-dasharray', '6 4');
+            line.setAttribute('stroke', '#b8b8b8');
+            line.setAttribute('stroke-width', '1');
             svg.appendChild(line);
         }
     }
@@ -937,9 +941,8 @@ window.addEventListener('load', function() {
 
         var layout = cy.layout(config);
         layout.on('layoutstop', function() {
-            // Knotengrößen zurücksetzen auf berechneten Radius
             cy.nodes().forEach(function(n) {
-                n.style({ 'width': n.data('radius'), 'height': n.data('radius') });
+                n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
             cy.fit(40);
         });
