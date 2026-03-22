@@ -307,6 +307,7 @@
 
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
+    <button class="tool-btn" id="print-btn">🖨️ Druckansicht</button>
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -836,9 +837,8 @@ window.addEventListener('load', function() {
             line.setAttribute('x2', svgW);
             line.setAttribute('y1', sY);
             line.setAttribute('y2', sY);
-            line.setAttribute('stroke', '#cccccc');
-            line.setAttribute('stroke-width', '0.5');
-            line.setAttribute('stroke-dasharray', '6 4');
+            line.setAttribute('stroke', '#b8b8b8');
+            line.setAttribute('stroke-width', '1');
             svg.appendChild(line);
         }
     }
@@ -1243,6 +1243,132 @@ window.addEventListener('load', function() {
             n.removeStyle('border-width');
         });
         document.getElementById('path-result').textContent = '';
+    });
+
+    // ── Druckansicht ──────────────────────────────────────────────
+    document.getElementById('print-btn').addEventListener('click', function() {
+
+        // Aktuell sichtbare (nicht-faded) Knoten sammeln
+        var visibleNodes = cy.nodes().filter(function(n) {
+            return !n.hasClass('faded') && n.style('display') !== 'none';
+        });
+
+        // Falls nichts gefaded ist, alle nehmen
+        if (visibleNodes.length === cy.nodes().length) {
+            visibleNodes = cy.nodes();
+        }
+
+        // Personen-Daten aus den Knoten holen
+        var persons = [];
+        visibleNodes.forEach(function(n) {
+            persons.push(n.data());
+        });
+
+        // Alphabetisch nach display_name sortieren
+        persons.sort(function(a, b) {
+            return a.label.split('\n')[0].localeCompare(b.label.split('\n')[0]);
+        });
+
+        // Verbindungen zwischen sichtbaren Personen sammeln
+        var visibleIds = new Set();
+        visibleNodes.forEach(function(n) { visibleIds.add(n.id()); });
+
+        var relations = [];
+        cy.edges().forEach(function(e) {
+            var src = e.source().id();
+            var tgt = e.target().id();
+            if (visibleIds.has(src) && visibleIds.has(tgt)) {
+                relations.push({
+                    source: e.source().data('label').split('\n')[0].replace(' †','').replace(' *','').trim(),
+                    target: e.target().data('label').split('\n')[0].replace(' †','').replace(' *','').trim(),
+                    type:   e.data('type'),
+                    label:  e.data('label'),
+                });
+            }
+        });
+
+        // HTML für Druckfenster aufbauen
+        var html = '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8">';
+        html += '<title>Bahrs Familienstammbaum – Druckansicht</title>';
+        html += '<style>';
+        html += '* { box-sizing: border-box; margin: 0; padding: 0; }';
+        html += 'body { font-family: Helvetica Neue, Arial, sans-serif; background: white; color: #333; padding: 1.5em; }';
+        html += 'h1 { font-size: 1.1em; font-weight: 400; color: #444; margin-bottom: 0.3em; border-bottom: 1px solid #ddd; padding-bottom: 0.4em; }';
+        html += '.subtitle { font-size: 0.8em; color: #aaa; margin-bottom: 1.5em; }';
+        html += '.cards { display: flex; flex-wrap: wrap; gap: 0.7em; }';
+        html += '.card {';
+        html += '  width: 210px; border: 1px solid #e0e0e0; border-radius: 6px;';
+        html += '  padding: 0.7em 0.8em; background: white;';
+        html += '  page-break-inside: avoid; break-inside: avoid;';
+        html += '}';
+        html += '.card-name { font-size: 0.88em; font-weight: 600; color: #222; margin-bottom: 0.4em; border-bottom: 1px solid #f0f0f0; padding-bottom: 0.3em; }';
+        html += '.card-name .deceased { color: #999; font-weight: 400; }';
+        html += '.card-field { font-size: 0.75em; color: #999; margin-bottom: 0.18em; }';
+        html += '.card-field span { color: #444; font-weight: 500; }';
+        html += '.card-color { width: 100%; height: 3px; border-radius: 3px 3px 0 0; margin-bottom: 0.5em; }';
+        html += '.badge { display: inline-block; font-size: 0.65em; padding: 0.1em 0.4em; border-radius: 3px; margin-left: 0.3em; vertical-align: middle; }';
+        html += '.badge-m { background: #e8f0f8; color: #5a8ab0; }';
+        html += '.badge-f { background: #f8e8ee; color: #c07090; }';
+        html += '@media print {';
+        html += '  body { padding: 0.5em; }';
+        html += '  .no-print { display: none; }';
+        html += '  .card { border: 0.5pt solid #ccc; }';
+        html += '}';
+        html += '</style></head><body>';
+
+        // Header
+        var now = new Date().toLocaleDateString('de-DE');
+        html += '<h1>🌳 Bahrs Familienstammbaum</h1>';
+        html += '<div class="subtitle">' + persons.length + ' Personen · Stand: ' + now +
+                ' <button class="no-print" onclick="window.print()" style="margin-left:1em;padding:0.3em 0.8em;cursor:pointer;border:1px solid #ccc;border-radius:4px;background:#f0f0f0;">🖨️ Drucken</button></div>';
+
+        html += '<div class="cards">';
+
+        persons.forEach(function(d) {
+            var name    = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
+            var maiden  = d.maiden_name || '';
+            var isDead  = d.label.indexOf('†') >= 0;
+            var isEst   = d.label.indexOf('*') >= 0;
+            var famColor = d.famColor || '#cccccc';
+            var sexBadge = d.sex === 'm'
+                ? '<span class="badge badge-m">♂</span>'
+                : d.sex === 'f' ? '<span class="badge badge-f">♀</span>' : '';
+
+            html += '<div class="card">';
+            html += '<div class="card-color" style="background:' + famColor + '"></div>';
+            html += '<div class="card-name">' + name +
+                    (isDead ? ' <span class="deceased">†</span>' : '') +
+                    sexBadge + '</div>';
+
+            function field(label, val) {
+                if (!val || val === '–') return '';
+                return '<div class="card-field">' + label + ': <span>' + val + '</span></div>';
+            }
+
+            function fmtDate(ds, est) {
+                if (!ds) return '';
+                var p = ds.split('T')[0].split('-');
+                var s = p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : ds;
+                return s + (est ? ' 🔮' : '');
+            }
+
+            html += field('Geb.', fmtDate(d.birth_date, d.birth_date_estimated));
+            html += field('Gest.', fmtDate(d.death_date, d.death_date_estimated));
+            html += field('Geburtsort', d.birth_place);
+            html += field('Sterbeort', d.death_place);
+            html += field('Beruf', d.profession);
+            if (maiden) html += field('Mädchenname', maiden);
+            html += field('Familie', d.family_name);
+
+            html += '</div>';
+        });
+
+        html += '</div></body></html>';
+
+        // Neues Fenster öffnen
+        var win = window.open('', '_blank');
+        win.document.write(html);
+        win.document.close();
     });
 
 });
