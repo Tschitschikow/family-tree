@@ -246,6 +246,37 @@
         input[type=range] { accent-color: #aaa; }
 
         #status-bar { text-align: center; padding: 2em; color: #bbb; font-size: 1em; }
+
+        /* ── Druckansicht ── */
+        #print-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .pcard {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.3em 0.45em;
+            font-size: 6.5px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.45;
+            min-width: 85px;
+            max-width: 115px;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .pcard-bar  { height: 2.5px; border-radius: 2px; margin-bottom: 0.3em; }
+        .pcard-name { font-weight: 600; font-size: 7px; color: #222;
+                      border-bottom: 1px solid #f0f0f0; padding-bottom: 0.2em;
+                      margin-bottom: 0.2em; white-space: nowrap;
+                      overflow: hidden; text-overflow: ellipsis; }
+        .pcard-row  { color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pcard-row span { color: #444; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -308,6 +339,7 @@
 
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
+    <button class="tool-btn" id="print-btn">🖨️ Druckansicht</button>
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -335,6 +367,7 @@
     <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
         <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
         <div id="cy" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
+        <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
     </div>
@@ -839,9 +872,8 @@ window.addEventListener('load', function() {
             line.setAttribute('x2', svgW);
             line.setAttribute('y1', sY);
             line.setAttribute('y2', sY);
-            line.setAttribute('stroke', '#cccccc');
-            line.setAttribute('stroke-width', '0.5');
-            line.setAttribute('stroke-dasharray', '6 4');
+            line.setAttribute('stroke', '#b8b8b8');
+            line.setAttribute('stroke-width', '1');
             svg.appendChild(line);
         }
     }
@@ -1240,7 +1272,6 @@ window.addEventListener('load', function() {
     // Zurücksetzen
     document.getElementById('path-reset-btn').addEventListener('click', function() {
         cy.elements().removeClass('faded');
-        // Knotenränder zurücksetzen
         cy.nodes().forEach(function(n) {
             n.removeStyle('border-color');
             n.removeStyle('border-width');
@@ -1248,7 +1279,92 @@ window.addEventListener('load', function() {
         document.getElementById('path-result').textContent = '';
     });
 
+    // ── Druckansicht ──────────────────────────────────────────────
+    var printActive = false;
 
+    document.getElementById('print-btn').addEventListener('click', function() {
+        printActive = !printActive;
+        var overlay = document.getElementById('print-overlay');
+        var btn     = document.getElementById('print-btn');
+
+        if (printActive) {
+            btn.textContent      = '✕ Schließen';
+            btn.style.background = '#5a3e2b';
+            btn.style.color      = 'white';
+            overlay.style.display = 'block';
+            buildPrintOverlay();
+        } else {
+            btn.textContent      = '🖨️ Druckansicht';
+            btn.style.background = '';
+            btn.style.color      = '';
+            overlay.style.display = 'none';
+            overlay.innerHTML    = '';
+            // Knoten-Opacity wiederherstellen
+            cy.nodes().forEach(function(n) { n.style('opacity', 1); });
+        }
+    });
+
+    function buildPrintOverlay() {
+        var overlay = document.getElementById('print-overlay');
+        overlay.innerHTML = '';
+
+        // Cytoscape-Knoten unsichtbar – Kanten bleiben sichtbar
+        cy.nodes().forEach(function(n) { n.style('opacity', 0); });
+
+        function fmtDate(ds, est) {
+            if (!ds) return null;
+            var p = ds.split('T')[0].split('-');
+            var s = p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : ds;
+            return s + (est ? ' 🔮' : '');
+        }
+
+        cy.nodes().forEach(function(n) {
+            var d   = n.data();
+            var pos = n.renderedPosition();
+
+            var name   = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
+            var isDead = d.label.indexOf('†') >= 0;
+            var sexSym = d.sex === 'm' ? ' ♂' : d.sex === 'f' ? ' ♀' : '';
+
+            var card = document.createElement('div');
+            card.className         = 'pcard';
+            card.style.left        = pos.x + 'px';
+            card.style.top         = pos.y + 'px';
+            card.style.borderColor = d.famColor || '#ddd';
+
+            var bar = document.createElement('div');
+            bar.className        = 'pcard-bar';
+            bar.style.background = d.famColor || '#ccc';
+            card.appendChild(bar);
+
+            var nameDiv = document.createElement('div');
+            nameDiv.className   = 'pcard-name';
+            nameDiv.textContent = name + (isDead ? ' †' : '') + sexSym;
+            card.appendChild(nameDiv);
+
+            function row(lbl, val) {
+                if (!val) return;
+                var div = document.createElement('div');
+                div.className = 'pcard-row';
+                div.innerHTML = lbl + ' <span>' + val + '</span>';
+                card.appendChild(div);
+            }
+
+            row('*',    fmtDate(d.birth_date,  d.birth_date_estimated));
+            row('†',    fmtDate(d.death_date,  d.death_date_estimated));
+            row('📍',   d.birth_place  || null);
+            row('✝ 📍', d.death_place  || null);
+            row('💼',   d.profession   || null);
+            if (d.maiden_name) row('Geb.', d.maiden_name);
+
+            overlay.appendChild(card);
+        });
+    }
+
+    // Overlay bei Zoom/Pan neu aufbauen
+    cy.on('viewport', function() {
+        if (printActive) buildPrintOverlay();
+    });
 
 });
 </script>
