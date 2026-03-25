@@ -551,6 +551,22 @@ window.addEventListener('load', function() {
                     }
                 },
                 {
+                    selector: 'edge[type = "hasExWife"]',
+                    style: {
+                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'line-dash-pattern': [6, 4],
+                        'width': 2, 'opacity': 0.6, 'color': '#e8c84a',
+                    }
+                },
+                {
+                    selector: 'edge[type = "hasExHusband"]',
+                    style: {
+                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'line-dash-pattern': [6, 4],
+                        'width': 2, 'opacity': 0.6, 'color': '#e8c84a',
+                    }
+                },
+                {
                     selector: 'edge[type = "sibling"]',
                     style: {
                         'line-color': '#6abf69',
@@ -568,6 +584,14 @@ window.addEventListener('load', function() {
                         'text-rotation': 'autorotate',
                         'text-margin-y': '-8px',
                         'label': '',
+                    }
+                },
+                {
+                    selector: 'edge[type = "hasExWife"]',
+                    style: {
+                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'width': 2, 'opacity': 0.6,
+                        'color': '#e8c84a',
                     }
                 },
                 { selector: '.faded', style: { 'opacity': 0.08 } }
@@ -664,7 +688,8 @@ window.addEventListener('load', function() {
         var personIds = new Set(persons.map(function(p) { return p.id; }));
         var marriedIds = new Set();
         relationships.forEach(function(r) {
-            if ((r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband') &&
+            if ((r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband' ||
+                 r.relationship_type === 'hasExWife' || r.relationship_type === 'hasExHusband') &&
                 personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
                 marriedIds.add(r.person_id);
                 marriedIds.add(r.related_person_id);
@@ -724,6 +749,18 @@ window.addEventListener('load', function() {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
                     type: r.relationship_type, label: 'sind verheiratet',
+                }});
+            }
+            if (r.relationship_type === 'hasExWife') {
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
+                    type: r.relationship_type, label: 'waren verheiratet',
+                }});
+            }
+            if (r.relationship_type === 'hasExWife') {
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
+                    type: r.relationship_type, label: 'waren verheiratet',
                 }});
             }
         });
@@ -872,9 +909,8 @@ window.addEventListener('load', function() {
             line.setAttribute('x2', svgW);
             line.setAttribute('y1', sY);
             line.setAttribute('y2', sY);
-            line.setAttribute('stroke', '#cccccc');
-            line.setAttribute('stroke-width', '0.5');
-            line.setAttribute('stroke-dasharray', '6 4');
+            line.setAttribute('stroke', '#b8b8b8');
+            line.setAttribute('stroke-width', '1');
             svg.appendChild(line);
         }
     }
@@ -902,6 +938,18 @@ window.addEventListener('load', function() {
                 'label':   showParent  ? 'data(label)' : '',
             })
             .selector('edge[type = "hasWife"]').style({
+                'display': showMarried ? 'element' : 'none',
+                'label':   showMarried ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExWife"]').style({
+                'display': showMarried ? 'element' : 'none',
+                'label':   showMarried ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExWife"]').style({
+                'display': showMarried ? 'element' : 'none',
+                'label':   showMarried ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExHusband"]').style({
                 'display': showMarried ? 'element' : 'none',
                 'label':   showMarried ? 'data(label)' : '',
             })
@@ -1083,6 +1131,14 @@ window.addEventListener('load', function() {
                 'label':   showParent   ? 'data(label)' : '',
             })
             .selector('edge[type = "hasWife"]').style({
+                'display': showMarried  ? 'element' : 'none',
+                'label':   showMarried  ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExWife"]').style({
+                'display': showMarried  ? 'element' : 'none',
+                'label':   showMarried  ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExHusband"]').style({
                 'display': showMarried  ? 'element' : 'none',
                 'label':   showMarried  ? 'data(label)' : '',
             })
