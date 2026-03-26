@@ -675,7 +675,8 @@ window.addEventListener('load', function() {
         var _isDragging = false;
 
         cy.on('grabon', 'node', function(e) {
-            if (document.getElementById('layout-select').value === 'timeline') {
+            var lv = document.getElementById('layout-select').value;
+            if (lv === 'timeline' || lv === 'generations') {
                 _lockedY    = e.target.position('y');
                 _isDragging = true;
             }
@@ -954,78 +955,157 @@ window.addEventListener('load', function() {
     }
 
 
-    // ── Generationen-Bänder ──────────────────────────────────────
+    // ── Generationen-Layout ──────────────────────────────────────
+    var GEN_LEVELS = {};   // nodeId → Generationsnummer (global für drawGenerationBands)
+
+    function applyGenerationsLayout() {
+        // Schritt 1: Generationsnummern per BFS berechnen
+        // Kanten: hasMother/hasFather zeigen von Kind → Elternteil
+        // Wir wollen: Elternteil hat niedrigere Nummer als Kind
+
+        var genMap = {};   // nodeId (String) → generation (int, 0 = Wurzel)
+
+        // Adjazenzliste: wer sind die Kinder von X?
+        var children = {};   // parentId → [childId, ...]
+        var parents  = {};   // childId  → [parentId, ...]
+
+        cy.edges().forEach(function(e) {
+            var t = e.data('type');
+            if (t === 'hasMother' || t === 'hasFather') {
+                // Kante geht von related_person (Elternteil) → person (Kind)
+                var parentId = String(e.source().id());
+                var childId  = String(e.target().id());
+                if (!children[parentId]) children[parentId] = [];
+                if (!parents[childId])   parents[childId]   = [];
+                children[parentId].push(childId);
+                parents[childId].push(parentId);
+            }
+        });
+
+        // Wurzeln = Knoten ohne Eltern im aktuellen Graph
+        var allIds = cy.nodes().map(function(n) { return String(n.id()); });
+        var roots  = allIds.filter(function(id) {
+            return !parents[id] || parents[id].length === 0;
+        });
+
+        // BFS von allen Wurzeln (Generation 0)
+        var queue = [];
+        roots.forEach(function(id) {
+            genMap[id] = 0;
+            queue.push(id);
+        });
+
+        while (queue.length > 0) {
+            var cur = queue.shift();
+            var gen = genMap[cur];
+            (children[cur] || []).forEach(function(childId) {
+                // Kind-Generation = max(bisherige, Eltern+1)
+                // → Geschwister bekommen dieselbe Nummer (max ihrer Eltern)
+                var newGen = gen + 1;
+                if (genMap[childId] === undefined || genMap[childId] < newGen) {
+                    genMap[childId] = newGen;
+                    queue.push(childId);
+                }
+            });
+        }
+
+        // Knoten ohne Eltern und Kinder (isoliert): Generation 0
+        cy.nodes().forEach(function(n) {
+            var id = String(n.id());
+            if (genMap[id] === undefined) genMap[id] = 0;
+        });
+
+        GEN_LEVELS = genMap;
+
+        // Schritt 2: Y-Position = generation × PX_PER_GEN
+        var PX_PER_GEN = 120;
+        var PADDING    = 80;
+
+        cy.nodes().forEach(function(n) {
+            var id  = String(n.id());
+            var gen = genMap[id] || 0;
+            n.position('y', PADDING + gen * PX_PER_GEN);
+        });
+
+        // Schritt 3: Überlappungen horizontal auflösen (wie Timeline)
+        var nodeList = cy.nodes().toArray();
+        var minGap   = 110;
+        for (var iter = 0; iter < 60; iter++) {
+            var moved = false;
+            for (var i = 0; i < nodeList.length; i++) {
+                for (var j = i + 1; j < nodeList.length; j++) {
+                    var ni = nodeList[i], nj = nodeList[j];
+                    if (Math.abs(ni.position('y') - nj.position('y')) > 70) continue;
+                    var dx = nj.position('x') - ni.position('x');
+                    var dist = Math.abs(dx);
+                    if (dist < minGap) {
+                        var push = (minGap - dist) / 2 + 1;
+                        if (dx >= 0) {
+                            ni.position('x', ni.position('x') - push);
+                            nj.position('x', nj.position('x') + push);
+                        } else {
+                            ni.position('x', ni.position('x') + push);
+                            nj.position('x', nj.position('x') - push);
+                        }
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) break;
+        }
+
+        cy.fit(60);
+        drawGenerationBands();
+    }
+
     function drawGenerationBands() {
         var overlay = document.getElementById('gen-overlay');
         overlay.innerHTML = '';
+        if (!cy || cy.nodes().length === 0 || Object.keys(GEN_LEVELS).length === 0) return;
 
-        if (!cy || cy.nodes().length === 0) return;
+        // Maximale Generation ermitteln
+        var maxGen = 0;
+        Object.values(GEN_LEVELS).forEach(function(g) { if (g > maxGen) maxGen = g; });
 
-        // Y-Positionen aller Knoten sammeln und Ebenen erkennen
-        // Knoten mit ähnlichem Y-Wert (±40px) gehören zur selben Generation
-        var positions = [];
-        cy.nodes().forEach(function(n) {
-            positions.push(n.renderedPosition().y);
-        });
-        positions.sort(function(a, b) { return a - b; });
+        var PX_PER_GEN = 120;
+        var PADDING    = 80;
 
-        // Ebenen clustern: neues Cluster wenn Abstand > 80px
-        var levels = [];
-        var current = [positions[0]];
-        for (var i = 1; i < positions.length; i++) {
-            if (positions[i] - positions[i-1] < 80) {
-                current.push(positions[i]);
-            } else {
-                levels.push(current);
-                current = [positions[i]];
-            }
-        }
-        levels.push(current);
+        for (var gen = 0; gen <= maxGen; gen++) {
+            // Mittelpunkt dieser Ebene im Graph-Koordinatensystem
+            var graphY  = PADDING + gen * PX_PER_GEN;
+            var screenY = cy.pan().y + graphY * cy.zoom();
 
-        var wrapH = overlay.parentElement.offsetHeight || 600;
-        var wrapW = overlay.parentElement.offsetWidth  || 800;
-
-        // Abwechselnde Bänder zwischen den Ebenen zeichnen
-        for (var lvl = 0; lvl < levels.length; lvl++) {
-            var ys = levels[lvl];
-            var minY = Math.min.apply(null, ys);
-            var maxY = Math.max.apply(null, ys);
-            var midY = (minY + maxY) / 2;
-            var halfH = Math.max(50, (maxY - minY) / 2 + 40);
-
-            // Abwechselnd zarter Hintergrund
-            if (lvl % 2 === 0) {
+            // Abwechselndes Band (Hintergrund)
+            var bandTop    = cy.pan().y + (graphY - 55) * cy.zoom();
+            var bandHeight = 110 * cy.zoom();
+            if (gen % 2 === 0) {
                 var band = document.createElement('div');
                 band.style.cssText =
                     'position:absolute; left:0; right:0; pointer-events:none;' +
-                    'background: rgba(0,0,0,0.025);' +
-                    'top:' + Math.max(0, midY - halfH) + 'px;' +
-                    'height:' + (halfH * 2) + 'px;';
+                    'background:rgba(0,0,0,0.025);' +
+                    'top:' + bandTop + 'px; height:' + bandHeight + 'px;';
                 overlay.appendChild(band);
             }
 
-            // Generations-Label links
-            var label = document.createElement('div');
-            var genNum = levels.length - lvl; // Älteste = höchste Nummer
-            label.style.cssText =
-                'position:absolute; left:6px; pointer-events:none;' +
-                'font-size:0.62em; color:#ccc; font-family:inherit;' +
-                'transform:translateY(-50%);' +
-                'top:' + midY + 'px;';
-            label.textContent = 'Gen. ' + genNum;
-            overlay.appendChild(label);
-
-            // Trennlinie oben (außer erste Ebene)
-            if (lvl > 0) {
-                var prevMaxY = Math.max.apply(null, levels[lvl-1]);
-                var lineY = (prevMaxY + minY) / 2;
+            // Trennlinie zwischen Generationen
+            if (gen > 0) {
+                var lineY = cy.pan().y + (graphY - 60) * cy.zoom();
                 var line = document.createElement('div');
                 line.style.cssText =
                     'position:absolute; left:0; right:0; height:1px;' +
-                    'background:#e0e0e0; pointer-events:none;' +
+                    'background:#ddd; pointer-events:none;' +
                     'top:' + lineY + 'px;';
                 overlay.appendChild(line);
             }
+
+            // Label links: "Gen. 1" (1 = älteste)
+            var label = document.createElement('div');
+            label.style.cssText =
+                'position:absolute; left:6px; pointer-events:none;' +
+                'font-size:0.62em; color:#bbb; font-family:inherit;' +
+                'transform:translateY(-50%); top:' + screenY + 'px;';
+            label.textContent = 'Gen. ' + (gen + 1);
+            overlay.appendChild(label);
         }
     }
 
@@ -1136,16 +1216,21 @@ window.addEventListener('load', function() {
                 config = { name: 'dagre', rankDir: 'TB', nodeSep: 40, rankSep: 80, padding: 30 };
                 break;
             case 'generations':
+                // Generationen selbst berechnen, cose für X-Positionen
                 config = {
-                    name: 'dagre',
-                    rankDir: 'TB',          // Top → Bottom
-                    nodeSep: 30,            // Abstand zwischen Knoten in einer Reihe
-                    rankSep: 120,           // Abstand zwischen Generationsreihen
-                    edgeSep: 10,
-                    ranker: 'longest-path', // Generationstiefe bestimmt Ebene
-                    padding: 60,
-                    animate: true,
-                    animationDuration: 600,
+                    name: 'cose',
+                    animate: false,
+                    fit: false,
+                    padding: 40,
+                    idealEdgeLength: 100,
+                    nodeRepulsion: repulsionValue,
+                    nodeOverlap: 20,
+                    gravity: 80,
+                    numIter: 1500,
+                    initialTemp: 200,
+                    coolingFactor: 0.95,
+                    minTemp: 1.0,
+                    randomize: true,
                 };
                 break;
             case 'breadthfirst':
@@ -1161,9 +1246,10 @@ window.addEventListener('load', function() {
                 n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
             if (name === 'generations') {
-                drawGenerationBands();
+                applyGenerationsLayout();
+            } else {
+                cy.fit(40);
             }
-            cy.fit(40);
         });
         layout.run();
     }
