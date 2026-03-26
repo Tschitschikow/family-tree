@@ -402,38 +402,70 @@
 <script>
 var FAMILY_COLORS = {
     'ALLERHOLZ': '#f5caca',
-    'APPEL': '#f5d3ca',
-    'BAHRS': '#f5dbca',
-    'BERG': '#f5e3ca',
-    'DAVIDS': '#f5ecca',
-    'DEPNER': '#f5f4ca',
-    'FRANCK': '#eef5ca',
+    'APPEL': '#f5d0ca',
+    'AULBACH': '#f5d6ca',
+    'BAHRS': '#f5dcca',
+    'BERG': '#f5e2ca',
+    'BIES': '#f5e8ca',
+    'BRANDT': '#f5eeca',
+    'DAVIDS': '#f5f3ca',
+    'DEPNER': '#f1f5ca',
+    'FRANCK': '#ecf5ca',
     'FRANSSEN': '#e6f5ca',
-    'GAVRIKOV': '#def5ca',
-    'GAVRIKOVA': '#d6f5ca',
-    'GLASHOFF': '#cdf5ca',
-    'GROTH': '#caf5d0',
-    'HEIDEMANN': '#caf5d8',
-    'HEINRICHS': '#caf5e1',
-    'KARSTENS': '#caf5e9',
-    'KÜHL': '#caf5f1',
-    'MARTENS': '#caf1f5',
-    'MEYER': '#cae9f5',
-    'MÖLLER': '#cae1f5',
+    'GAVRIKOV': '#e0f5ca',
+    'GAVRIKOVA': '#daf5ca',
+    'GLASHOFF': '#d4f5ca',
+    'GROTH': '#cef5ca',
+    'HEIDEMANN': '#caf5cc',
+    'HEINRICHS': '#caf5d2',
+    'HOFFMANN': '#caf5d8',
+    'HORSTMANN': '#caf5de',
+    'KARSTENS': '#caf5e4',
+    'KÜHL': '#caf5ea',
+    'MARTENS': '#caf5ef',
+    'MEUSER': '#caf5f5',
+    'MEYER': '#caeff5',
+    'MÖLLER': '#caeaf5',
+    'OHLSON': '#cae4f5',
+    'PAGELS': '#cadef5',
     'PETERS': '#cad8f5',
-    'RISCHE': '#cad0f5',
-    'RÜHMANN': '#cdcaf5',
-    'RÜHTER': '#d6caf5',
-    'SCHMIDT': '#decaf5',
+    'REITENBACH': '#cad2f5',
+    'RISCHE': '#caccf5',
+    'RÖDINGHAUSEN': '#cecaf5',
+    'RÜHMANN': '#d4caf5',
+    'RÜHTER': '#dacaf5',
+    'SCHMIDT': '#e0caf5',
     'SCHNAAK': '#e6caf5',
-    'SCHUBERT': '#eecaf5',
-    'STEINKAMP': '#f5caf4',
-    'TEGTMEYER': '#f5caec',
-    'UHLMANN': '#f5cae3',
-    'ULMER': '#f5cadb',
-    'WIPPERMANN': '#f5cad3',
+    'SCHNAAK-HOFFMANN': '#eccaf5',
+    'SCHUBERT': '#f1caf5',
+    'SCHULZE': '#f5caf3',
+    'STEINKAMP': '#f5caee',
+    'TEGTMEYER': '#f5cae8',
+    'TETZNER': '#f5cae2',
+    'UHLMANN': '#f5cadc',
+    'ULMER': '#f5cad6',
+    'WIPPERMANN': '#f5cad0',
 };
-function getFamilyColor(n) { return FAMILY_COLORS[n] || '#cccccc'; }
+function getFamilyColor(n) {
+    if (FAMILY_COLORS[n]) return FAMILY_COLORS[n];
+    // Unbekannter Name: Hash-basierte Farbe aus dem Spektrum
+    var hash = 0;
+    for (var i = 0; i < n.length; i++) hash = (hash * 31 + n.charCodeAt(i)) & 0xfffffff;
+    var hue = (hash % 1000) / 1000;
+    var h = hue, s = 0.70, l = 0.88;
+    var c = (1 - Math.abs(2*l - 1)) * s;
+    var x = c * (1 - Math.abs((h*6) % 2 - 1));
+    var m = l - c/2;
+    var r=0,g=0,b=0;
+    if      (h < 1/6) { r=c; g=x; b=0; }
+    else if (h < 2/6) { r=x; g=c; b=0; }
+    else if (h < 3/6) { r=0; g=c; b=x; }
+    else if (h < 4/6) { r=0; g=x; b=c; }
+    else if (h < 5/6) { r=x; g=0; b=c; }
+    else              { r=c; g=0; b=x; }
+    var toHex = function(v) { var h = Math.round((v+m)*255).toString(16); return h.length<2?'0'+h:h; };
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+}
 
 // Pixel pro Jahr in der Zeitachsen-Ansicht
 var PX_PER_YEAR = 8;
