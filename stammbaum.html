@@ -316,6 +316,7 @@
     <select id="layout-select">
         <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
+        <option value="generations">Generationen</option>
         <!-- <option value="klay">Stammbaum (klay)</option> -->
         <!-- <option value="dagre">Hierarchisch (dagre)</option> -->
         <!-- <option value="breadthfirst">Breitensuche</option> -->
@@ -366,6 +367,7 @@
     <div id="timeline"></div>
     <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
         <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
+        <div id="gen-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0;"></div>
         <div id="cy" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
         <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
@@ -632,8 +634,11 @@ window.addEventListener('load', function() {
 
         // Zeitachse beim Zoomen/Panen mitbewegen
         cy.on('viewport', function() {
-            if (document.getElementById('layout-select').value === 'timeline') {
+            var layout = document.getElementById('layout-select').value;
+            if (layout === 'timeline') {
                 updateTimeline();
+            } else if (layout === 'generations') {
+                drawGenerationBands();
             }
         });
 
@@ -949,6 +954,81 @@ window.addEventListener('load', function() {
     }
 
 
+    // ── Generationen-Bänder ──────────────────────────────────────
+    function drawGenerationBands() {
+        var overlay = document.getElementById('gen-overlay');
+        overlay.innerHTML = '';
+
+        if (!cy || cy.nodes().length === 0) return;
+
+        // Y-Positionen aller Knoten sammeln und Ebenen erkennen
+        // Knoten mit ähnlichem Y-Wert (±40px) gehören zur selben Generation
+        var positions = [];
+        cy.nodes().forEach(function(n) {
+            positions.push(n.renderedPosition().y);
+        });
+        positions.sort(function(a, b) { return a - b; });
+
+        // Ebenen clustern: neues Cluster wenn Abstand > 80px
+        var levels = [];
+        var current = [positions[0]];
+        for (var i = 1; i < positions.length; i++) {
+            if (positions[i] - positions[i-1] < 80) {
+                current.push(positions[i]);
+            } else {
+                levels.push(current);
+                current = [positions[i]];
+            }
+        }
+        levels.push(current);
+
+        var wrapH = overlay.parentElement.offsetHeight || 600;
+        var wrapW = overlay.parentElement.offsetWidth  || 800;
+
+        // Abwechselnde Bänder zwischen den Ebenen zeichnen
+        for (var lvl = 0; lvl < levels.length; lvl++) {
+            var ys = levels[lvl];
+            var minY = Math.min.apply(null, ys);
+            var maxY = Math.max.apply(null, ys);
+            var midY = (minY + maxY) / 2;
+            var halfH = Math.max(50, (maxY - minY) / 2 + 40);
+
+            // Abwechselnd zarter Hintergrund
+            if (lvl % 2 === 0) {
+                var band = document.createElement('div');
+                band.style.cssText =
+                    'position:absolute; left:0; right:0; pointer-events:none;' +
+                    'background: rgba(0,0,0,0.025);' +
+                    'top:' + Math.max(0, midY - halfH) + 'px;' +
+                    'height:' + (halfH * 2) + 'px;';
+                overlay.appendChild(band);
+            }
+
+            // Generations-Label links
+            var label = document.createElement('div');
+            var genNum = levels.length - lvl; // Älteste = höchste Nummer
+            label.style.cssText =
+                'position:absolute; left:6px; pointer-events:none;' +
+                'font-size:0.62em; color:#ccc; font-family:inherit;' +
+                'transform:translateY(-50%);' +
+                'top:' + midY + 'px;';
+            label.textContent = 'Gen. ' + genNum;
+            overlay.appendChild(label);
+
+            // Trennlinie oben (außer erste Ebene)
+            if (lvl > 0) {
+                var prevMaxY = Math.max.apply(null, levels[lvl-1]);
+                var lineY = (prevMaxY + minY) / 2;
+                var line = document.createElement('div');
+                line.style.cssText =
+                    'position:absolute; left:0; right:0; height:1px;' +
+                    'background:#e0e0e0; pointer-events:none;' +
+                    'top:' + lineY + 'px;';
+                overlay.appendChild(line);
+            }
+        }
+    }
+
     function runLayout(name) {
         if (!cy || cy.nodes().length === 0) return;
 
@@ -959,6 +1039,11 @@ window.addEventListener('load', function() {
             tlDiv.innerHTML = '';
             var svg = document.getElementById('tl-svg');
             if (svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+        }
+        // Generationen-Bänder entfernen wenn anderes Layout
+        if (name !== 'generations') {
+            var genOverlay = document.getElementById('gen-overlay');
+            if (genOverlay) genOverlay.innerHTML = '';
         }
 
         cy.style()
@@ -1050,6 +1135,19 @@ window.addEventListener('load', function() {
             case 'dagre':
                 config = { name: 'dagre', rankDir: 'TB', nodeSep: 40, rankSep: 80, padding: 30 };
                 break;
+            case 'generations':
+                config = {
+                    name: 'dagre',
+                    rankDir: 'TB',          // Top → Bottom
+                    nodeSep: 30,            // Abstand zwischen Knoten in einer Reihe
+                    rankSep: 120,           // Abstand zwischen Generationsreihen
+                    edgeSep: 10,
+                    ranker: 'longest-path', // Generationstiefe bestimmt Ebene
+                    padding: 60,
+                    animate: true,
+                    animationDuration: 600,
+                };
+                break;
             case 'breadthfirst':
                 config = { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
                 break;
@@ -1062,6 +1160,9 @@ window.addEventListener('load', function() {
             cy.nodes().forEach(function(n) {
                 n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
+            if (name === 'generations') {
+                drawGenerationBands();
+            }
             cy.fit(40);
         });
         layout.run();
