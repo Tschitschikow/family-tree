@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Geocoding – Bahrs Familie</title>
+    <style>
+        body { font-family: monospace; padding: 1em; background: #1a1a2e; color: #ccc; }
+        h2 { color: #c8960c; font-family: Georgia, serif; }
+        #log { white-space: pre; font-size: 0.85em; line-height: 1.6em; }
+        .ok  { color: #2ecc71; }
+        .err { color: #e74c3c; }
+        .cur { color: #f0e8dc; }
+        #result {
+            margin-top: 1.5em;
+            background: #0a0a1a;
+            border: 1px solid #c8960c;
+            border-radius: 6px;
+            padding: 1em;
+            display: none;
+        }
+        #result h3 { color: #c8960c; font-family: Georgia, serif; margin-bottom: 0.5em; }
+        textarea {
+            width: 100%;
+            height: 400px;
+            background: #0a0a1a;
+            color: #a0e8a0;
+            border: none;
+            font-family: monospace;
+            font-size: 0.82em;
+            resize: vertical;
+        }
+        #progress {
+            color: #c8960c;
+            margin-bottom: 0.5em;
+            font-family: Georgia, serif;
+        }
+    </style>
+</head>
+<body>
+<h2>🗺️ Geocoding – Bahrs Familienstammbaum</h2>
+<div id="progress">Starte Geocoding...</div>
+<div id="log"></div>
+<div id="result">
+    <h3>✅ Fertig! Diesen Code in karte.html kopieren:</h3>
+    <textarea id="output"></textarea>
+</div>
+
+<script>
+var places = [
+    "Ahle",
+    "Bad Schwartau",
+    "Bahrenfleth",
+    "Berlin",
+    "Blangenmoor",
+    "Börtgenhagen",
+    "Bössow",
+    "Brodau, Schashagen",
+    "Bür",
+    "Burg/D.",
+    "Ciry-Salsogne, Soissons",
+    "Darry",
+    "Datteln",
+    "Düsseldorf",
+    "Düssin",
+    "Elmshorn",
+    "Ennigloh",
+    "Essen",
+    "Eutin",
+    "Frestedt",
+    "Grossenbornholt",
+    "Gudow, Sophienthal",
+    "Güldenstein",
+    "Gülze",
+    "Habighorst",
+    "Hademarschen",
+    "Hamburg",
+    "Hannover",
+    "Hassee",
+    "Haus Kilver",
+    "Heide, Dithmarschen",
+    "Heiligenstedten",
+    "Herford",
+    "Holsen",
+    "Holstenniendorf",
+    "Itzehoe",
+    "Kakoehl",
+    "Kiel",
+    "Koselau",
+    "Krempe",
+    "Krumstedt",
+    "Kuhstorf",
+    "Löhne",
+    "Lütjenburg",
+    "Lütjenburg Friederikenthal",
+    "Markendorf",
+    "Marne",
+    "Mölln",
+    "Muccum",
+    "Neuenkirchen",
+    "Niebüll",
+    "Nortorf",
+    "Ochsenhals",
+    "Oeverwisch",
+    "Oldenburg",
+    "Oldenburg/H.",
+    "Oldenswort",
+    "Ostkilver",
+    "Ostkilver 2",
+    "Ostrohe",
+    "oрёл",
+    "oрёл знаменка",
+    "Pansdorf",
+    "Pforzheim",
+    "Pölitz",
+    "Potsdam",
+    "Puls",
+    "Ratzeburg",
+    "Redingsdorf",
+    "Reppenhagen",
+    "Rhodos",
+    "Rödinghausen",
+    "Rohlfshagen",
+    "Rönfeldholz",
+    "Rosenkranz, Niebüll",
+    "Seegalendorf, Eutin",
+    "Spenge",
+    "St. Michaelisdonn",
+    "Stegen",
+    "Stellshagen",
+    "Stendorf",
+    "Stockelsdorf",
+    "Stücker Hof",
+    "Südlengern",
+    "Süsel",
+    "Tangstedt",
+    "Thesdorf",
+    "Treufeld",
+    "Vergünne, Lüneburg",
+    "Werfen",
+    "Wesseln",
+    "Westerbüttel",
+    "Westkilver",
+    "Wohltorf",
+    "Wolmersdorf",
+    "Zarnekau",
+    "Zühr",
+    "залегощ"
+];
+
+var results = {};
+var logEl  = document.getElementById('log');
+var progEl = document.getElementById('progress');
+
+function log(msg, cls) {
+    var span = document.createElement('span');
+    if (cls) span.className = cls;
+    span.textContent = msg + '\n';
+    logEl.appendChild(span);
+}
+
+async function geocodeAll() {
+    var total = places.length;
+
+    for (var i = 0; i < places.length; i++) {
+        var place = places[i];
+        progEl.textContent = 'Geocoding ' + (i+1) + ' / ' + total + ' – bitte warten...';
+        log('[' + (i+1) + '/' + total + '] ' + place, 'cur');
+
+        try {
+            var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
+                      encodeURIComponent(place);
+            var resp = await fetch(url, { headers: { 'Accept-Language': 'de' } });
+            var data = await resp.json();
+
+            if (data && data.length > 0) {
+                var lat = parseFloat(data[0].lat);
+                var lng = parseFloat(data[0].lon);
+                results[place] = { lat: lat, lng: lng };
+                log('       ✅ ' + lat.toFixed(5) + ', ' + lng.toFixed(5), 'ok');
+            } else {
+                results[place] = null;
+                log('       ❌ nicht gefunden', 'err');
+            }
+        } catch(e) {
+            results[place] = null;
+            log('       ❌ Fehler: ' + e.message, 'err');
+        }
+
+        // Rate-Limit: 1.1 Sekunden warten (außer beim letzten)
+        if (i < places.length - 1) {
+            await new Promise(r => setTimeout(r, 1100));
+        }
+    }
+
+    // Ergebnis aufbereiten
+    progEl.textContent = '✅ Fertig! ' +
+        Object.values(results).filter(Boolean).length + ' gefunden, ' +
+        Object.values(results).filter(function(v){return v===null;}).length + ' nicht gefunden.';
+
+    var js = 'var manualCache = {\n';
+    for (var place in results) {
+        var geo = results[place];
+        if (geo) {
+            js += "    '" + place + "': { lat: " + geo.lat + ", lng: " + geo.lng + " },\n";
+        } else {
+            js += "    // '" + place + "': { lat: ???, lng: ??? },  // nicht gefunden\n";
+        }
+    }
+    js += '};';
+
+    document.getElementById('output').value = js;
+    document.getElementById('result').style.display = 'block';
+
+    // Zum Ergebnis scrollen
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+}
+
+geocodeAll();
+</script>
+</body>
+</html>
