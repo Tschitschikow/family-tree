@@ -178,10 +178,21 @@
             gap: 0.5em; cursor: pointer; padding: 0.1em 0.2em; border-radius: 3px;
         }
         .legend-item:hover { background: #f5f5f5; }
+        .legend-item.dimmed { opacity: 0.35; }
         .legend-dot {
             width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
             border: 1px solid rgba(0,0,0,0.1);
         }
+        .legend-cb { width: auto; margin: 0; cursor: pointer; accent-color: #888; }
+        .legend-controls {
+            display: flex; gap: 0.4em; margin-bottom: 0.4em;
+            border-bottom: 1px solid #f0f0f0; padding-bottom: 0.35em;
+        }
+        .legend-ctrl-btn {
+            font-size: 0.78em; color: #aaa; background: none; border: none;
+            cursor: pointer; padding: 0; font-family: inherit;
+        }
+        .legend-ctrl-btn:hover { color: #555; }
         .legend-hint { font-size: 0.78em; color: #ccc; margin-top: 0.4em; font-style: italic; }
 
         /* ── Info-Panel ── */
@@ -247,6 +258,36 @@
 
         #status-bar { text-align: center; padding: 2em; color: #bbb; font-size: 1em; }
 
+        /* ── Druckansicht ── */
+        #print-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .pcard {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 0.3em 0.45em;
+            font-size: 6.5px;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.45;
+            min-width: 85px;
+            max-width: 115px;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .pcard-bar  { height: 2.5px; border-radius: 2px; margin-bottom: 0.3em; }
+        .pcard-name { font-weight: 600; font-size: 7px; color: #222;
+                      border-bottom: 1px solid #f0f0f0; padding-bottom: 0.2em;
+                      margin-bottom: 0.2em; white-space: nowrap;
+                      overflow: hidden; text-overflow: ellipsis; }
+        .pcard-row  { color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pcard-row span { color: #444; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -286,6 +327,12 @@
     <select id="layout-select">
         <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
+        <option value="generations">Generationen</option>
+        <!-- <option value="klay">Stammbaum (klay)</option> -->
+        <!-- <option value="dagre">Hierarchisch (dagre)</option> -->
+        <!-- <option value="breadthfirst">Breitensuche</option> -->
+        <option value="circle">Kreis</option>
+        <!-- <option value="grid">Raster</option> -->
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
@@ -304,6 +351,7 @@
 
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
+    <button class="tool-btn" id="print-btn">🖨️ Druckansicht</button>
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -330,7 +378,9 @@
     <div id="timeline"></div>
     <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
         <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
+        <div id="gen-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0;"></div>
         <div id="cy" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
+        <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
     </div>
@@ -338,8 +388,12 @@
 
 <div id="legend">
     <h4>🎨 Familiennamen</h4>
+    <div class="legend-controls">
+        <button class="legend-ctrl-btn" id="legend-all">Alle</button>
+        <span style="color:#e0e0e0">|</span>
+        <button class="legend-ctrl-btn" id="legend-none">Keine</button>
+    </div>
     <div id="legend-items"></div>
-    <div class="legend-hint">Klick → nur diese Familie</div>
 </div>
 
 <div id="info-panel">
@@ -445,7 +499,7 @@ window.addEventListener('load', function() {
     let showParent  = true;
     let showMarried = true;
     let showSiblings = true;
-    var repulsionValue = 10000000;
+    var repulsionValue = 40000000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
@@ -554,6 +608,14 @@ window.addEventListener('load', function() {
                     }
                 },
                 {
+                    selector: 'edge[type = "hasExHusband"]',
+                    style: {
+                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'line-dash-pattern': [6, 4],
+                        'width': 2, 'opacity': 0.6, 'color': '#e8c84a',
+                    }
+                },
+                {
                     selector: 'edge[type = "sibling"]',
                     style: {
                         'line-color': '#6abf69',
@@ -587,8 +649,11 @@ window.addEventListener('load', function() {
 
         // Zeitachse beim Zoomen/Panen mitbewegen
         cy.on('viewport', function() {
-            if (document.getElementById('layout-select').value === 'timeline') {
+            var layout = document.getElementById('layout-select').value;
+            if (layout === 'timeline') {
                 updateTimeline();
+            } else if (layout === 'generations') {
+                drawGenerationBands();
             }
         });
 
@@ -625,7 +690,8 @@ window.addEventListener('load', function() {
         var _isDragging = false;
 
         cy.on('grabon', 'node', function(e) {
-            if (document.getElementById('layout-select').value === 'timeline') {
+            var lv = document.getElementById('layout-select').value;
+            if (lv === 'timeline' || lv === 'generations') {
                 _lockedY    = e.target.position('y');
                 _isDragging = true;
             }
@@ -736,6 +802,12 @@ window.addEventListener('load', function() {
                 elements.push({ group: 'edges', data: {
                     id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
                     type: r.relationship_type, label: 'sind verheiratet',
+                }});
+            }
+            if (r.relationship_type === 'hasExWife') {
+                elements.push({ group: 'edges', data: {
+                    id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
+                    type: r.relationship_type, label: 'waren verheiratet',
                 }});
             }
             if (r.relationship_type === 'hasExWife') {
@@ -898,6 +970,160 @@ window.addEventListener('load', function() {
     }
 
 
+    // ── Generationen-Layout ──────────────────────────────────────
+    var GEN_LEVELS = {};   // nodeId → Generationsnummer (global für drawGenerationBands)
+
+    function applyGenerationsLayout() {
+        // Schritt 1: Generationsnummern per BFS berechnen
+        // Kanten: hasMother/hasFather zeigen von Kind → Elternteil
+        // Wir wollen: Elternteil hat niedrigere Nummer als Kind
+
+        var genMap = {};   // nodeId (String) → generation (int, 0 = Wurzel)
+
+        // Adjazenzliste: wer sind die Kinder von X?
+        var children = {};   // parentId → [childId, ...]
+        var parents  = {};   // childId  → [parentId, ...]
+
+        cy.edges().forEach(function(e) {
+            var t = e.data('type');
+            if (t === 'hasMother' || t === 'hasFather') {
+                // Kante geht von related_person (Elternteil) → person (Kind)
+                var parentId = String(e.source().id());
+                var childId  = String(e.target().id());
+                if (!children[parentId]) children[parentId] = [];
+                if (!parents[childId])   parents[childId]   = [];
+                children[parentId].push(childId);
+                parents[childId].push(parentId);
+            }
+        });
+
+        // Wurzeln = Knoten ohne Eltern im aktuellen Graph
+        var allIds = cy.nodes().map(function(n) { return String(n.id()); });
+        var roots  = allIds.filter(function(id) {
+            return !parents[id] || parents[id].length === 0;
+        });
+
+        // BFS von allen Wurzeln (Generation 0)
+        var queue = [];
+        roots.forEach(function(id) {
+            genMap[id] = 0;
+            queue.push(id);
+        });
+
+        while (queue.length > 0) {
+            var cur = queue.shift();
+            var gen = genMap[cur];
+            (children[cur] || []).forEach(function(childId) {
+                // Kind-Generation = max(bisherige, Eltern+1)
+                // → Geschwister bekommen dieselbe Nummer (max ihrer Eltern)
+                var newGen = gen + 1;
+                if (genMap[childId] === undefined || genMap[childId] < newGen) {
+                    genMap[childId] = newGen;
+                    queue.push(childId);
+                }
+            });
+        }
+
+        // Knoten ohne Eltern und Kinder (isoliert): Generation 0
+        cy.nodes().forEach(function(n) {
+            var id = String(n.id());
+            if (genMap[id] === undefined) genMap[id] = 0;
+        });
+
+        GEN_LEVELS = genMap;
+
+        // Schritt 2: Y-Position = generation × PX_PER_GEN
+        var PX_PER_GEN = 120;
+        var PADDING    = 80;
+
+        cy.nodes().forEach(function(n) {
+            var id  = String(n.id());
+            var gen = genMap[id] || 0;
+            n.position('y', PADDING + gen * PX_PER_GEN);
+        });
+
+        // Schritt 3: Überlappungen horizontal auflösen (wie Timeline)
+        var nodeList = cy.nodes().toArray();
+        var minGap   = 110;
+        for (var iter = 0; iter < 60; iter++) {
+            var moved = false;
+            for (var i = 0; i < nodeList.length; i++) {
+                for (var j = i + 1; j < nodeList.length; j++) {
+                    var ni = nodeList[i], nj = nodeList[j];
+                    if (Math.abs(ni.position('y') - nj.position('y')) > 70) continue;
+                    var dx = nj.position('x') - ni.position('x');
+                    var dist = Math.abs(dx);
+                    if (dist < minGap) {
+                        var push = (minGap - dist) / 2 + 1;
+                        if (dx >= 0) {
+                            ni.position('x', ni.position('x') - push);
+                            nj.position('x', nj.position('x') + push);
+                        } else {
+                            ni.position('x', ni.position('x') + push);
+                            nj.position('x', nj.position('x') - push);
+                        }
+                        moved = true;
+                    }
+                }
+            }
+            if (!moved) break;
+        }
+
+        cy.fit(60);
+        drawGenerationBands();
+    }
+
+    function drawGenerationBands() {
+        var overlay = document.getElementById('gen-overlay');
+        overlay.innerHTML = '';
+        if (!cy || cy.nodes().length === 0 || Object.keys(GEN_LEVELS).length === 0) return;
+
+        // Maximale Generation ermitteln
+        var maxGen = 0;
+        Object.values(GEN_LEVELS).forEach(function(g) { if (g > maxGen) maxGen = g; });
+
+        var PX_PER_GEN = 120;
+        var PADDING    = 80;
+
+        for (var gen = 0; gen <= maxGen; gen++) {
+            // Mittelpunkt dieser Ebene im Graph-Koordinatensystem
+            var graphY  = PADDING + gen * PX_PER_GEN;
+            var screenY = cy.pan().y + graphY * cy.zoom();
+
+            // Abwechselndes Band (Hintergrund)
+            var bandTop    = cy.pan().y + (graphY - 55) * cy.zoom();
+            var bandHeight = 110 * cy.zoom();
+            if (gen % 2 === 0) {
+                var band = document.createElement('div');
+                band.style.cssText =
+                    'position:absolute; left:0; right:0; pointer-events:none;' +
+                    'background:rgba(0,0,0,0.025);' +
+                    'top:' + bandTop + 'px; height:' + bandHeight + 'px;';
+                overlay.appendChild(band);
+            }
+
+            // Trennlinie zwischen Generationen
+            if (gen > 0) {
+                var lineY = cy.pan().y + (graphY - 60) * cy.zoom();
+                var line = document.createElement('div');
+                line.style.cssText =
+                    'position:absolute; left:0; right:0; height:1px;' +
+                    'background:#ddd; pointer-events:none;' +
+                    'top:' + lineY + 'px;';
+                overlay.appendChild(line);
+            }
+
+            // Label links: "Gen. 1" (1 = älteste)
+            var label = document.createElement('div');
+            label.style.cssText =
+                'position:absolute; left:6px; pointer-events:none;' +
+                'font-size:0.62em; color:#bbb; font-family:inherit;' +
+                'transform:translateY(-50%); top:' + screenY + 'px;';
+            label.textContent = 'Gen. ' + (gen + 1);
+            overlay.appendChild(label);
+        }
+    }
+
     function runLayout(name) {
         if (!cy || cy.nodes().length === 0) return;
 
@@ -908,6 +1134,11 @@ window.addEventListener('load', function() {
             tlDiv.innerHTML = '';
             var svg = document.getElementById('tl-svg');
             if (svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+        }
+        // Generationen-Bänder entfernen wenn anderes Layout
+        if (name !== 'generations') {
+            var genOverlay = document.getElementById('gen-overlay');
+            if (genOverlay) genOverlay.innerHTML = '';
         }
 
         cy.style()
@@ -920,6 +1151,10 @@ window.addEventListener('load', function() {
                 'label':   showParent  ? 'data(label)' : '',
             })
             .selector('edge[type = "hasWife"]').style({
+                'display': showMarried ? 'element' : 'none',
+                'label':   showMarried ? 'data(label)' : '',
+            })
+            .selector('edge[type = "hasExWife"]').style({
                 'display': showMarried ? 'element' : 'none',
                 'label':   showMarried ? 'data(label)' : '',
             })
@@ -995,7 +1230,24 @@ window.addEventListener('load', function() {
             case 'dagre':
                 config = { name: 'dagre', rankDir: 'TB', nodeSep: 40, rankSep: 80, padding: 30 };
                 break;
-
+            case 'generations':
+                // Generationen selbst berechnen, cose für X-Positionen
+                config = {
+                    name: 'cose',
+                    animate: false,
+                    fit: false,
+                    padding: 40,
+                    idealEdgeLength: 100,
+                    nodeRepulsion: repulsionValue,
+                    nodeOverlap: 20,
+                    gravity: 80,
+                    numIter: 1500,
+                    initialTemp: 200,
+                    coolingFactor: 0.95,
+                    minTemp: 1.0,
+                    randomize: true,
+                };
+                break;
             case 'breadthfirst':
                 config = { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
                 break;
@@ -1008,90 +1260,144 @@ window.addEventListener('load', function() {
             cy.nodes().forEach(function(n) {
                 n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
-            cy.fit(40);
+            if (name === 'generations') {
+                applyGenerationsLayout();
+            } else {
+                cy.fit(40);
+            }
         });
         layout.run();
+    }
+
+    // Welche Familien aktuell angezeigt werden
+    var activeFamilies = new Set();
+
+    function applyFamilyFilter() {
+        // Wenn keine aktiv → alle zeigen
+        if (activeFamilies.size === 0) {
+            applyFilter(allPersons, allRels);
+            return;
+        }
+        // Direkt passende Personen
+        var direct = allPersons.filter(function(p) {
+            return activeFamilies.has(p.family_name);
+        });
+        var directIds = new Set(direct.map(function(p) { return p.id; }));
+        // Eine Nachbar-Ebene (Verbindungen zu anderen Familien sichtbar halten)
+        var neighbourIds = new Set();
+        allRels.forEach(function(r) {
+            if (directIds.has(r.person_id))         neighbourIds.add(r.related_person_id);
+            if (directIds.has(r.related_person_id)) neighbourIds.add(r.person_id);
+        });
+        var neighbours = allPersons.filter(function(p) {
+            return neighbourIds.has(p.id) && !directIds.has(p.id);
+        });
+        applyFilter(direct.concat(neighbours), allRels);
     }
 
     function buildLegend(persons) {
         var families = {};
         persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
 
-        // Nach Farbton (Hue) sortieren → durchgehendes Spektrum
-        function hexToHue(hex) {
-            var r = parseInt(hex.slice(1,3),16)/255;
-            var g = parseInt(hex.slice(3,5),16)/255;
-            var b = parseInt(hex.slice(5,7),16)/255;
-            var max = Math.max(r,g,b), min = Math.min(r,g,b), h = 0;
-            var d = max - min;
-            if (d === 0) return 0;
-            if (max === r) h = ((g-b)/d + (g<b?6:0)) / 6;
-            else if (max === g) h = ((b-r)/d + 2) / 6;
-            else h = ((r-g)/d + 4) / 6;
-            return h;
-        }
-
-        // Sortierung nach Reihenfolge im FAMILY_COLORS Objekt (bereits als Spektrum definiert)
+        // Sortierung nach Reihenfolge im FAMILY_COLORS Objekt (Spektrum)
         var spectrumOrder = Object.keys(FAMILY_COLORS);
         var sorted = Object.keys(families).sort(function(a, b) {
             var ia = spectrumOrder.indexOf(a);
             var ib = spectrumOrder.indexOf(b);
-            // Unbekannte Familiennamen ans Ende
             if (ia < 0) return 1;
             if (ib < 0) return -1;
             return ia - ib;
         });
+
+        // Beim ersten Aufbau: alle aktiv
+        activeFamilies = new Set(sorted);
 
         var container = document.getElementById('legend-items');
         container.innerHTML = '';
         sorted.forEach(function(name) {
             var item = document.createElement('div');
             item.className = 'legend-item';
-            item.innerHTML = '<div class="legend-dot" style="background:' + getFamilyColor(name) + '"></div><span>' + name + '</span>';
-            item.addEventListener('click', function() {
-                document.getElementById('filter-name').value = name;
-                applyFilter(allPersons.filter(function(p) { return p.family_name === name; }), allRels);
+            item.dataset.family = name;
+
+            var cb = document.createElement('input');
+            cb.type      = 'checkbox';
+            cb.className = 'legend-cb';
+            cb.checked   = true;
+            cb.addEventListener('change', function() {
+                if (cb.checked) {
+                    activeFamilies.add(name);
+                    item.classList.remove('dimmed');
+                } else {
+                    activeFamilies.delete(name);
+                    item.classList.add('dimmed');
+                }
+                // Wenn alle wieder an → Vollansicht
+                if (activeFamilies.size === sorted.length) {
+                    activeFamilies = new Set(sorted);
+                }
+                applyFamilyFilter();
             });
+
+            var dot = document.createElement('div');
+            dot.className = 'legend-dot';
+            dot.style.background = getFamilyColor(name);
+
+            var label = document.createElement('span');
+            label.textContent = name;
+
+            item.appendChild(cb);
+            item.appendChild(dot);
+            item.appendChild(label);
             container.appendChild(item);
         });
+
+        // Alle / Keine Buttons
+        document.getElementById('legend-all').onclick = function() {
+            activeFamilies = new Set(sorted);
+            container.querySelectorAll('.legend-item').forEach(function(item) {
+                item.querySelector('.legend-cb').checked = true;
+                item.classList.remove('dimmed');
+            });
+            applyFilter(allPersons, allRels);
+        };
+        document.getElementById('legend-none').onclick = function() {
+            activeFamilies = new Set();
+            container.querySelectorAll('.legend-item').forEach(function(item) {
+                item.querySelector('.legend-cb').checked = false;
+                item.classList.add('dimmed');
+            });
+            applyFilter([], allRels);
+        };
     }
 
     document.getElementById('filter-name').addEventListener('input', function() {
         var q = this.value.trim().toLowerCase();
         if (!q) {
-            applyFilter(allPersons, allRels);
+            // Zurück zum Checkbox-Filter
+            applyFamilyFilter();
             return;
         }
-
-        // Direkt passende Personen
+        // Textsuche übersteuert Checkboxen vorübergehend
         var directMatches = allPersons.filter(function(p) {
             return p.family_name.toLowerCase().includes(q) ||
                    p.display_name.toLowerCase().includes(q);
         });
-
-        // IDs der direkt passenden Personen
         var directIds = new Set(directMatches.map(function(p) { return p.id; }));
-
-        // Eine Ebene weiter: alle Personen die mit den direkten Treffern verbunden sind
         var neighbourIds = new Set();
         allRels.forEach(function(r) {
             if (directIds.has(r.person_id))         neighbourIds.add(r.related_person_id);
             if (directIds.has(r.related_person_id)) neighbourIds.add(r.person_id);
         });
-
-        // Nachbarn die nicht schon in directIds sind
         var neighbours = allPersons.filter(function(p) {
             return neighbourIds.has(p.id) && !directIds.has(p.id);
         });
-
-        // Zusammenführen: direkte Treffer + Nachbarn
-        var filtered = directMatches.concat(neighbours);
-        applyFilter(filtered, allRels);
+        applyFilter(directMatches.concat(neighbours), allRels);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
         document.getElementById('filter-name').value = '';
-        applyFilter(allPersons, allRels);
+        // Zurück zum Checkbox-Filter
+        applyFamilyFilter();
     });
 
     document.getElementById('apply-layout').addEventListener('click', function() {
@@ -1315,6 +1621,92 @@ window.addEventListener('load', function() {
         document.getElementById('path-result').textContent = '';
     });
 
+    // ── Druckansicht ──────────────────────────────────────────────
+    var printActive = false;
+
+    document.getElementById('print-btn').addEventListener('click', function() {
+        printActive = !printActive;
+        var overlay = document.getElementById('print-overlay');
+        var btn     = document.getElementById('print-btn');
+
+        if (printActive) {
+            btn.textContent      = '✕ Schließen';
+            btn.style.background = '#5a3e2b';
+            btn.style.color      = 'white';
+            overlay.style.display = 'block';
+            buildPrintOverlay();
+        } else {
+            btn.textContent      = '🖨️ Druckansicht';
+            btn.style.background = '';
+            btn.style.color      = '';
+            overlay.style.display = 'none';
+            overlay.innerHTML    = '';
+            // Knoten-Opacity wiederherstellen
+            cy.nodes().forEach(function(n) { n.style('opacity', 1); });
+        }
+    });
+
+    function buildPrintOverlay() {
+        var overlay = document.getElementById('print-overlay');
+        overlay.innerHTML = '';
+
+        // Cytoscape-Knoten unsichtbar – Kanten bleiben sichtbar
+        cy.nodes().forEach(function(n) { n.style('opacity', 0); });
+
+        function fmtDate(ds, est) {
+            if (!ds) return null;
+            var p = ds.split('T')[0].split('-');
+            var s = p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : ds;
+            return s + (est ? ' 🔮' : '');
+        }
+
+        cy.nodes().forEach(function(n) {
+            var d   = n.data();
+            var pos = n.renderedPosition();
+
+            var name   = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
+            var isDead = d.label.indexOf('†') >= 0;
+            var sexSym = d.sex === 'm' ? ' ♂' : d.sex === 'f' ? ' ♀' : '';
+
+            var card = document.createElement('div');
+            card.className         = 'pcard';
+            card.style.left        = pos.x + 'px';
+            card.style.top         = pos.y + 'px';
+            card.style.borderColor = d.famColor || '#ddd';
+
+            var bar = document.createElement('div');
+            bar.className        = 'pcard-bar';
+            bar.style.background = d.famColor || '#ccc';
+            card.appendChild(bar);
+
+            var nameDiv = document.createElement('div');
+            nameDiv.className   = 'pcard-name';
+            nameDiv.textContent = name + (isDead ? ' †' : '') + sexSym;
+            card.appendChild(nameDiv);
+
+            function row(lbl, val) {
+                if (!val) return;
+                var div = document.createElement('div');
+                div.className = 'pcard-row';
+                div.innerHTML = lbl + ' <span>' + val + '</span>';
+                card.appendChild(div);
+            }
+
+            row('*',    fmtDate(d.birth_date,  d.birth_date_estimated));
+            row('†',    fmtDate(d.death_date,  d.death_date_estimated));
+            row('📍',   d.birth_place  || null);
+            row('✝ 📍', d.death_place  || null);
+            row('💼',   d.profession   || null);
+            if (d.maiden_name) row('Geb.', d.maiden_name);
+
+            overlay.appendChild(card);
+        });
+    }
+
+    // Overlay bei Zoom/Pan neu aufbauen
+    cy.on('viewport', function() {
+        if (printActive) buildPrintOverlay();
+    });
 
 });
 </script>
