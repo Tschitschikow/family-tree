@@ -198,6 +198,35 @@
         .submit-btn:hover { background: #7a5e4b; }
         .submit-btn.edit-mode { background: #1a6b3a; }
         .submit-btn.edit-mode:hover { background: #2a8a4a; }
+        .submit-btn.delete-mode {
+            background: none;
+            border: 1px solid #c0392b;
+            color: #c0392b;
+            margin-top: 0.4em;
+        }
+        .submit-btn.delete-mode:hover { background: #fdedec; }
+        #delete-confirm-block {
+            display: none;
+            background: #fdedec;
+            border: 1px solid #f1948a;
+            border-radius: 6px;
+            padding: 0.9em;
+            margin-top: 0.8em;
+            font-size: 0.9em;
+            color: #c0392b;
+        }
+        #delete-confirm-block.visible { display: block; }
+        .confirm-btns { display: flex; gap: 0.6em; margin-top: 0.7em; }
+        .confirm-yes {
+            padding: 0.5em 1.2em; background: #c0392b; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-family: Georgia, serif;
+        }
+        .confirm-yes:hover { background: #a93226; }
+        .confirm-no {
+            padding: 0.5em 1.2em; background: #eee; color: #444;
+            border: 1px solid #ccc; border-radius: 5px; cursor: pointer; font-family: Georgia, serif;
+        }
+        .confirm-no:hover { background: #ddd; }
 
         .add-rel-btn {
             background: none;
@@ -249,8 +278,9 @@
 
     <!-- Modus-Umschalter -->
     <div class="mode-tabs">
-        <button class="mode-tab active" id="tab-new"  onclick="switchMode('new')">👤 Neue Person eintragen</button>
-        <button class="mode-tab"        id="tab-edit" onclick="switchMode('edit')">✏️ Bestehende Person bearbeiten</button>
+        <button class="mode-tab active" id="tab-new"    onclick="switchMode('new')">👤 Neue Person eintragen</button>
+        <button class="mode-tab"        id="tab-edit"   onclick="switchMode('edit')">✏️ Person bearbeiten</button>
+        <button class="mode-tab"        id="tab-delete" onclick="switchMode('delete')">🗑️ Person löschen</button>
     </div>
 
     <!-- Personen-Suche (nur im Bearbeiten-Modus) -->
@@ -361,6 +391,17 @@
         <button class="add-rel-btn" id="add-rel-btn">+ Beziehung hinzufügen</button>
 
         <button class="submit-btn" id="btn-submit">💾 Alles eintragen</button>
+        <button class="submit-btn delete-mode" id="btn-delete" style="display:none;">🗑️ Diese Person löschen</button>
+
+        <!-- Bestätigungs-Block für Löschen -->
+        <div id="delete-confirm-block">
+            ⚠️ Wirklich löschen? Alle Beziehungen dieser Person werden ebenfalls entfernt.<br>
+            Diese Aktion kann nicht rückgängig gemacht werden.
+            <div class="confirm-btns">
+                <button class="confirm-yes" id="confirm-delete-yes">Ja, löschen</button>
+                <button class="confirm-no"  id="confirm-delete-no">Abbrechen</button>
+            </div>
+        </div>
         <div class="message" id="msg-main"></div>
     </div>
 </main>
@@ -434,21 +475,46 @@ window.addEventListener('load', function() {
     // ── Modus umschalten ─────────────────────────────────────────
     window.switchMode = function(mode) {
         currentMode = mode;
-        document.getElementById('tab-new').classList.toggle('active',  mode === 'new');
-        document.getElementById('tab-edit').classList.toggle('active', mode === 'edit');
+        document.getElementById('tab-new').classList.toggle('active',    mode === 'new');
+        document.getElementById('tab-edit').classList.toggle('active',   mode === 'edit');
+        document.getElementById('tab-delete').classList.toggle('active', mode === 'delete');
 
-        var searchBlock = document.getElementById('edit-search-block');
+        var searchBlock  = document.getElementById('edit-search-block');
+        var btnSubmit    = document.getElementById('btn-submit');
+        var btnDelete    = document.getElementById('btn-delete');
+        var confirmBlock = document.getElementById('delete-confirm-block');
+        var card         = document.querySelector('.card');
+
+        // Bestätigungs-Block immer ausblenden beim Moduswechsel
+        confirmBlock.classList.remove('visible');
+
         if (mode === 'edit') {
             searchBlock.classList.add('visible');
             document.getElementById('form-title').textContent = '✏️ Person bearbeiten';
-            document.getElementById('btn-submit').textContent = '💾 Änderungen speichern';
-            document.getElementById('btn-submit').classList.add('edit-mode');
+            btnSubmit.textContent = '💾 Änderungen speichern';
+            btnSubmit.classList.add('edit-mode');
+            btnSubmit.style.display = 'block';
+            btnDelete.style.display = 'none';
+            card.style.display = 'block';
             document.getElementById('rel-section-hint').textContent = '– neue hinzufügen oder bestehende entfernen';
+        } else if (mode === 'delete') {
+            searchBlock.classList.add('visible');
+            document.getElementById('form-title').textContent = '🗑️ Person löschen';
+            btnSubmit.style.display = 'none';
+            btnDelete.style.display = 'block';
+            card.style.display = 'none';  // Formular ausblenden – nur Dropdown nötig
+            document.getElementById('edit-search-block').querySelector('label').textContent =
+                'Person auswählen und löschen';
         } else {
             searchBlock.classList.remove('visible');
             document.getElementById('form-title').textContent = '👤 Neue Person + Beziehungen eintragen';
-            document.getElementById('btn-submit').textContent = '💾 Alles eintragen';
-            document.getElementById('btn-submit').classList.remove('edit-mode');
+            btnSubmit.textContent = '💾 Alles eintragen';
+            btnSubmit.classList.remove('edit-mode');
+            btnSubmit.style.display = 'block';
+            btnDelete.style.display = 'none';
+            card.style.display = 'block';
+            document.getElementById('edit-search-block').querySelector('label').textContent =
+                'Person auswählen';
             document.getElementById('rel-section-hint').textContent = '(optional)';
             clearForm();
         }
@@ -890,6 +956,68 @@ window.addEventListener('load', function() {
             if (tab) tab.classList.toggle('active', m === mode);
         });
     }
+
+    // ── Person löschen ───────────────────────────────────────────
+    document.getElementById('btn-delete').addEventListener('click', function() {
+        if (!editPersonId) {
+            alert('Bitte zuerst eine Person auswählen.');
+            return;
+        }
+        // Bestätigungs-Block einblenden
+        document.getElementById('delete-confirm-block').classList.add('visible');
+    });
+
+    document.getElementById('confirm-delete-no').addEventListener('click', function() {
+        document.getElementById('delete-confirm-block').classList.remove('visible');
+    });
+
+    document.getElementById('confirm-delete-yes').addEventListener('click', function() {
+        var msg = document.getElementById('msg-main');
+        var personToDelete = allPersons.find(function(p) { return p.id === editPersonId; });
+        var personName = personToDelete ? personToDelete.display_name : 'ID ' + editPersonId;
+
+        // Schritt 1: Alle Beziehungen dieser Person löschen
+        client.from('relationships')
+            .delete()
+            .or('person_id.eq.' + editPersonId + ',related_person_id.eq.' + editPersonId)
+            .then(function(relResult) {
+                if (relResult.error) {
+                    showMsg(document.getElementById('msg-main'), 'error',
+                        'Fehler beim Löschen der Beziehungen: ' + relResult.error.message);
+                    return;
+                }
+
+                // Schritt 2: Person selbst löschen
+                client.from('persons')
+                    .delete()
+                    .eq('id', editPersonId)
+                    .then(function(result) {
+                        if (result.error) {
+                            showMsg(document.getElementById('msg-main'), 'error',
+                                'Fehler beim Löschen: ' + result.error.message);
+                            return;
+                        }
+
+                        // Changelog
+                        logChange('DELETE', 'persons', editPersonId, null,
+                            { display_name: personName });
+
+                        // Dropdown aktualisieren
+                        var sel = document.getElementById('edit-person-select');
+                        var opt = sel.querySelector('option[value="' + editPersonId + '"]');
+                        if (opt) opt.remove();
+                        allPersons = allPersons.filter(function(p) { return p.id !== editPersonId; });
+
+                        document.getElementById('delete-confirm-block').classList.remove('visible');
+                        editPersonId = null;
+                        sel.value = '';
+
+                        var msgDiv = document.getElementById('msg-main');
+                        msgDiv.style.display = 'block';
+                        showMsg(msgDiv, 'success', '✓ ' + personName + ' wurde gelöscht.');
+                    });
+            });
+    });
 
 });
 </script>
