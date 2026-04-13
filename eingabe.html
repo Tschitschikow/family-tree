@@ -270,7 +270,7 @@
         <div class="row">
             <div class="field">
                 <label>Familienname *</label>
-                <input type="text" id="p-family" placeholder="z.B. BAHRS" />
+                <input type="text" id="p-family" placeholder="z.B. BAHRS" oninput="this.value=this.value.toUpperCase()" />
             </div>
             <div class="field">
                 <label>Vorname *</label>
@@ -288,7 +288,7 @@
             </div>
             <div class="field">
                 <label>Mädchenname</label>
-                <input type="text" id="p-maiden" placeholder="nur bei verheirateten Frauen" />
+                <input type="text" id="p-maiden" placeholder="nur bei verheirateten Frauen" oninput="this.value=this.value.toUpperCase()" />
             </div>
         </div>
 
@@ -360,7 +360,7 @@
         <div id="rel-container"></div>
         <button class="add-rel-btn" id="add-rel-btn">+ Beziehung hinzufügen</button>
 
-        <button class="submit-btn" id="btn-submit">💾 Alles eintragen (zur Freigabe)</button>
+        <button class="submit-btn" id="btn-submit">💾 Alles eintragen</button>
         <div class="message" id="msg-main"></div>
     </div>
 </main>
@@ -423,7 +423,9 @@ window.addEventListener('load', function() {
                 allPersons.forEach(function(p) {
                     var opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = p.display_name + ' (ID: ' + p.id + ')';
+                    var year = p.birth_date ? p.birth_date.substring(0,4) : '?';
+                    var place = p.birth_place || '?';
+                    opt.textContent = p.display_name + ' (*' + year + ', ' + place + ')';
                     sel.appendChild(opt);
                 });
             });
@@ -445,7 +447,7 @@ window.addEventListener('load', function() {
         } else {
             searchBlock.classList.remove('visible');
             document.getElementById('form-title').textContent = '👤 Neue Person + Beziehungen eintragen';
-            document.getElementById('btn-submit').textContent = '💾 Alles eintragen (zur Freigabe)';
+            document.getElementById('btn-submit').textContent = '💾 Alles eintragen';
             document.getElementById('btn-submit').classList.remove('edit-mode');
             document.getElementById('rel-section-hint').textContent = '(optional)';
             clearForm();
@@ -581,11 +583,13 @@ window.addEventListener('load', function() {
         allPersons.forEach(function(p) {
             // Im Bearbeiten-Modus: die Person selbst nicht anbieten
             if (editPersonId && p.id === editPersonId) return;
+            var year  = p.birth_date ? p.birth_date.substring(0,4) : '?';
+            var place = p.birth_place || '?';
             options += '<option value="' + p.id + '">' +
-                       p.display_name + ' (ID: ' + p.id + ')</option>';
+                       p.display_name + ' (*' + year + ', ' + place + ')</option>';
         });
 
-        var relLabel = currentMode === 'edit' ? 'Diese Person ist...' : 'Neue Person ist...';
+        var relLabel = currentMode === 'edit' ? 'Diese Person...' : 'Neue Person...';
 
         div.innerHTML =
             '<button class="remove-rel-btn" onclick="removeRel(' + id + ')">✕</button>' +
@@ -594,14 +598,10 @@ window.addEventListener('load', function() {
                 '<label>' + relLabel + '</label>' +
                 '<select id="r-type-' + id + '">' +
                   '<option value="">– Beziehungstyp –</option>' +
-                  '<option value="hasMother">Mutter von...</option>' +
-                  '<option value="hasFather">Vater von...</option>' +
-                  '<option value="hasWife">Ehefrau von...</option>' +
-                  '<option value="hasHusband">Ehemann von...</option>' +
-                  '<option value="isMother">...hat diese Mutter</option>' +
-                  '<option value="isFather">...hat diesen Vater</option>' +
-                  '<option value="isWife">...ist verheiratet mit (w)</option>' +
-                  '<option value="isHusband">...ist verheiratet mit (m)</option>' +
+                  '<option value="isSon">ist Sohn von</option>' +
+                  '<option value="isDaughter">ist Tochter von</option>' +
+                  '<option value="isSpouse">ist Ehepartner von</option>' +
+                  '<option value="isDivorced">ist geschieden von</option>' +
                 '</select>' +
               '</div>' +
               '<div class="field">' +
@@ -624,8 +624,7 @@ window.addEventListener('load', function() {
                 .eq('id', relId)
                 .then(function(result) {
                     if (!result.error) {
-                        logChange('DELETE', 'relationships', relId,
-                            { reason: 'removed via edit form' });
+                        logChange('DELETE', 'relationships', relId, null, { reason: 'removed via edit form' });
                     }
                 });
         }
@@ -684,7 +683,7 @@ window.addEventListener('load', function() {
             birth_place:           document.getElementById('p-birthplace').value.trim() || null,
             death_place:           document.getElementById('p-deathplace').value.trim() || null,
             profession:            document.getElementById('p-profession').value.trim() || null,
-            status:                'pending',
+            status:                'approved',
         };
 
         client.from('persons').insert([newPerson]).select().then(function(result) {
@@ -693,7 +692,7 @@ window.addEventListener('load', function() {
                 return;
             }
             var saved = result.data[0];
-            logChange('INSERT', 'persons', saved.id, newPerson);
+            logChange('INSERT', 'persons', saved.id, newPerson, null);
 
             var rels = collectNewRelationships(saved.id);
             if (rels.length === 0) {
@@ -706,7 +705,7 @@ window.addEventListener('load', function() {
                     showMsg(msg, 'error', 'Person gespeichert, Fehler bei Beziehungen: ' + relResult.error.message);
                     return;
                 }
-                relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r); });
+                relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r, null); });
                 showSuccess(msg, saved.display_name, rels.length);
                 clearForm();
             });
@@ -758,7 +757,7 @@ window.addEventListener('load', function() {
                     return;
                 }
                 var saved = result.data[0];
-                logChange('UPDATE', 'persons', editPersonId, updates);
+                logChange('UPDATE', 'persons', editPersonId, updates, null);
 
                 // Neue Beziehungen eintragen
                 var rels = collectNewRelationships(editPersonId);
@@ -771,7 +770,7 @@ window.addEventListener('load', function() {
                         showMsg(msg, 'error', 'Personendaten gespeichert, Fehler bei neuen Beziehungen: ' + relResult.error.message);
                         return;
                     }
-                    relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r); });
+                    relResult.data.forEach(function(r) { logChange('INSERT', 'relationships', r.id, r, null); });
                     showMsg(msg, 'success',
                         '✓ ' + saved.display_name + ' aktualisiert + ' +
                         rels.length + ' neue Beziehung(en) eingetragen.');
@@ -780,8 +779,14 @@ window.addEventListener('load', function() {
     }
 
     // ── Neue Beziehungsblöcke auslesen (nicht die bestehenden) ───
+    // Typen werden automatisch aus Geschlecht der beteiligten Personen abgeleitet.
+    // Die Gegenseite wird automatisch als zweiter Eintrag mitgeschrieben.
     function collectNewRelationships(personId) {
         var rels = [];
+
+        // Geschlecht der Hauptperson
+        var mainSex = document.getElementById('p-sex').value;
+
         var blocks = document.querySelectorAll('.rel-block:not(.existing)');
         blocks.forEach(function(block) {
             var blockId   = block.id.replace('rel-block-', '');
@@ -789,42 +794,66 @@ window.addEventListener('load', function() {
             var relatedId = parseInt(document.getElementById('r-related-' + blockId).value);
             if (!relType || !relatedId) return;
 
-            var pId, rId, type;
-            if (relType === 'hasMother' || relType === 'hasFather') {
-                pId = relatedId; rId = personId; type = relType;
-            } else if (relType === 'isMother' || relType === 'isFather') {
-                pId = personId; rId = relatedId;
-                type = relType === 'isMother' ? 'hasMother' : 'hasFather';
-            } else if (relType === 'hasWife' || relType === 'isWife') {
-                pId = personId; rId = relatedId; type = 'hasWife';
-            } else if (relType === 'hasHusband' || relType === 'isHusband') {
-                pId = personId; rId = relatedId; type = 'hasHusband';
+            // Geschlecht der Gegenperson aus allPersons
+            var relatedPerson = allPersons.find(function(p) { return p.id === relatedId; });
+            var relatedSex    = relatedPerson ? relatedPerson.sex : '';
+
+            var forward, backward;  // forward = Hauptperson→Gegenperson, backward = Gegenperson→Hauptperson
+
+            if (relType === 'isSon' || relType === 'isDaughter') {
+                // Neue Person ist Kind von Gegenperson
+                // Richtung: person_id = neue Person, related_person_id = Elternteil
+                var parentType = (relatedSex === 'f') ? 'hasMother' : 'hasFather';
+                forward  = { person_id: personId,  related_person_id: relatedId, relationship_type: parentType };
+                backward = null; // kein Gegeneintrag nötig, da hasMother/hasFather nur eine Richtung hat
+            } else if (relType === 'isSpouse') {
+                // Ehe: hasWife (person=Ehemann, related=Ehefrau) oder hasHusband (umgekehrt)
+                // Wir schreiben beide Richtungen
+                if (mainSex === 'm') {
+                    // Hauptperson = Ehemann
+                    forward  = { person_id: personId,  related_person_id: relatedId, relationship_type: 'hasWife'    };
+                    backward = { person_id: relatedId, related_person_id: personId,  relationship_type: 'hasHusband' };
+                } else {
+                    // Hauptperson = Ehefrau
+                    forward  = { person_id: relatedId, related_person_id: personId,  relationship_type: 'hasWife'    };
+                    backward = { person_id: personId,  related_person_id: relatedId, relationship_type: 'hasHusband' };
+                }
+            } else if (relType === 'isDivorced') {
+                // Geschieden: hasExWife / hasExHusband, beide Richtungen
+                if (mainSex === 'm') {
+                    forward  = { person_id: personId,  related_person_id: relatedId, relationship_type: 'hasExWife'    };
+                    backward = { person_id: relatedId, related_person_id: personId,  relationship_type: 'hasExHusband' };
+                } else {
+                    forward  = { person_id: relatedId, related_person_id: personId,  relationship_type: 'hasExWife'    };
+                    backward = { person_id: personId,  related_person_id: relatedId, relationship_type: 'hasExHusband' };
+                }
             }
 
-            rels.push({
-                person_id:         pId,
-                related_person_id: rId,
-                relationship_type: type,
-                status:            'pending',
-            });
+            if (forward) {
+                rels.push(Object.assign({ status: 'approved' }, forward));
+            }
+            if (backward) {
+                rels.push(Object.assign({ status: 'approved' }, backward));
+            }
         });
         return rels;
     }
 
     // ── Changelog ────────────────────────────────────────────────
-    function logChange(action, tableName, recordId, details) {
+    function logChange(action, tableName, recordId, newData, oldData) {
         client.from('changelog').insert([{
-            changed_by: currentUser.email,
+            changed_by: currentUser ? currentUser.email : null,
             action:     action,
             table_name: tableName,
-            record_id:  String(recordId),
-            details:    details,
+            record_id:  recordId,
+            new_data:   newData  || null,
+            old_data:   oldData  || null,
         }]).then(function() {});
     }
 
     function showSuccess(msg, name, count) {
         var relText = count > 0 ? ' mit ' + count + ' Beziehung(en)' : ' (ohne Beziehungen)';
-        showMsg(msg, 'success', '✓ ' + name + relText + ' eingetragen – wartet auf Freigabe.');
+        showMsg(msg, 'success', '✓ ' + name + relText + ' eingetragen.');
     }
 
     function showMsg(el, type, text) {
