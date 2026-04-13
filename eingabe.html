@@ -432,6 +432,16 @@ window.addEventListener('load', function() {
     let currentMode    = 'new';    // 'new' oder 'edit'
     let editPersonId   = null;     // ID der Person im Bearbeiten-Modus
 
+    // ── Hilfsfunktion: lesbares Label für Dropdown-Einträge ──────
+    // Format: BAHRS Alfred (*1902, Oldenswort)
+    //         DAVIDS Lisette geb. JANSEN (*1810, Seegalendorf, Eutin)
+    function personLabel(p) {
+        var year  = p.birth_date ? p.birth_date.substring(0, 4) : '?';
+        var place = p.birth_place || '?';
+        var maiden = (p.sex === 'f' && p.maiden_name) ? ' geb. ' + p.maiden_name : '';
+        return p.display_name + maiden + ' (*' + year + ', ' + place + ')';
+    }
+
     // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
         if (!result.data.session) {
@@ -459,14 +469,16 @@ window.addEventListener('load', function() {
                 allPersons = result.data.map(function(p) {
                     p.id = Number(p.id); return p;
                 });
-                // Dropdown für Bearbeiten-Modus befüllen
+                // Alphabetisch nach display_name sortieren
+                allPersons.sort(function(a, b) {
+                    return a.display_name.localeCompare(b.display_name);
+                });
+                // Dropdown für Bearbeiten/Löschen-Modus befüllen
                 var sel = document.getElementById('edit-person-select');
                 allPersons.forEach(function(p) {
                     var opt = document.createElement('option');
                     opt.value = p.id;
-                    var year = p.birth_date ? p.birth_date.substring(0,4) : '?';
-                    var place = p.birth_place || '?';
-                    opt.textContent = p.display_name + ' (*' + year + ', ' + place + ')';
+                    opt.textContent = personLabel(p);
                     sel.appendChild(opt);
                 });
             });
@@ -646,13 +658,11 @@ window.addEventListener('load', function() {
         div.id = 'rel-block-' + id;
 
         var options = '<option value="">– Person wählen –</option>';
+        // allPersons ist bereits alphabetisch sortiert (aus loadPersons)
         allPersons.forEach(function(p) {
             // Im Bearbeiten-Modus: die Person selbst nicht anbieten
             if (editPersonId && p.id === editPersonId) return;
-            var year  = p.birth_date ? p.birth_date.substring(0,4) : '?';
-            var place = p.birth_place || '?';
-            options += '<option value="' + p.id + '">' +
-                       p.display_name + ' (*' + year + ', ' + place + ')</option>';
+            options += '<option value="' + p.id + '">' + personLabel(p) + '</option>';
         });
 
         var relLabel = currentMode === 'edit' ? 'Diese Person...' : 'Neue Person...';
