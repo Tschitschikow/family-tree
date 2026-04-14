@@ -477,8 +477,7 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
-<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
-<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
+
 
 <script>
 // ── Farb-System: dynamisches Regenbogenspektrum ─────────────────
@@ -1720,14 +1719,39 @@ window.addEventListener('load', function() {
         });
     }
 
-    // Panel öffnen/schließen
-    document.getElementById('print-btn').addEventListener('click', function() {
+    // Panel öffnen/schließen – WebCola beim ersten Öffnen nachladen
+    var colaLoaded = false;
+
+    function openColaPanel() {
         var panel = document.getElementById('cola-panel');
         var btn   = document.getElementById('print-btn');
         var open  = panel.classList.toggle('open');
         btn.textContent = open ? '✕ Schließen' : '🖨️ Stammbaum-Ansicht';
         if (open) { btn.style.background = '#5a3e2b'; btn.style.color = 'white'; }
         else       { btn.style.background = ''; btn.style.color = ''; }
+    }
+
+    document.getElementById('print-btn').addEventListener('click', function() {
+        if (colaLoaded) { openColaPanel(); return; }
+        // WebCola dynamisch nachladen
+        var s1 = document.createElement('script');
+        s1.src = 'https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js';
+        s1.onload = function() {
+            var s2 = document.createElement('script');
+            s2.src = 'https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js';
+            s2.onload = function() {
+                colaLoaded = true;
+                openColaPanel();
+            };
+            s2.onerror = function() {
+                alert('WebCola konnte nicht geladen werden. Bitte Internetverbindung prüfen.');
+            };
+            document.head.appendChild(s2);
+        };
+        s1.onerror = function() {
+            alert('WebCola konnte nicht geladen werden. Bitte Internetverbindung prüfen.');
+        };
+        document.head.appendChild(s1);
     });
 
     // ── Personen-Auswahl per BFS um Ankerperson ──────────────
