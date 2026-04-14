@@ -148,20 +148,16 @@
             pointer-events: none;
         }
 
-        /* ── Legende ── */
+        /* ── Legende: fixer linker Balken neben Graph ── */
         #legend {
-            position: fixed;
-            bottom: 20px; left: 20px;
-            background: rgba(255,255,255,0.97);
-            border: 1px solid #e8e8e8;
-            border-radius: 8px;
-            padding: 0.6em 0.9em;
-            font-size: 0.72em;
-            z-index: 100;
-            max-height: 55vh;
+            width: 165px;
+            flex-shrink: 0;
+            background: #ffffff;
+            border-right: 1px solid #e8e8e8;
+            padding: 0.6em 0.7em;
+            font-size: 0.70em;
             overflow-y: auto;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-            min-width: 150px;
+            /* kein fixed, kein box-shadow – Teil des Layouts */
         }
         #legend h4 {
             color: #888;
@@ -369,6 +365,15 @@
 <div id="status-bar">Lade Stammbaum...</div>
 
 <div id="graph-wrap">
+    <div id="legend">
+        <h4>🎨 Familiennamen</h4>
+        <div class="legend-controls">
+            <button class="legend-ctrl-btn" id="legend-all">Alle</button>
+            <span style="color:#e0e0e0">|</span>
+            <button class="legend-ctrl-btn" id="legend-none">Keine</button>
+        </div>
+        <div id="legend-items"></div>
+    </div>
     <div id="timeline"></div>
     <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
         <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
@@ -378,16 +383,6 @@
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
     </div>
-</div>
-
-<div id="legend">
-    <h4>🎨 Familiennamen</h4>
-    <div class="legend-controls">
-        <button class="legend-ctrl-btn" id="legend-all">Alle</button>
-        <span style="color:#e0e0e0">|</span>
-        <button class="legend-ctrl-btn" id="legend-none">Keine</button>
-    </div>
-    <div id="legend-items"></div>
 </div>
 
 <div id="info-panel">
@@ -535,8 +530,9 @@ window.addEventListener('load', function() {
 
     function initCy() {
         cy = cytoscape({
-            container: document.getElementById('cy'),
-            elements:  [],
+            container:        document.getElementById('cy'),
+            elements:         [],
+            wheelSensitivity: 0.2,   // sanfteres Zoomen (Standard: 1.0)
             style: [
                 {
                     selector: 'node',
