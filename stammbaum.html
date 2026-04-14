@@ -1860,10 +1860,8 @@ window.addEventListener('load', function() {
         persons.forEach(function(p) {
             var year = p.birth_date ? p.birth_date.substring(0,4) : '';
             var label = p.display_name + (p.death_date ? ' †' : '') +
-                        (year ? '
-*' + year : '');
-            if (p.maiden_name) label += '
-geb. ' + p.maiden_name;
+                        (year ? '\n*' + year : '');
+            if (p.maiden_name) label += '\ngeb. ' + p.maiden_name;
             elements.push({ group: 'nodes', data: {
                 id:          p.id,
                 label:       label,
