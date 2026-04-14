@@ -383,6 +383,10 @@
         <input type="checkbox" id="show-siblings" checked style="width:auto;">
         Geschwister
     </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
+        <input type="checkbox" id="legend-neighbours" checked style="width:auto;">
+        + Nachbarn
+    </label>
 
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
@@ -445,12 +449,7 @@
             <span style="color:#e0e0e0">|</span>
             <button class="legend-ctrl-btn" id="legend-none">Keine</button>
         </div>
-        <label style="display:flex; align-items:center; gap:0.4em; font-size:0.78em;
-                       color:#888; margin-bottom:0.4em; cursor:pointer;">
-            <input type="checkbox" id="legend-neighbours" checked
-                   style="width:auto; margin:0; accent-color:#888;">
-            + Nachbarn
-        </label>
+
         <div id="legend-items"></div>
     </div>
     <div id="timeline"></div>
