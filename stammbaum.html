@@ -773,6 +773,29 @@ window.addEventListener('load', function() {
             if (_isDragging && _lockedY !== null) {
                 e.target.position('y', _lockedY);
             }
+            // Im Cola-Modus: Ehe-Knoten immer mittig zwischen Eheleuten halten
+            var colaOpen = document.getElementById('cola-panel').classList.contains('open');
+            if (!colaOpen) return;
+            var node = e.target;
+            // Prüfe ob dieser Knoten eine Person mit Ehe-Knoten ist
+            node.connectedEdges().forEach(function(edge) {
+                var t = edge.data('type');
+                if (t !== 'hasWife' && t !== 'hasExWife') return;
+                // Finde den Ehe-Knoten (kleiner Knoten mit nodeType=marriage)
+                var other = edge.source().id() === node.id() ? edge.target() : edge.source();
+                if (!other || other.data('nodeType') !== 'marriage') return;
+                // Finde den zweiten Ehepartner
+                other.connectedEdges().forEach(function(e2) {
+                    if (e2.id() === edge.id()) return;
+                    var t2 = e2.data('type');
+                    if (t2 !== 'hasWife' && t2 !== 'hasExWife') return;
+                    var partner = e2.source().id() === other.id() ? e2.target() : e2.source();
+                    if (!partner || partner.data('nodeType') === 'marriage') return;
+                    // Ehe-Knoten mittig setzen
+                    var newX = (node.position('x') + partner.position('x')) / 2;
+                    other.position({ x: newX, y: _lockedY !== null ? _lockedY : other.position('y') });
+                });
+            });
         });
     }
 
@@ -2049,64 +2072,91 @@ window.addEventListener('load', function() {
         var levelOf = {};   // personId → level (Integer, 0 = oberste Zeile)
         levelOf[String(anchorId)] = anchorLv;
 
+        // childrenOf kann Kinder unter Ehe-Knoten ODER direkt unter Person haben.
+        // Hilfsfunktion: gibt alle echten Kinder einer Person zurück,
+        // egal ob sie direkt oder über Ehe-Knoten angehängt sind.
+        function realChildrenOf(personId) {
+            var id = String(personId);
+            var result = [];
+            // Direkt unter Person
+            (childrenOf[id] || []).forEach(function(cId) {
+                if (cId.indexOf('marriage_') < 0 && result.indexOf(cId) < 0) result.push(cId);
+            });
+            // Über Ehe-Knoten
+            var mId = spouseOf[id];
+            if (mId) {
+                (childrenOf[mId] || []).forEach(function(cId) {
+                    if (cId.indexOf('marriage_') < 0 && result.indexOf(cId) < 0) result.push(cId);
+                });
+            }
+            return result;
+        }
+
         // BFS abwärts (Nachkommen)
         var downQ = [String(anchorId)];
+        var downVisited = new Set([String(anchorId)]);
         while (downQ.length > 0) {
             var cur = downQ.shift();
             var lv  = levelOf[cur];
-            var src = spouseOf[cur] || cur;
-            (childrenOf[src] || []).forEach(function(cId) {
-                if (levelOf[cId] === undefined) {
+            realChildrenOf(cur).forEach(function(cId) {
+                // Kind bekommt immer lv+1 – nie weniger
+                if (levelOf[cId] === undefined || levelOf[cId] < lv + 1) {
                     levelOf[cId] = lv + 1;
-                    downQ.push(cId);
                 }
+                if (!downVisited.has(cId)) { downVisited.add(cId); downQ.push(cId); }
             });
         }
 
-        // BFS aufwärts (Vorfahren): von jedem bekannten Knoten zu seinen Eltern
-        var allKnown = Object.keys(levelOf).slice();
-        var upQ = allKnown.slice();
+        // BFS aufwärts (Vorfahren)
+        // Starte von ALLEN bereits bekannten Personen (Anker + Nachkommen + deren Eheleute)
+        var upQ = Object.keys(levelOf).filter(function(id) { return id.indexOf('marriage_') < 0; });
+        var upVisited = new Set(upQ);
         while (upQ.length > 0) {
             var cur = upQ.shift();
             var lv  = levelOf[cur];
             var src = parentSrc[cur];
             if (!src) continue;
-            // src kann Ehe-Knoten sein → dann beide Partner hoch
             if (src.indexOf('marriage_') === 0) {
+                // Eltern über Ehe-Knoten: beide Partner eine Ebene höher
                 var m = Object.values(marriageNodes).find(function(mv) { return mv.id === src; });
                 if (m) {
                     [String(m.p1), String(m.p2)].forEach(function(pid) {
-                        if (levelOf[pid] === undefined) {
-                            levelOf[pid] = lv - 1;
-                            upQ.push(pid);
+                        var newLv = lv - 1;
+                        if (levelOf[pid] === undefined || levelOf[pid] > newLv) {
+                            levelOf[pid] = newLv;
                         }
+                        if (!upVisited.has(pid)) { upVisited.add(pid); upQ.push(pid); }
                     });
                 }
             } else {
-                if (levelOf[src] === undefined) {
-                    levelOf[src] = lv - 1;
-                    upQ.push(src);
+                var newLv = lv - 1;
+                if (levelOf[src] === undefined || levelOf[src] > newLv) {
+                    levelOf[src] = newLv;
                 }
+                if (!upVisited.has(src)) { upVisited.add(src); upQ.push(src); }
             }
         }
 
-        // Fallback: alle noch nicht zugewiesenen Personen auf Ebene anchorLv
-        allPersonIds.forEach(function(id) {
-            if (levelOf[id] === undefined) levelOf[id] = anchorLv;
+        // Ehepartner die noch kein Level haben: gleiche Ebene wie ihr Partner
+        Object.values(marriageNodes).forEach(function(m) {
+            var id1 = String(m.p1), id2 = String(m.p2);
+            var lv1 = levelOf[id1], lv2 = levelOf[id2];
+            if (lv1 !== undefined && lv2 === undefined) { levelOf[id2] = lv1; }
+            if (lv2 !== undefined && lv1 === undefined) { levelOf[id1] = lv2; }
+            // Beide bekannt → auf gleiches Level zwingen (minimum = weiter oben)
+            if (lv1 !== undefined && lv2 !== undefined) {
+                var sharedLv = Math.min(lv1, lv2);
+                levelOf[id1] = sharedLv;
+                levelOf[id2] = sharedLv;
+            }
+            // Ehe-Knoten immer auf gleicher Ebene wie die Partner
+            var finalLv = levelOf[id1] !== undefined ? levelOf[id1] : anchorLv;
+            levelOf[m.id] = finalLv;
         });
 
-        // Ehe-Knoten: Level = Level des am höchsten stehenden Partners
-        // (= kleinstes Level = weiter oben)
-        Object.values(marriageNodes).forEach(function(m) {
-            var lp1 = levelOf[String(m.p1)];
-            var lp2 = levelOf[String(m.p2)];
-            if (lp1 === undefined) lp1 = anchorLv;
-            if (lp2 === undefined) lp2 = anchorLv;
-            // Eheleute MÜSSEN auf gleichem Level sein → nimm Minimum (weiter oben)
-            var sharedLv = Math.min(lp1, lp2);
-            levelOf[String(m.p1)] = sharedLv;
-            levelOf[String(m.p2)] = sharedLv;
-            levelOf[m.id]         = sharedLv;
+        // Fallback: alle noch nicht zugewiesenen → anchorLv
+        allPersonIds.forEach(function(id) {
+            if (levelOf[id] === undefined) levelOf[id] = anchorLv;
         });
 
         // ── Schritt C: Y-Werte hart aus Level-Tabelle ─────────
@@ -2150,10 +2200,8 @@ window.addEventListener('load', function() {
         });
 
         // Kinder eines Ehe-Knotens / einer Person (nur primäre Kinder)
-        function primaryChildren(srcId) {
-            return (childrenOf[srcId] || []).filter(function(c) {
-                return c.indexOf('marriage_') < 0 && primary.has(c);
-            });
+        function primaryChildren(personId) {
+            return realChildrenOf(personId).filter(function(c) { return primary.has(c); });
         }
 
         // ── Schritt E: Breitenberechnung (rekursiv) ───────────
