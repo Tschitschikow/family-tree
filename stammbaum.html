@@ -1922,100 +1922,249 @@ window.addEventListener('load', function() {
             }
         });
 
-        // ── Cytoscape mit WebCola ─────────────────────────────
+        // ── Zeitachse ausblenden ─────────────────────────────
+        document.getElementById('timeline').style.display = 'none';
+        var tlSvg = document.getElementById('tl-svg');
+        while (tlSvg.firstChild) tlSvg.removeChild(tlSvg.firstChild);
+
+        // ── Cytoscape aufbauen + Styles setzen ───────────────
         cy.elements().remove();
         cy.add(elements);
 
-        // Styles für Cola-Ansicht
         cy.style()
             .selector('node[nodeType = "person"][sex = "m"]').style({
                 'shape': 'rectangle', 'corner-radius': '3px',
-                'width': 110, 'height': 44,
+                'width': 120, 'height': 46,
                 'background-color': 'data(famColor)',
-                'label': 'data(label)', 'font-size': '7px',
+                'label': 'data(label)', 'font-size': '7.5px',
                 'text-valign': 'center', 'text-halign': 'center',
-                'text-wrap': 'wrap', 'text-max-width': '100px',
-                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.15)',
+                'text-wrap': 'wrap', 'text-max-width': '110px',
+                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.18)',
                 'color': '#333',
             })
             .selector('node[nodeType = "person"][sex = "f"]').style({
                 'shape': 'ellipse',
-                'width': 110, 'height': 44,
+                'width': 120, 'height': 46,
                 'background-color': 'data(famColor)',
-                'label': 'data(label)', 'font-size': '7px',
+                'label': 'data(label)', 'font-size': '7.5px',
                 'text-valign': 'center', 'text-halign': 'center',
-                'text-wrap': 'wrap', 'text-max-width': '100px',
-                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.15)',
+                'text-wrap': 'wrap', 'text-max-width': '110px',
+                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.18)',
                 'color': '#333',
             })
             .selector('node[nodeType = "marriage"]').style({
-                'shape': 'ellipse', 'width': 8, 'height': 8,
-                'background-color': '#e8c84a', 'label': '',
-                'border-width': 0,
+                'shape': 'ellipse', 'width': 10, 'height': 10,
+                'background-color': '#e8c84a', 'label': '', 'border-width': 0,
             })
             .selector('node[nodeType = "marriage"][?ex]').style({
-                'background-color': '#cccccc',
+                'background-color': '#aaaaaa',
             })
             .selector('edge[type = "hasWife"]').style({
-                'line-color': '#e8c84a', 'width': 2,
+                'line-color': '#e8c84a', 'width': 2.5,
                 'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                'line-style': 'solid', 'curve-style': 'straight',
-                'opacity': 0.8,
+                'line-style': 'solid', 'curve-style': 'straight', 'opacity': 0.9,
             })
             .selector('edge[type = "hasExWife"]').style({
-                'line-style': 'dashed', 'line-color': '#cccccc',
+                'line-color': '#aaaaaa', 'width': 1.5,
+                'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                'line-style': 'dashed', 'curve-style': 'straight', 'opacity': 0.7,
             })
             .selector('edge[type = "hasMother"], edge[type = "hasFather"]').style({
-                'line-color': '#888', 'width': 1.5,
+                'line-color': '#777', 'width': 1.5,
                 'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                'curve-style': 'taxi',
-                'taxi-direction': 'downward',
-                'opacity': 0.7,
+                'curve-style': 'taxi', 'taxi-direction': 'downward', 'opacity': 0.75,
             })
-            .selector('node:selected').style({
-                'border-width': '2px', 'border-color': '#e74c3c',
-            })
-            .selector('.faded').style({ 'opacity': 0.08 })
+            .selector('node:selected').style({ 'border-width': '2px', 'border-color': '#e74c3c' })
             .update();
 
-        // WebCola Layout mit Constraints
-        var colaLayout = cy.layout({
-            name:           'cola',
-            animate:        true,
-            animationDuration: 800,
-            fit:            true,
-            padding:        60,
-            nodeSpacing:    20,
-            edgeLength:     function(e) {
-                var t = e.data('type');
-                if (t === 'hasWife' || t === 'hasExWife') return 60;
-                return 100;
-            },
-            alignment: function(node) {
-                // Ehe-Knoten auf gleicher Höhe wie beide Eheleute
-                if (node.data('nodeType') === 'marriage') return null;
-                return null;
-            },
-            // Eltern über Kindern: Y-Constraint
-            constraints: (function() {
-                var cons = [];
-                cy.edges().forEach(function(e) {
-                    var t = e.data('type');
-                    if (t === 'hasMother' || t === 'hasFather') {
-                        cons.push({
-                            axis: 'y',
-                            left: e.source().id(),
-                            right: e.target().id(),
-                            gap: 100,
-                        });
+        // ── Manuelle Positionierung ───────────────────────────
+        // Algorithmus:
+        //   1. BFS von Wurzeln → Generationsebene pro Person
+        //   2. Rekursive Breitenberechnung: Breite einer Person =
+        //      max(NODE_W, Summe der Kindbreiten)
+        //   3. X-Positionen top-down zuweisen, Kinder mittig unter Ehe-Knoten
+        //   4. Ehepaare: Partner direkt nebeneinander, Ehe-Knoten mittig
+        //   5. Gleiche Generation = gleiche Y (streng)
+
+        var NODE_W  = 120;
+        var NODE_H  = 46;
+        var H_GAP   = 24;   // Abstand zwischen Geschwistern
+        var SP_GAP  = 10;   // Abstand zwischen Eheleuten
+        var V_GAP   = 100;  // Abstand zwischen Generationen
+        var PAD     = 60;
+
+        // Eltern-Kind-Map aufbauen (Quelle: edges im elements-Array)
+        // parentOf[id] = [childId, ...]  (id kann Ehe-Knoten oder Person sein)
+        // childSrc[childId] = sourceId   (Ehe-Knoten oder Elternteil)
+        var parentOf = {};   // id → [childId]
+        var childSrc = {};   // childId → sourceId (Ehe-Knoten oder Elternteil)
+
+        elements.forEach(function(el) {
+            if (el.group !== 'edges') return;
+            var t = el.data.type;
+            if (t !== 'hasMother' && t !== 'hasFather') return;
+            var src = String(el.data.source);
+            var tgt = String(el.data.target);
+            if (!parentOf[src]) parentOf[src] = [];
+            // Doppelte Kinder vermeiden (hasMother + hasFather vom gleichen Ehe-Knoten)
+            if (parentOf[src].indexOf(tgt) < 0) parentOf[src].push(tgt);
+            // Merke Quelle des Kindes (Ehe-Knoten hat Vorrang über einzelnen Elternteil)
+            if (!childSrc[tgt] || String(src).indexOf('marriage_') === 0) {
+                childSrc[tgt] = src;
+            }
+        });
+
+        // Ehepartner-Map aufbauen (hasWife/hasExWife edges zum Ehe-Knoten)
+        var spouseOf = {};  // personId → marriageId
+        Object.values(marriageNodes).forEach(function(m) {
+            spouseOf[String(m.p1)] = m.id;
+            spouseOf[String(m.p2)] = m.id;
+        });
+
+        // Generationsebene per BFS
+        var genLevel = {};
+        var allPersonNodeIds = elements
+            .filter(function(e) { return e.group === 'nodes' && String(e.data.id).indexOf('marriage_') < 0; })
+            .map(function(e) { return String(e.data.id); });
+
+        // Wurzeln: Personen ohne eigenen childSrc-Eintrag
+        var roots = allPersonNodeIds.filter(function(id) { return !childSrc[id]; });
+        if (roots.length === 0) roots = [allPersonNodeIds[0]]; // Fallback
+
+        var queue = [];
+        roots.forEach(function(id) { genLevel[id] = 0; queue.push(id); });
+
+        while (queue.length > 0) {
+            var cur = queue.shift();
+            var lvl = genLevel[cur];
+            // Direkte Kinder
+            (parentOf[cur] || []).forEach(function(childId) {
+                var g = lvl + 1;
+                if (genLevel[childId] === undefined || genLevel[childId] < g) {
+                    genLevel[childId] = g;
+                    queue.push(childId);
+                }
+            });
+            // Kinder über Ehe-Knoten
+            var mId = spouseOf[cur];
+            if (mId) {
+                genLevel[mId] = lvl;  // Ehe-Knoten gleiche Ebene
+                (parentOf[mId] || []).forEach(function(childId) {
+                    var g = lvl + 1;
+                    if (genLevel[childId] === undefined || genLevel[childId] < g) {
+                        genLevel[childId] = g;
+                        queue.push(childId);
                     }
                 });
-                return cons;
-            })(),
-        });
-        colaLayout.run();
+            }
+        }
 
-        // Personenzähler aktualisieren
+        // Fehlende Knoten → Ebene 0
+        allPersonNodeIds.forEach(function(id) {
+            if (genLevel[id] === undefined) genLevel[id] = 0;
+        });
+
+        // Maximale Ebene
+        var maxGen = 0;
+        allPersonNodeIds.forEach(function(id) {
+            if (genLevel[id] > maxGen) maxGen = genLevel[id];
+        });
+
+        // ── Rekursive Breitenberechnung ───────────────────────
+        // subtreeWidth(id): wie viel horizontalen Platz braucht dieser Teilbaum?
+        // Berücksichtigt: Ehepartner direkt daneben + alle Kinder darunter
+
+        var widthCache = {};
+        function subtreeWidth(id) {
+            if (widthCache[id] !== undefined) return widthCache[id];
+
+            var mId = spouseOf[id];
+            // Direkte Kinder-Quellen (Ehe-Knoten oder direkt)
+            var childSource = mId || id;
+            var children = (parentOf[childSource] || []).filter(function(c) {
+                return String(c).indexOf('marriage_') < 0;
+            });
+
+            var myW;
+            if (children.length === 0) {
+                // Blatt: eigene Breite + ggf. Ehepartner nebeneinander
+                myW = mId ? (NODE_W * 2 + SP_GAP) : NODE_W;
+            } else {
+                var childrenW = children.reduce(function(sum, cId) {
+                    return sum + subtreeWidth(cId);
+                }, 0) + Math.max(0, children.length - 1) * H_GAP;
+                var coupleW = mId ? (NODE_W * 2 + SP_GAP) : NODE_W;
+                myW = Math.max(coupleW, childrenW);
+            }
+            widthCache[id] = myW;
+            return myW;
+        }
+
+        // ── X-Positionen top-down zuweisen ───────────────────
+        var posMap = {};
+
+        function assignX(id, centerX) {
+            if (posMap[id]) return;  // bereits gesetzt
+            var lvl = genLevel[id] || 0;
+            var y   = PAD + lvl * (NODE_H + V_GAP) + NODE_H / 2;
+            var mId = spouseOf[id];
+
+            if (mId && !posMap[id]) {
+                // Ehepaar: id links, Partner rechts, Ehe-Knoten mittig
+                var m = marriageNodes[Object.keys(marriageNodes).find(function(k) {
+                    return marriageNodes[k].id === mId;
+                })];
+                if (!m) { m = Object.values(marriageNodes).find(function(mv) { return mv.id === mId; }); }
+                var otherId = m ? (String(m.p1) === id ? String(m.p2) : String(m.p1)) : null;
+
+                posMap[id] = { x: centerX - NODE_W / 2 - SP_GAP / 2, y: y };
+                if (otherId && !posMap[otherId]) {
+                    posMap[otherId] = { x: centerX + NODE_W / 2 + SP_GAP / 2, y: y };
+                }
+                posMap[mId] = { x: centerX, y: y };
+            } else if (!posMap[id]) {
+                posMap[id] = { x: centerX, y: y };
+            }
+
+            // Kinder verteilen
+            var childSource = mId || id;
+            var children = (parentOf[childSource] || []).filter(function(c) {
+                return String(c).indexOf('marriage_') < 0;
+            });
+            if (children.length === 0) return;
+
+            var totalChildW = children.reduce(function(sum, cId) {
+                return sum + subtreeWidth(cId);
+            }, 0) + Math.max(0, children.length - 1) * H_GAP;
+
+            var startX = centerX - totalChildW / 2;
+            children.forEach(function(cId) {
+                var cw = subtreeWidth(cId);
+                assignX(cId, startX + cw / 2);
+                startX += cw + H_GAP;
+            });
+        }
+
+        // Alle Wurzeln positionieren
+        // Gesamtbreite berechnen für horizontale Zentrierung
+        var totalRootW = roots.reduce(function(sum, r) {
+            return sum + subtreeWidth(r);
+        }, 0) + Math.max(0, roots.length - 1) * H_GAP * 2;
+
+        var rx = PAD + totalRootW / 2;
+        roots.forEach(function(r) {
+            var rw = subtreeWidth(r);
+            assignX(r, rx);
+            rx += rw + H_GAP * 2;
+        });
+
+        // ── Positionen auf Cytoscape-Knoten anwenden ─────────
+        cy.nodes().forEach(function(n) {
+            var p = posMap[n.id()];
+            if (p) n.position({ x: p.x, y: p.y });
+        });
+
+        cy.fit(PAD);
         updateCount(persons.length);
     });
 
