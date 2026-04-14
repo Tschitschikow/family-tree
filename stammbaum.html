@@ -254,6 +254,51 @@
 
         #status-bar { text-align: center; padding: 2em; color: #bbb; font-size: 1em; }
 
+        /* ── Cola / Druckansicht Panel ── */
+        #cola-panel {
+            display: none;
+            background: #ffffff;
+            border-bottom: 1px solid #e8e8e8;
+            padding: 0.8em 1.5em;
+            gap: 1em;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+        #cola-panel.open { display: flex; }
+        #cola-panel label { font-size: 0.82em; color: #888; display:block; margin-bottom:0.2em; }
+        #cola-panel select, #cola-panel input[type=number] {
+            padding: 0.35em 0.6em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-family: inherit;
+            background: #fafafa;
+        }
+        #cola-panel input[type=number] { width: 70px; }
+        .cola-field { display: flex; flex-direction: column; }
+        #btn-cola-draw {
+            padding: 0.4em 1em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: inherit;
+        }
+        #btn-cola-draw:hover { background: #7a5e4b; }
+        #btn-cola-export {
+            padding: 0.4em 1em;
+            background: #f0f0f0;
+            color: #444;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: inherit;
+        }
+        #btn-cola-export:hover { background: #e4e4e4; }
+
         /* ── Druckansicht ── */
         #print-overlay {
             display: none;
@@ -341,7 +386,7 @@
 
     <span id="person-count"></span>
     <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
-    <button class="tool-btn" id="print-btn">🖨️ Druckansicht</button>
+    <button class="tool-btn" id="print-btn">🖨️ Stammbaum-Ansicht</button>
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -360,6 +405,34 @@
     <button class="tool-btn" id="path-search-btn">Suchen</button>
     <button class="tool-btn" id="path-reset-btn" style="background:#888;">Zurücksetzen</button>
     <span id="path-result"></span>
+</div>
+
+<!-- Cola / Stammbaum-Ansicht Panel -->
+<div id="cola-panel">
+    <div class="cola-field">
+        <label>Ankerperson</label>
+        <select id="cola-anchor" style="width:200px;">
+            <option value="">– Person wählen –</option>
+        </select>
+    </div>
+    <div class="cola-field">
+        <label>Vorfahren (Gen.)</label>
+        <input type="number" id="cola-up" value="2" min="0" max="8" />
+    </div>
+    <div class="cola-field">
+        <label>Nachkommen (Gen.)</label>
+        <input type="number" id="cola-down" value="3" min="0" max="8" />
+    </div>
+    <div class="cola-field">
+        <label>Geb.jahr ab</label>
+        <input type="number" id="cola-year-from" value="" min="1600" max="2030" placeholder="–" style="width:80px;" />
+    </div>
+    <div class="cola-field">
+        <label>Geb.jahr bis</label>
+        <input type="number" id="cola-year-to" value="" min="1600" max="2030" placeholder="–" style="width:80px;" />
+    </div>
+    <button id="btn-cola-draw">Zeichnen</button>
+    <button id="btn-cola-export">💾 PNG</button>
 </div>
 
 <div id="status-bar">Lade Stammbaum...</div>
@@ -404,6 +477,8 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/webcola@3.4.0/WebCola/cola.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 
 <script>
 // ── Farb-System: dynamisches Regenbogenspektrum ─────────────────
@@ -525,6 +600,7 @@ window.addEventListener('load', function() {
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
+            fillColaAnchor();
         });
     }
 
@@ -532,7 +608,7 @@ window.addEventListener('load', function() {
         cy = cytoscape({
             container:        document.getElementById('cy'),
             elements:         [],
-            wheelSensitivity: 0.05,   // sanfteres Zoomen (Standard: 1.0)
+            wheelSensitivity: 0.2,   // sanfteres Zoomen (Standard: 1.0)
             style: [
                 {
                     selector: 'node',
@@ -1627,92 +1703,311 @@ window.addEventListener('load', function() {
         document.getElementById('path-result').textContent = '';
     });
 
-    // ── Druckansicht ──────────────────────────────────────────────
-    var printActive = false;
+    // ── Stammbaum-Ansicht (WebCola) ──────────────────────────────
 
-    document.getElementById('print-btn').addEventListener('click', function() {
-        printActive = !printActive;
-        var overlay = document.getElementById('print-overlay');
-        var btn     = document.getElementById('print-btn');
-
-        if (printActive) {
-            btn.textContent      = '✕ Schließen';
-            btn.style.background = '#5a3e2b';
-            btn.style.color      = 'white';
-            overlay.style.display = 'block';
-            buildPrintOverlay();
-        } else {
-            btn.textContent      = '🖨️ Druckansicht';
-            btn.style.background = '';
-            btn.style.color      = '';
-            overlay.style.display = 'none';
-            overlay.innerHTML    = '';
-            // Knoten-Opacity wiederherstellen
-            cy.nodes().forEach(function(n) { n.style('opacity', 1); });
-        }
-    });
-
-    function buildPrintOverlay() {
-        var overlay = document.getElementById('print-overlay');
-        overlay.innerHTML = '';
-
-        // Cytoscape-Knoten unsichtbar – Kanten bleiben sichtbar
-        cy.nodes().forEach(function(n) { n.style('opacity', 0); });
-
-        function fmtDate(ds, est) {
-            if (!ds) return null;
-            var p = ds.split('T')[0].split('-');
-            var s = p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : ds;
-            return s + (est ? ' 🔮' : '');
-        }
-
-        cy.nodes().forEach(function(n) {
-            var d   = n.data();
-            var pos = n.renderedPosition();
-
-            var name   = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
-            var isDead = d.label.indexOf('†') >= 0;
-            var sexSym = d.sex === 'm' ? ' ♂' : d.sex === 'f' ? ' ♀' : '';
-
-            var card = document.createElement('div');
-            card.className         = 'pcard';
-            card.style.left        = pos.x + 'px';
-            card.style.top         = pos.y + 'px';
-            card.style.borderColor = d.famColor || '#ddd';
-
-            var bar = document.createElement('div');
-            bar.className        = 'pcard-bar';
-            bar.style.background = d.famColor || '#ccc';
-            card.appendChild(bar);
-
-            var nameDiv = document.createElement('div');
-            nameDiv.className   = 'pcard-name';
-            nameDiv.textContent = name + (isDead ? ' †' : '') + sexSym;
-            card.appendChild(nameDiv);
-
-            function row(lbl, val) {
-                if (!val) return;
-                var div = document.createElement('div');
-                div.className = 'pcard-row';
-                div.innerHTML = lbl + ' <span>' + val + '</span>';
-                card.appendChild(div);
-            }
-
-            row('*',    fmtDate(d.birth_date,  d.birth_date_estimated));
-            row('†',    fmtDate(d.death_date,  d.death_date_estimated));
-            row('📍',   d.birth_place  || null);
-            row('✝ 📍', d.death_place  || null);
-            row('💼',   d.profession   || null);
-            if (d.maiden_name) row('Geb.', d.maiden_name);
-
-            overlay.appendChild(card);
+    // Anchor-Dropdown befüllen (nach loadData)
+    function fillColaAnchor() {
+        var sel = document.getElementById('cola-anchor');
+        var sorted = allPersons.slice().sort(function(a,b) {
+            return a.display_name.localeCompare(b.display_name);
+        });
+        sorted.forEach(function(p) {
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            var year = p.birth_date ? p.birth_date.substring(0,4) : '?';
+            opt.textContent = p.display_name + ' (*' + year + ')';
+            sel.appendChild(opt);
         });
     }
 
-    // Overlay bei Zoom/Pan neu aufbauen
-    cy.on('viewport', function() {
-        if (printActive) buildPrintOverlay();
+    // Panel öffnen/schließen
+    document.getElementById('print-btn').addEventListener('click', function() {
+        var panel = document.getElementById('cola-panel');
+        var btn   = document.getElementById('print-btn');
+        var open  = panel.classList.toggle('open');
+        btn.textContent = open ? '✕ Schließen' : '🖨️ Stammbaum-Ansicht';
+        if (open) { btn.style.background = '#5a3e2b'; btn.style.color = 'white'; }
+        else       { btn.style.background = ''; btn.style.color = ''; }
     });
+
+    // ── Personen-Auswahl per BFS um Ankerperson ──────────────
+    function selectPersonsByAnchor(anchorId, genUp, genDown, yearFrom, yearTo) {
+        var selected  = new Set();
+        var personMap = {};
+        allPersons.forEach(function(p) { personMap[p.id] = p; });
+
+        // Eltern- und Kindkarten aus Relationships aufbauen
+        var parentsOf   = {};  // id → [parentId, ...]
+        var childrenOf  = {};  // id → [childId, ...]
+        var spousesOf   = {};  // id → [spouseId, ...]
+
+        allRels.forEach(function(r) {
+            var t = r.relationship_type;
+            if (t === 'hasMother' || t === 'hasFather') {
+                // person_id ist Kind, related_person_id ist Elternteil
+                if (!parentsOf[r.person_id])  parentsOf[r.person_id]  = [];
+                if (!childrenOf[r.related_person_id]) childrenOf[r.related_person_id] = [];
+                parentsOf[r.person_id].push(r.related_person_id);
+                childrenOf[r.related_person_id].push(r.person_id);
+            }
+            if (t === 'hasWife' || t === 'hasHusband' || t === 'hasExWife' || t === 'hasExHusband') {
+                if (!spousesOf[r.person_id]) spousesOf[r.person_id] = [];
+                spousesOf[r.person_id].push(r.related_person_id);
+            }
+        });
+
+        // BFS aufwärts (Vorfahren)
+        function walkUp(id, depth) {
+            if (depth < 0 || selected.has('u_' + id + '_' + depth)) return;
+            selected.add(id);
+            // Ehepartner des Vorfahren immer mitholen
+            (spousesOf[id] || []).forEach(function(sid) { selected.add(sid); });
+            if (depth > 0) {
+                (parentsOf[id] || []).forEach(function(pid) { walkUp(pid, depth - 1); });
+            }
+        }
+
+        // BFS abwärts (Nachkommen)
+        function walkDown(id, depth) {
+            if (depth < 0) return;
+            selected.add(id);
+            (spousesOf[id] || []).forEach(function(sid) { selected.add(sid); });
+            if (depth > 0) {
+                (childrenOf[id] || []).forEach(function(cid) { walkDown(cid, depth - 1); });
+            }
+        }
+
+        walkUp(anchorId, genUp);
+        walkDown(anchorId, genDown);
+
+        // Jahresfilter anwenden
+        var result = [];
+        selected.forEach(function(id) {
+            var p = personMap[id];
+            if (!p) return;
+            if (yearFrom || yearTo) {
+                var year = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null;
+                if (year) {
+                    if (yearFrom && year < yearFrom) return;
+                    if (yearTo   && year > yearTo)   return;
+                }
+            }
+            result.push(p);
+        });
+        return result;
+    }
+
+    // ── WebCola Stammbaum zeichnen ────────────────────────────
+    document.getElementById('btn-cola-draw').addEventListener('click', function() {
+        var anchorId = parseInt(document.getElementById('cola-anchor').value);
+        var genUp    = parseInt(document.getElementById('cola-up').value)   || 2;
+        var genDown  = parseInt(document.getElementById('cola-down').value) || 3;
+        var yearFrom = parseInt(document.getElementById('cola-year-from').value) || null;
+        var yearTo   = parseInt(document.getElementById('cola-year-to').value)   || null;
+
+        if (!anchorId) { alert('Bitte eine Ankerperson wählen.'); return; }
+
+        var persons = selectPersonsByAnchor(anchorId, genUp, genDown, yearFrom, yearTo);
+        if (persons.length === 0) { alert('Keine Personen gefunden.'); return; }
+
+        var personIds = new Set(persons.map(function(p) { return p.id; }));
+
+        // ── Elemente aufbauen ─────────────────────────────────
+        // Für WebCola: Eheleute bekommen einen gemeinsamen "Ehe-Knoten"
+        // Kinder-Kanten gehen vom Ehe-Knoten aus
+
+        var elements = [];
+        var marriageNodes = {};  // "pid1_pid2" → marriage node id
+
+        // Alle Ehe-Paare ermitteln (nur hasWife, um Dopplung zu vermeiden)
+        allRels.forEach(function(r) {
+            if (r.relationship_type !== 'hasWife' && r.relationship_type !== 'hasExWife') return;
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
+            var key = Math.min(r.person_id, r.related_person_id) + '_' +
+                      Math.max(r.person_id, r.related_person_id);
+            if (!marriageNodes[key]) {
+                var mId = 'marriage_' + key;
+                var isEx = r.relationship_type === 'hasExWife';
+                marriageNodes[key] = { id: mId, p1: r.person_id, p2: r.related_person_id, ex: isEx };
+            }
+        });
+
+        // Personen-Knoten
+        persons.forEach(function(p) {
+            var year = p.birth_date ? p.birth_date.substring(0,4) : '';
+            var label = p.display_name + (p.death_date ? ' †' : '') +
+                        (year ? '
+*' + year : '');
+            if (p.maiden_name) label += '
+geb. ' + p.maiden_name;
+            elements.push({ group: 'nodes', data: {
+                id:          p.id,
+                label:       label,
+                sex:         p.sex,
+                family_name: p.family_name,
+                famColor:    getFamilyColor(p.family_name),
+                nodeType:    'person',
+                birth_date:  p.birth_date  || '',
+                birth_year:  p.birth_date  ? parseInt(p.birth_date.substring(0,4)) : 9999,
+            }});
+        });
+
+        // Ehe-Knoten (kleiner Punkt zwischen Eheleuten)
+        Object.values(marriageNodes).forEach(function(m) {
+            elements.push({ group: 'nodes', data: {
+                id: m.id, nodeType: 'marriage', ex: m.ex,
+                label: '',
+            }});
+            // Kanten Ehepaar → Ehe-Knoten
+            elements.push({ group: 'edges', data: {
+                id: 'me_' + m.id + '_a', source: m.p1, target: m.id,
+                type: m.ex ? 'hasExWife' : 'hasWife',
+            }});
+            elements.push({ group: 'edges', data: {
+                id: 'me_' + m.id + '_b', source: m.p2, target: m.id,
+                type: m.ex ? 'hasExWife' : 'hasWife',
+            }});
+        });
+
+        // Eltern-Kind-Kanten: vom Ehe-Knoten (falls vorhanden) oder direkt von Elternteil
+        allRels.forEach(function(r) {
+            if (r.relationship_type !== 'hasMother' && r.relationship_type !== 'hasFather') return;
+            if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
+
+            // Suche ob Elternteil in einem Ehe-Knoten ist
+            var parentId = r.related_person_id;
+            var childId  = r.person_id;
+            var fromNode = parentId;  // default: direkt vom Elternteil
+
+            // Finde zugehörigen Ehe-Knoten
+            Object.values(marriageNodes).forEach(function(m) {
+                if (m.p1 === parentId || m.p2 === parentId) {
+                    // Nur wenn der andere Elternteil auch in der Auswahl ist
+                    var otherId = (m.p1 === parentId) ? m.p2 : m.p1;
+                    if (personIds.has(otherId)) {
+                        fromNode = m.id;
+                    }
+                }
+            });
+
+            var edgeId = 'pc_' + childId + '_' + parentId;
+            // Kante nur einmal (hasMother und hasFather würden sonst doppelt kommen)
+            if (!elements.find(function(e) { return e.data && e.data.id === edgeId; })) {
+                elements.push({ group: 'edges', data: {
+                    id: edgeId, source: fromNode, target: childId,
+                    type: r.relationship_type,
+                }});
+            }
+        });
+
+        // ── Cytoscape mit WebCola ─────────────────────────────
+        cy.elements().remove();
+        cy.add(elements);
+
+        // Styles für Cola-Ansicht
+        cy.style()
+            .selector('node[nodeType = "person"][sex = "m"]').style({
+                'shape': 'rectangle', 'corner-radius': '3px',
+                'width': 110, 'height': 44,
+                'background-color': 'data(famColor)',
+                'label': 'data(label)', 'font-size': '7px',
+                'text-valign': 'center', 'text-halign': 'center',
+                'text-wrap': 'wrap', 'text-max-width': '100px',
+                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.15)',
+                'color': '#333',
+            })
+            .selector('node[nodeType = "person"][sex = "f"]').style({
+                'shape': 'ellipse',
+                'width': 110, 'height': 44,
+                'background-color': 'data(famColor)',
+                'label': 'data(label)', 'font-size': '7px',
+                'text-valign': 'center', 'text-halign': 'center',
+                'text-wrap': 'wrap', 'text-max-width': '100px',
+                'border-width': '0.5px', 'border-color': 'rgba(0,0,0,0.15)',
+                'color': '#333',
+            })
+            .selector('node[nodeType = "marriage"]').style({
+                'shape': 'ellipse', 'width': 8, 'height': 8,
+                'background-color': '#e8c84a', 'label': '',
+                'border-width': 0,
+            })
+            .selector('node[nodeType = "marriage"][?ex]').style({
+                'background-color': '#cccccc',
+            })
+            .selector('edge[type = "hasWife"], edge[type = "hasExWife"]').style({
+                'line-color': '#e8c84a', 'width': 2,
+                'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                'line-style': 'data(ex)', 'curve-style': 'straight',
+                'opacity': 0.8,
+            })
+            .selector('edge[type = "hasExWife"]').style({
+                'line-style': 'dashed', 'line-color': '#cccccc',
+            })
+            .selector('edge[type = "hasMother"], edge[type = "hasFather"]').style({
+                'line-color': '#888', 'width': 1.5,
+                'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                'curve-style': 'taxi',
+                'taxi-direction': 'downward',
+                'opacity': 0.7,
+            })
+            .selector('node:selected').style({
+                'border-width': '2px', 'border-color': '#e74c3c',
+            })
+            .selector('.faded').style({ 'opacity': 0.08 })
+            .update();
+
+        // WebCola Layout mit Constraints
+        var colaLayout = cy.layout({
+            name:           'cola',
+            animate:        true,
+            animationDuration: 800,
+            fit:            true,
+            padding:        60,
+            nodeSpacing:    20,
+            edgeLength:     function(e) {
+                var t = e.data('type');
+                if (t === 'hasWife' || t === 'hasExWife') return 60;
+                return 100;
+            },
+            alignment: function(node) {
+                // Ehe-Knoten auf gleicher Höhe wie beide Eheleute
+                if (node.data('nodeType') === 'marriage') return null;
+                return null;
+            },
+            // Eltern über Kindern: Y-Constraint
+            constraints: (function() {
+                var cons = [];
+                cy.edges().forEach(function(e) {
+                    var t = e.data('type');
+                    if (t === 'hasMother' || t === 'hasFather') {
+                        cons.push({
+                            axis: 'y',
+                            left: e.source().id(),
+                            right: e.target().id(),
+                            gap: 100,
+                        });
+                    }
+                });
+                return cons;
+            })(),
+        });
+        colaLayout.run();
+
+        // Personenzähler aktualisieren
+        updateCount(persons.length);
+    });
+
+    // ── PNG-Export ────────────────────────────────────────────
+    document.getElementById('btn-cola-export').addEventListener('click', function() {
+        var png = cy.png({ full: true, scale: 2, bg: '#f8f8f8' });
+        var a   = document.createElement('a');
+        a.href     = png;
+        a.download = 'stammbaum_' + new Date().toISOString().substring(0,10) + '.png';
+        a.click();
+    });
+
+    // Overlay bei Zoom/Pan (leer – kein alter Overlay mehr)
+    cy.on('viewport', function() {});
 
 });
 </script>
