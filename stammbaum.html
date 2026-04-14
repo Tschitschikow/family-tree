@@ -445,6 +445,12 @@
             <span style="color:#e0e0e0">|</span>
             <button class="legend-ctrl-btn" id="legend-none">Keine</button>
         </div>
+        <label style="display:flex; align-items:center; gap:0.4em; font-size:0.78em;
+                       color:#888; margin-bottom:0.4em; cursor:pointer;">
+            <input type="checkbox" id="legend-neighbours" checked
+                   style="width:auto; margin:0; accent-color:#888;">
+            + Nachbarn
+        </label>
         <div id="legend-items"></div>
     </div>
     <div id="timeline"></div>
@@ -1369,8 +1375,10 @@ window.addEventListener('load', function() {
             return;
         }
 
-        // Sichtbare Personen-IDs berechnen:
-        // direkt aktive Familien + deren unmittelbare Nachbarn
+        // Checkbox: Nachbarn (+1 Verbindung) anzeigen?
+        var showNeighbours = document.getElementById('legend-neighbours').checked;
+
+        // Direkt aktive Familien
         var directIds = new Set();
         cy.nodes().forEach(function(n) {
             if (activeFamilies.has(n.data('family_name'))) {
@@ -1378,23 +1386,37 @@ window.addEventListener('load', function() {
             }
         });
 
+        // Sichtbare IDs: direkt + optional eine Nachbar-Ebene
         var visibleIds = new Set(directIds);
-        cy.edges().forEach(function(e) {
-            var s = e.source().id(), t = e.target().id();
-            if (directIds.has(s)) visibleIds.add(t);
-            if (directIds.has(t)) visibleIds.add(s);
-        });
+        if (showNeighbours) {
+            cy.edges().forEach(function(e) {
+                var s = e.source().id(), t = e.target().id();
+                if (directIds.has(s)) visibleIds.add(t);
+                if (directIds.has(t)) visibleIds.add(s);
+            });
+        }
 
         // Opacity setzen – Positionen bleiben unverändert
+        // Nachbarn etwas transparenter als direkte Treffer
         cy.nodes().forEach(function(n) {
-            n.style('opacity', visibleIds.has(n.id()) ? 1 : 0.04);
+            var id = n.id();
+            if (directIds.has(id))      n.style('opacity', 1);
+            else if (visibleIds.has(id)) n.style('opacity', 0.45);
+            else                         n.style('opacity', 0.04);
         });
         cy.edges().forEach(function(e) {
             var s = e.source().id(), t = e.target().id();
-            var vis = visibleIds.has(s) && visibleIds.has(t);
-            e.style('opacity', vis ? 1 : 0);
+            var bothDirect   = directIds.has(s)   && directIds.has(t);
+            var bothVisible  = visibleIds.has(s)   && visibleIds.has(t);
+            e.style('opacity', bothDirect ? 1 : bothVisible ? 0.3 : 0);
         });
     }
+
+    // Checkbox-Änderung sofort anwenden
+    document.addEventListener('DOMContentLoaded', function() {
+        var cb = document.getElementById('legend-neighbours');
+        if (cb) cb.addEventListener('change', function() { applyFamilyFilter(); });
+    });
 
     function buildLegend(persons) {
         var families = {};
