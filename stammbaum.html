@@ -1412,9 +1412,8 @@ window.addEventListener('load', function() {
     }
 
     // Checkbox-Änderung sofort anwenden
-    document.addEventListener('DOMContentLoaded', function() {
-        var cb = document.getElementById('legend-neighbours');
-        if (cb) cb.addEventListener('change', function() { applyFamilyFilter(); });
+    document.getElementById('legend-neighbours').addEventListener('change', function() {
+        applyFamilyFilter();
     });
 
     function buildLegend(persons) {
