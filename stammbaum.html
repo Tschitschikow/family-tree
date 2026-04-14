@@ -477,8 +477,8 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/webcola@3.4.0/WebCola/cola.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
+<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
+<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 
 <script>
 // ── Farb-System: dynamisches Regenbogenspektrum ─────────────────
@@ -1934,10 +1934,10 @@ geb. ' + p.maiden_name;
             .selector('node[nodeType = "marriage"][?ex]').style({
                 'background-color': '#cccccc',
             })
-            .selector('edge[type = "hasWife"], edge[type = "hasExWife"]').style({
+            .selector('edge[type = "hasWife"]').style({
                 'line-color': '#e8c84a', 'width': 2,
                 'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                'line-style': 'data(ex)', 'curve-style': 'straight',
+                'line-style': 'solid', 'curve-style': 'straight',
                 'opacity': 0.8,
             })
             .selector('edge[type = "hasExWife"]').style({
@@ -2006,8 +2006,6 @@ geb. ' + p.maiden_name;
         a.click();
     });
 
-    // Overlay bei Zoom/Pan (leer – kein alter Overlay mehr)
-    cy.on('viewport', function() {});
 
 });
 </script>
