@@ -585,8 +585,8 @@ window.addEventListener('load', function() {
 
     function loadData() {
         Promise.all([
-            client.from('persons').select('*').eq('status', 'approved'),
-            client.from('relationships').select('*').eq('status', 'approved'),
+            client.from('persons').select('*'),
+            client.from('relationships').select('*'),
         ]).then(function(results) {
             if (results[0].error || results[1].error) {
                 document.getElementById('status-bar').textContent = 'Fehler beim Laden.';

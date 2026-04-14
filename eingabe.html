@@ -462,7 +462,6 @@ window.addEventListener('load', function() {
             .select('id, display_name, family_name, given_name, sex, maiden_name, ' +
                     'birth_date, birth_date_estimated, death_date, death_date_estimated, ' +
                     'birth_place, death_place, profession')
-            .eq('status', 'approved')
             .order('family_name')
             .then(function(result) {
                 if (result.error) return;
@@ -594,9 +593,8 @@ window.addEventListener('load', function() {
         relCount = 0;
 
         client.from('relationships')
-            .select('id, person_id, related_person_id, relationship_type, status')
+            .select('id, person_id, related_person_id, relationship_type')
             .or('person_id.eq.' + personId + ',related_person_id.eq.' + personId)
-            .eq('status', 'approved')
             .then(function(result) {
                 if (result.error || !result.data.length) return;
 
@@ -692,11 +690,11 @@ window.addEventListener('load', function() {
     window.removeRel = function(id) {
         var el = document.getElementById('rel-block-' + id);
         if (!el) return;
-        // Wenn bestehende Beziehung: in DB auf 'rejected' setzen
+        // Wenn bestehende Beziehung: aus DB löschen
         if (el.dataset.existing === '1' && el.dataset.relId) {
             var relId = Number(el.dataset.relId);
             client.from('relationships')
-                .update({ status: 'rejected' })
+                .delete()
                 .eq('id', relId)
                 .then(function(result) {
                     if (!result.error) {
@@ -759,7 +757,6 @@ window.addEventListener('load', function() {
             birth_place:           document.getElementById('p-birthplace').value.trim() || null,
             death_place:           document.getElementById('p-deathplace').value.trim() || null,
             profession:            document.getElementById('p-profession').value.trim() || null,
-            status:                'approved',
         };
 
         client.from('persons').insert([newPerson]).select().then(function(result) {
@@ -905,12 +902,8 @@ window.addEventListener('load', function() {
                 }
             }
 
-            if (forward) {
-                rels.push(Object.assign({ status: 'approved' }, forward));
-            }
-            if (backward) {
-                rels.push(Object.assign({ status: 'approved' }, backward));
-            }
+            if (forward)  rels.push(forward);
+            if (backward) rels.push(backward);
         });
         return rels;
     }
