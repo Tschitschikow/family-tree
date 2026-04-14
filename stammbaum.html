@@ -532,7 +532,7 @@ window.addEventListener('load', function() {
         cy = cytoscape({
             container:        document.getElementById('cy'),
             elements:         [],
-            wheelSensitivity: 0.1,   // sanfteres Zoomen (Standard: 1.0)
+            wheelSensitivity: 0.2,   // sanfteres Zoomen (Standard: 1.0)
             style: [
                 {
                     selector: 'node',
@@ -1261,26 +1261,40 @@ window.addEventListener('load', function() {
     var activeFamilies = new Set();
 
     function applyFamilyFilter() {
-        // Wenn keine aktiv → alle zeigen
-        if (activeFamilies.size === 0) {
-            applyFilter(allPersons, allRels);
+        if (!cy) return;
+
+        // Alle Familien aktiv → alles einblenden, fertig
+        if (activeFamilies.size === allFamilyNames.length) {
+            cy.nodes().style('opacity', 1);
+            cy.edges().style('opacity', 1);
             return;
         }
-        // Direkt passende Personen
-        var direct = allPersons.filter(function(p) {
-            return activeFamilies.has(p.family_name);
+
+        // Sichtbare Personen-IDs berechnen:
+        // direkt aktive Familien + deren unmittelbare Nachbarn
+        var directIds = new Set();
+        cy.nodes().forEach(function(n) {
+            if (activeFamilies.has(n.data('family_name'))) {
+                directIds.add(n.id());
+            }
         });
-        var directIds = new Set(direct.map(function(p) { return p.id; }));
-        // Eine Nachbar-Ebene (Verbindungen zu anderen Familien sichtbar halten)
-        var neighbourIds = new Set();
-        allRels.forEach(function(r) {
-            if (directIds.has(r.person_id))         neighbourIds.add(r.related_person_id);
-            if (directIds.has(r.related_person_id)) neighbourIds.add(r.person_id);
+
+        var visibleIds = new Set(directIds);
+        cy.edges().forEach(function(e) {
+            var s = e.source().id(), t = e.target().id();
+            if (directIds.has(s)) visibleIds.add(t);
+            if (directIds.has(t)) visibleIds.add(s);
         });
-        var neighbours = allPersons.filter(function(p) {
-            return neighbourIds.has(p.id) && !directIds.has(p.id);
+
+        // Opacity setzen – Positionen bleiben unverändert
+        cy.nodes().forEach(function(n) {
+            n.style('opacity', visibleIds.has(n.id()) ? 1 : 0.04);
         });
-        applyFilter(direct.concat(neighbours), allRels);
+        cy.edges().forEach(function(e) {
+            var s = e.source().id(), t = e.target().id();
+            var vis = visibleIds.has(s) && visibleIds.has(t);
+            e.style('opacity', vis ? 1 : 0);
+        });
     }
 
     function buildLegend(persons) {
@@ -1350,7 +1364,7 @@ window.addEventListener('load', function() {
                 item.querySelector('.legend-cb').checked = true;
                 item.classList.remove('dimmed');
             });
-            applyFilter(allPersons, allRels);
+            applyFamilyFilter();
         };
         document.getElementById('legend-none').onclick = function() {
             activeFamilies = new Set();
@@ -1358,7 +1372,7 @@ window.addEventListener('load', function() {
                 item.querySelector('.legend-cb').checked = false;
                 item.classList.add('dimmed');
             });
-            applyFilter([], allRels);
+            applyFamilyFilter();
         };
     }
 
