@@ -754,7 +754,8 @@ window.addEventListener('load', function() {
 
         cy.on('grabon', 'node', function(e) {
             var lv = document.getElementById('layout-select').value;
-            if (lv === 'timeline' || lv === 'generations') {
+            var colaOpen = document.getElementById('cola-panel').classList.contains('open');
+            if (lv === 'timeline' || lv === 'generations' || colaOpen) {
                 _lockedY    = e.target.position('y');
                 _isDragging = true;
             }
@@ -1922,10 +1923,13 @@ window.addEventListener('load', function() {
             }
         });
 
-        // ── Zeitachse ausblenden ─────────────────────────────
+        // ── Zeitachse + SVG-Linien ausblenden ────────────────
         document.getElementById('timeline').style.display = 'none';
         var tlSvg = document.getElementById('tl-svg');
         while (tlSvg.firstChild) tlSvg.removeChild(tlSvg.firstChild);
+        // gen-overlay ebenfalls leeren
+        var genOv = document.getElementById('gen-overlay');
+        if (genOv) genOv.innerHTML = '';
 
         // ── Cytoscape aufbauen + Styles setzen ───────────────
         cy.elements().remove();
@@ -1977,27 +1981,38 @@ window.addEventListener('load', function() {
             .selector('node:selected').style({ 'border-width': '2px', 'border-color': '#e74c3c' })
             .update();
 
-        // ── Manuelle Positionierung ───────────────────────────
-        // Algorithmus:
-        //   1. BFS von Wurzeln → Generationsebene pro Person
-        //   2. Rekursive Breitenberechnung: Breite einer Person =
-        //      max(NODE_W, Summe der Kindbreiten)
-        //   3. X-Positionen top-down zuweisen, Kinder mittig unter Ehe-Knoten
-        //   4. Ehepaare: Partner direkt nebeneinander, Ehe-Knoten mittig
-        //   5. Gleiche Generation = gleiche Y (streng)
+        // ── Raster-Positionierung ─────────────────────────────
+        // Schritt 1: Feste Y-Tabelle aus genUp/genDown aufbauen.
+        //   Level 0               = älteste Vorfahren (genUp Ebenen über Anker)
+        //   Level genUp           = Ankerperson
+        //   Level genUp+genDown   = jüngste Nachkommen
+        // Y ist damit VOLLSTÄNDIG durch Level bestimmt – keine Heuristik.
+        //
+        // Schritt 2: Jede Person bekommt ihr Level per BFS vom Anker aus.
+        //   Vorfahren: Anker ist Kind → Eltern haben Level anchorLevel-1, usw.
+        //   Nachkommen: Anker ist Elternteil → Kinder haben anchorLevel+1, usw.
+        //
+        // Schritt 3: Pro Level werden alle Personen gesammelt.
+        //   Breitenberechnung: rekursiv, Ehepaar als Einheit.
+        //   X-Verteilung: Kinder mittig unter Ehe-Knoten, gleiche Abstände.
 
-        var NODE_W  = 120;
-        var NODE_H  = 46;
-        var H_GAP   = 24;   // Abstand zwischen Geschwistern
-        var SP_GAP  = 10;   // Abstand zwischen Eheleuten
-        var V_GAP   = 100;  // Abstand zwischen Generationen
-        var PAD     = 60;
+        var NODE_W   = 120;
+        var NODE_H   = 46;
+        var H_GAP    = 28;
+        var SP_GAP   = 12;
+        var V_GAP    = 110;
+        var PAD      = 60;
+        var anchorLv = genUp;   // Ankerperson sitzt auf diesem Level
 
-        // Eltern-Kind-Map aufbauen (Quelle: edges im elements-Array)
-        // parentOf[id] = [childId, ...]  (id kann Ehe-Knoten oder Person sein)
-        // childSrc[childId] = sourceId   (Ehe-Knoten oder Elternteil)
-        var parentOf = {};   // id → [childId]
-        var childSrc = {};   // childId → sourceId (Ehe-Knoten oder Elternteil)
+        // ── Schritt A: Hilfsmaps aufbauen ─────────────────────
+
+        // childrenOf[srcId] = [childId, ...]
+        // srcId ist Ehe-Knoten (wenn vorhanden) oder direkt Elternteil
+        var childrenOf = {};
+        // parentSrc[childId] = srcId  (woher kommt das Kind)
+        var parentSrc  = {};
+        // parentPersons[childId] = [personId, ...]  (Elternpersonen)
+        var parentPersons = {};
 
         elements.forEach(function(el) {
             if (el.group !== 'edges') return;
@@ -2005,160 +2020,237 @@ window.addEventListener('load', function() {
             if (t !== 'hasMother' && t !== 'hasFather') return;
             var src = String(el.data.source);
             var tgt = String(el.data.target);
-            if (!parentOf[src]) parentOf[src] = [];
-            // Doppelte Kinder vermeiden (hasMother + hasFather vom gleichen Ehe-Knoten)
-            if (parentOf[src].indexOf(tgt) < 0) parentOf[src].push(tgt);
-            // Merke Quelle des Kindes (Ehe-Knoten hat Vorrang über einzelnen Elternteil)
-            if (!childSrc[tgt] || String(src).indexOf('marriage_') === 0) {
-                childSrc[tgt] = src;
-            }
+            if (!childrenOf[src]) childrenOf[src] = [];
+            if (childrenOf[src].indexOf(tgt) < 0) childrenOf[src].push(tgt);
+            // Ehe-Knoten hat Vorrang als parentSrc
+            if (!parentSrc[tgt] || src.indexOf('marriage_') === 0) parentSrc[tgt] = src;
+            if (!parentPersons[tgt]) parentPersons[tgt] = [];
+            // Nur echte Personen eintragen
+            if (src.indexOf('marriage_') < 0) parentPersons[tgt].push(src);
         });
 
-        // Ehepartner-Map aufbauen (hasWife/hasExWife edges zum Ehe-Knoten)
-        var spouseOf = {};  // personId → marriageId
+        // spouseOf[personId] = marriageId
+        var spouseOf = {};
         Object.values(marriageNodes).forEach(function(m) {
             spouseOf[String(m.p1)] = m.id;
             spouseOf[String(m.p2)] = m.id;
         });
 
-        // Generationsebene per BFS
-        var genLevel = {};
-        var allPersonNodeIds = elements
+        // ── Schritt B: Level per BFS vom Anker ────────────────
+        // Anker sitzt auf anchorLv.
+        // Vorfahren: Level anchorLv-1, anchorLv-2, ...
+        // Nachkommen: Level anchorLv+1, anchorLv+2, ...
+        // Y[level] = PAD + level * (NODE_H + V_GAP)  ← fest, keine Heuristik
+
+        var allPersonIds = elements
             .filter(function(e) { return e.group === 'nodes' && String(e.data.id).indexOf('marriage_') < 0; })
             .map(function(e) { return String(e.data.id); });
 
-        // Wurzeln: Personen ohne eigenen childSrc-Eintrag
-        var roots = allPersonNodeIds.filter(function(id) { return !childSrc[id]; });
-        if (roots.length === 0) roots = [allPersonNodeIds[0]]; // Fallback
+        var levelOf = {};   // personId → level (Integer, 0 = oberste Zeile)
+        levelOf[String(anchorId)] = anchorLv;
 
-        var queue = [];
-        roots.forEach(function(id) { genLevel[id] = 0; queue.push(id); });
-
-        while (queue.length > 0) {
-            var cur = queue.shift();
-            var lvl = genLevel[cur];
-            // Direkte Kinder
-            (parentOf[cur] || []).forEach(function(childId) {
-                var g = lvl + 1;
-                if (genLevel[childId] === undefined || genLevel[childId] < g) {
-                    genLevel[childId] = g;
-                    queue.push(childId);
+        // BFS abwärts (Nachkommen)
+        var downQ = [String(anchorId)];
+        while (downQ.length > 0) {
+            var cur = downQ.shift();
+            var lv  = levelOf[cur];
+            var src = spouseOf[cur] || cur;
+            (childrenOf[src] || []).forEach(function(cId) {
+                if (levelOf[cId] === undefined) {
+                    levelOf[cId] = lv + 1;
+                    downQ.push(cId);
                 }
             });
-            // Kinder über Ehe-Knoten
-            var mId = spouseOf[cur];
-            if (mId) {
-                genLevel[mId] = lvl;  // Ehe-Knoten gleiche Ebene
-                (parentOf[mId] || []).forEach(function(childId) {
-                    var g = lvl + 1;
-                    if (genLevel[childId] === undefined || genLevel[childId] < g) {
-                        genLevel[childId] = g;
-                        queue.push(childId);
-                    }
-                });
-            }
         }
 
-        // Fehlende Knoten → Ebene 0
-        allPersonNodeIds.forEach(function(id) {
-            if (genLevel[id] === undefined) genLevel[id] = 0;
-        });
-
-        // Maximale Ebene
-        var maxGen = 0;
-        allPersonNodeIds.forEach(function(id) {
-            if (genLevel[id] > maxGen) maxGen = genLevel[id];
-        });
-
-        // ── Rekursive Breitenberechnung ───────────────────────
-        // subtreeWidth(id): wie viel horizontalen Platz braucht dieser Teilbaum?
-        // Berücksichtigt: Ehepartner direkt daneben + alle Kinder darunter
-
-        var widthCache = {};
-        function subtreeWidth(id) {
-            if (widthCache[id] !== undefined) return widthCache[id];
-
-            var mId = spouseOf[id];
-            // Direkte Kinder-Quellen (Ehe-Knoten oder direkt)
-            var childSource = mId || id;
-            var children = (parentOf[childSource] || []).filter(function(c) {
-                return String(c).indexOf('marriage_') < 0;
-            });
-
-            var myW;
-            if (children.length === 0) {
-                // Blatt: eigene Breite + ggf. Ehepartner nebeneinander
-                myW = mId ? (NODE_W * 2 + SP_GAP) : NODE_W;
+        // BFS aufwärts (Vorfahren): von jedem bekannten Knoten zu seinen Eltern
+        var allKnown = Object.keys(levelOf).slice();
+        var upQ = allKnown.slice();
+        while (upQ.length > 0) {
+            var cur = upQ.shift();
+            var lv  = levelOf[cur];
+            var src = parentSrc[cur];
+            if (!src) continue;
+            // src kann Ehe-Knoten sein → dann beide Partner hoch
+            if (src.indexOf('marriage_') === 0) {
+                var m = Object.values(marriageNodes).find(function(mv) { return mv.id === src; });
+                if (m) {
+                    [String(m.p1), String(m.p2)].forEach(function(pid) {
+                        if (levelOf[pid] === undefined) {
+                            levelOf[pid] = lv - 1;
+                            upQ.push(pid);
+                        }
+                    });
+                }
             } else {
-                var childrenW = children.reduce(function(sum, cId) {
-                    return sum + subtreeWidth(cId);
-                }, 0) + Math.max(0, children.length - 1) * H_GAP;
-                var coupleW = mId ? (NODE_W * 2 + SP_GAP) : NODE_W;
-                myW = Math.max(coupleW, childrenW);
+                if (levelOf[src] === undefined) {
+                    levelOf[src] = lv - 1;
+                    upQ.push(src);
+                }
             }
-            widthCache[id] = myW;
-            return myW;
         }
 
-        // ── X-Positionen top-down zuweisen ───────────────────
+        // Fallback: alle noch nicht zugewiesenen Personen auf Ebene anchorLv
+        allPersonIds.forEach(function(id) {
+            if (levelOf[id] === undefined) levelOf[id] = anchorLv;
+        });
+
+        // Ehe-Knoten: Level = Level des am höchsten stehenden Partners
+        // (= kleinstes Level = weiter oben)
+        Object.values(marriageNodes).forEach(function(m) {
+            var lp1 = levelOf[String(m.p1)];
+            var lp2 = levelOf[String(m.p2)];
+            if (lp1 === undefined) lp1 = anchorLv;
+            if (lp2 === undefined) lp2 = anchorLv;
+            // Eheleute MÜSSEN auf gleichem Level sein → nimm Minimum (weiter oben)
+            var sharedLv = Math.min(lp1, lp2);
+            levelOf[String(m.p1)] = sharedLv;
+            levelOf[String(m.p2)] = sharedLv;
+            levelOf[m.id]         = sharedLv;
+        });
+
+        // ── Schritt C: Y-Werte hart aus Level-Tabelle ─────────
+        // yFor[level] = pixel-Y – unveränderlich
+        function yFor(lv) {
+            return PAD + lv * (NODE_H + V_GAP) + NODE_H / 2;
+        }
+
+        // ── Schritt D: Raster aufbauen ────────────────────────
+        // Ermittle alle belegten Levels und wie breit jedes Level ist
+        var minLv = anchorLv, maxLv = anchorLv;
+        allPersonIds.forEach(function(id) {
+            var lv = levelOf[id];
+            if (lv < minLv) minLv = lv;
+            if (lv > maxLv) maxLv = lv;
+        });
+
+        // Personen pro Level (nur "Hauptpersonen" – nicht der Ehepartner, der
+        // durch seinen Partner bereits platziert wird)
+        // Strategie: Jede Person ist entweder "Primär" oder "Sekundär" (Ehepartner).
+        // Primär = hat Kinder ODER hat keinen Ehepartner ODER ist zuerst in der Liste.
+        var primary   = new Set();
+        var secondary = new Set();
+        allPersonIds.forEach(function(id) {
+            if (secondary.has(id)) return;
+            var mId = spouseOf[id];
+            if (mId) {
+                var m = Object.values(marriageNodes).find(function(mv) { return mv.id === mId; });
+                if (m) {
+                    var other = String(m.p1) === id ? String(m.p2) : String(m.p1);
+                    if (!primary.has(other)) {
+                        primary.add(id);
+                        secondary.add(other);
+                    } else {
+                        secondary.add(id);
+                    }
+                }
+            } else {
+                primary.add(id);
+            }
+        });
+
+        // Kinder eines Ehe-Knotens / einer Person (nur primäre Kinder)
+        function primaryChildren(srcId) {
+            return (childrenOf[srcId] || []).filter(function(c) {
+                return c.indexOf('marriage_') < 0 && primary.has(c);
+            });
+        }
+
+        // ── Schritt E: Breitenberechnung (rekursiv) ───────────
+        var widthCache = {};
+        function subtreeW(id) {
+            if (widthCache[id] !== undefined) return widthCache[id];
+            var mId      = spouseOf[id];
+            var srcId    = mId || id;
+            var children = primaryChildren(srcId);
+            var coupleW  = mId ? (NODE_W * 2 + SP_GAP) : NODE_W;
+            var w;
+            if (children.length === 0) {
+                w = coupleW;
+            } else {
+                var childW = children.reduce(function(s, c) { return s + subtreeW(c); }, 0)
+                             + Math.max(0, children.length - 1) * H_GAP;
+                w = Math.max(coupleW, childW);
+            }
+            widthCache[id] = w;
+            return w;
+        }
+
+        // ── Schritt F: X-Positionen top-down zuweisen ─────────
         var posMap = {};
 
-        function assignX(id, centerX) {
-            if (posMap[id]) return;  // bereits gesetzt
-            var lvl = genLevel[id] || 0;
-            var y   = PAD + lvl * (NODE_H + V_GAP) + NODE_H / 2;
+        function placeNode(id, centerX) {
+            if (posMap[id]) return;
+            var lv  = levelOf[id] !== undefined ? levelOf[id] : anchorLv;
+            var y   = yFor(lv);
             var mId = spouseOf[id];
 
-            if (mId && !posMap[id]) {
-                // Ehepaar: id links, Partner rechts, Ehe-Knoten mittig
-                var m = marriageNodes[Object.keys(marriageNodes).find(function(k) {
-                    return marriageNodes[k].id === mId;
-                })];
-                if (!m) { m = Object.values(marriageNodes).find(function(mv) { return mv.id === mId; }); }
+            if (mId) {
+                var m = Object.values(marriageNodes).find(function(mv) { return mv.id === mId; });
                 var otherId = m ? (String(m.p1) === id ? String(m.p2) : String(m.p1)) : null;
-
-                posMap[id] = { x: centerX - NODE_W / 2 - SP_GAP / 2, y: y };
+                // Ehepaar: links – Ehe-Knoten – rechts
+                posMap[id]  = { x: centerX - NODE_W / 2 - SP_GAP / 2, y: y };
+                posMap[mId] = { x: centerX, y: y };
                 if (otherId && !posMap[otherId]) {
                     posMap[otherId] = { x: centerX + NODE_W / 2 + SP_GAP / 2, y: y };
                 }
-                posMap[mId] = { x: centerX, y: y };
-            } else if (!posMap[id]) {
+            } else {
                 posMap[id] = { x: centerX, y: y };
             }
 
-            // Kinder verteilen
-            var childSource = mId || id;
-            var children = (parentOf[childSource] || []).filter(function(c) {
-                return String(c).indexOf('marriage_') < 0;
-            });
+            // Kinder mittig unter diesem Knoten/Ehe-Knoten platzieren
+            var srcId    = mId || id;
+            var children = primaryChildren(srcId);
             if (children.length === 0) return;
 
-            var totalChildW = children.reduce(function(sum, cId) {
-                return sum + subtreeWidth(cId);
-            }, 0) + Math.max(0, children.length - 1) * H_GAP;
-
-            var startX = centerX - totalChildW / 2;
+            var totalW = children.reduce(function(s, c) { return s + subtreeW(c); }, 0)
+                         + Math.max(0, children.length - 1) * H_GAP;
+            var x = centerX - totalW / 2;
             children.forEach(function(cId) {
-                var cw = subtreeWidth(cId);
-                assignX(cId, startX + cw / 2);
-                startX += cw + H_GAP;
+                var cw = subtreeW(cId);
+                placeNode(cId, x + cw / 2);
+                x += cw + H_GAP;
             });
         }
 
-        // Alle Wurzeln positionieren
-        // Gesamtbreite berechnen für horizontale Zentrierung
-        var totalRootW = roots.reduce(function(sum, r) {
-            return sum + subtreeWidth(r);
-        }, 0) + Math.max(0, roots.length - 1) * H_GAP * 2;
+        // Primäre Wurzeln = primäre Personen auf minLv ohne parentSrc
+        var gridRoots = allPersonIds.filter(function(id) {
+            return primary.has(id) && levelOf[id] === minLv;
+        });
+        if (gridRoots.length === 0) {
+            // Fallback: alle primären Personen auf minLv
+            gridRoots = allPersonIds.filter(function(id) { return levelOf[id] === minLv; });
+        }
 
+        var totalRootW = gridRoots.reduce(function(s, r) { return s + subtreeW(r); }, 0)
+                         + Math.max(0, gridRoots.length - 1) * H_GAP * 2;
         var rx = PAD + totalRootW / 2;
-        roots.forEach(function(r) {
-            var rw = subtreeWidth(r);
-            assignX(r, rx);
+        gridRoots.forEach(function(r) {
+            var rw = subtreeW(r);
+            placeNode(r, rx);
             rx += rw + H_GAP * 2;
         });
 
-        // ── Positionen auf Cytoscape-Knoten anwenden ─────────
+        // Noch nicht platzierte Personen (z.B. zugezogene Partner ohne eigene Linie)
+        allPersonIds.forEach(function(id) {
+            if (!posMap[id]) {
+                var lv = levelOf[id] !== undefined ? levelOf[id] : anchorLv;
+                posMap[id] = { x: PAD + 50, y: yFor(lv) };
+            }
+        });
+        Object.values(marriageNodes).forEach(function(m) {
+            if (!posMap[m.id]) {
+                var lv = levelOf[m.id] !== undefined ? levelOf[m.id] : anchorLv;
+                var pos1 = posMap[String(m.p1)];
+                var pos2 = posMap[String(m.p2)];
+                posMap[m.id] = {
+                    x: pos1 && pos2 ? (pos1.x + pos2.x) / 2 : (pos1 ? pos1.x : PAD),
+                    y: yFor(lv),
+                };
+            }
+        });
+
+        // ── Schritt G: Positionen setzen ─────────────────────
         cy.nodes().forEach(function(n) {
             var p = posMap[n.id()];
             if (p) n.position({ x: p.x, y: p.y });
