@@ -345,7 +345,6 @@ window.addEventListener('load', function() {
     function loadData() {
         client.from('persons')
             .select('id, display_name, birth_date, death_date, birth_place, death_place, birth_date_estimated, death_date_estimated')
-            .eq('status', 'approved')
             .then(function(result) {
                 if (result.error) {
                     alert('Fehler beim Laden: ' + result.error.message);
