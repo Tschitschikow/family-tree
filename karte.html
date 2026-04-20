@@ -4,150 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Karte – Bahrs Familie</title>
-
-    <!-- Leaflet CSS muss VOR allem anderen stehen -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html, body {
-            height: 100%;
-            font-family: Georgia, serif;
-            background: #fdf8f0;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-        }
-
-        header {
-            background: #5a3e2b;
-            color: white;
-            padding: 0.8em 2em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
+        html, body { height: 100%; font-family: Georgia, serif; background: #fdf8f0; }
+        body { display: flex; flex-direction: column; }
+        header { background: #5a3e2b; color: white; padding: 0.8em 2em; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         header h1 { font-size: 1.2em; }
-        #logout-btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.4);
-            color: white;
-            padding: 0.4em 1em;
-            border-radius: 5px;
-            cursor: pointer;
-            font-family: Georgia, serif;
-        }
+        #logout-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.4em 1em; border-radius: 5px; cursor: pointer; font-family: Georgia, serif; }
         #logout-btn:hover { background: rgba(255,255,255,0.3); }
-
-        #toolbar {
-            background: #f0e8dc;
-            border-bottom: 1px solid #ddd;
-            padding: 0.6em 1.5em;
-            display: flex;
-            align-items: center;
-            gap: 1em;
-            flex-wrap: wrap;
-            flex-shrink: 0;
-        }
+        #toolbar { background: #f0e8dc; border-bottom: 1px solid #ddd; padding: 0.6em 1.5em; display: flex; align-items: center; gap: 1em; flex-wrap: wrap; flex-shrink: 0; }
         #toolbar label { font-size: 0.9em; color: #5a3e2b; }
-
-        .tool-btn {
-            padding: 0.4em 0.9em;
-            background: #5a3e2b;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-family: Georgia, serif;
-        }
+        .tool-btn { padding: 0.4em 0.9em; background: #5a3e2b; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; }
         .tool-btn:hover { background: #7a5e4b; }
-
-        .toggle-btn {
-            padding: 0.35em 0.8em;
-            border: 1px solid #5a3e2b;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-family: Georgia, serif;
-            background: white;
-            color: #5a3e2b;
-        }
+        .toggle-btn { padding: 0.35em 0.8em; border: 1px solid #5a3e2b; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; background: white; color: #5a3e2b; }
         .toggle-btn.active { background: #5a3e2b; color: white; }
-
-        #progress-wrap {
-            display: none;
-            align-items: center;
-            gap: 0.6em;
-            font-size: 0.85em;
-            color: #5a3e2b;
-        }
+        #progress-wrap { display: none; align-items: center; gap: 0.6em; font-size: 0.85em; color: #5a3e2b; }
         #progress-wrap.visible { display: flex; }
-        #progress-bar-outer {
-            width: 150px; height: 8px;
-            background: #ddd; border-radius: 4px; overflow: hidden;
-        }
-        #progress-bar-inner {
-            height: 100%; background: #5a3e2b;
-            border-radius: 4px; width: 0%; transition: width 0.2s;
-        }
-
+        #progress-bar-outer { width: 150px; height: 8px; background: #ddd; border-radius: 4px; overflow: hidden; }
+        #progress-bar-inner { height: 100%; background: #5a3e2b; border-radius: 4px; width: 0%; transition: width 0.2s; }
         #stats { font-size: 0.85em; color: #888; margin-left: auto; }
-
-        /* Karte bekommt den ganzen restlichen Platz */
-        #map {
-            flex: 1;
-            width: 100%;
-            /* explizite Mindesthöhe damit Leaflet den Container sieht */
-            min-height: 300px;
-        }
-
-        /* Legende */
-        .map-legend {
-            background: rgba(255,255,255,0.95);
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0.8em 1.1em;
-            font-size: 0.82em;
-            font-family: Georgia, serif;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            line-height: 1.8em;
-        }
+        #map { flex: 1; width: 100%; min-height: 300px; }
+        .map-legend { background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 8px; padding: 0.8em 1.1em; font-size: 0.82em; font-family: Georgia, serif; box-shadow: 0 2px 8px rgba(0,0,0,0.12); line-height: 1.8em; }
         .map-legend h4 { color: #5a3e2b; margin-bottom: 0.3em; }
         .legend-row { display: flex; align-items: center; gap: 0.5em; }
-        .legend-dot {
-            width: 12px; height: 12px; border-radius: 50%;
-            flex-shrink: 0; border: 2px solid rgba(0,0,0,0.25);
-        }
-        .line-tooltip {
-            background: rgba(255,255,255,0.9);
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: Georgia, serif;
-            font-size: 0.82em;
-            color: #5a3e2b;
-            padding: 2px 6px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-        }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.25); }
+        .line-tooltip { background: rgba(255,255,255,0.9); border: 1px solid #ccc; border-radius: 4px; font-family: Georgia, serif; font-size: 0.82em; color: #5a3e2b; padding: 2px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
     </style>
 </head>
 <body>
-
 <header>
     <h1>🗺️ Bahrs Familie – Orte</h1>
     <nav style="display:flex; gap:1em; align-items:center;">
-        <a href="stammbaum.html"
-           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
-           🌳 Stammbaum
-        </a>
+        <a href="stammbaum.html" style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">🌳 Stammbaum</a>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
-
 <div id="toolbar">
     <label>Anzeigen:</label>
     <button class="toggle-btn active" id="toggle-birth">🔵 Geburtsorte</button>
@@ -156,41 +48,30 @@
     <button class="toggle-btn active"  id="toggle-lines">〰️ Lebenslinien</button>
     <div id="progress-wrap">
         <span id="progress-text">Lade Orte...</span>
-        <div id="progress-bar-outer">
-            <div id="progress-bar-inner"></div>
-        </div>
+        <div id="progress-bar-outer"><div id="progress-bar-inner"></div></div>
     </div>
     <span id="stats"></span>
 </div>
-
-<!-- Karte – muss im DOM stehen BEVOR Leaflet initialisiert wird -->
 <div id="map"></div>
-
-<!-- Supabase + Leaflet JS -->
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-// ── Manueller Korrektur-Cache ─────────────────────────────────────
-// Orte die Nominatim nicht findet oder falsch platziert.
-// Koordinaten: openstreetmap.org → Rechtsklick → "Was ist hier?"
+
 var manualCache = {
     'Ahle':                       { lat: 52.1946531,  lng:  8.5113448 },
     'Bad Schwartau':              { lat: 53.9196435,  lng: 10.6978692 },
     'Bahrenfleth':                { lat: 53.8745951,  lng:  9.4408474 },
     'Berlin':                     { lat: 52.5173885,  lng: 13.3951309 },
     'Blangenmoor':                { lat: 53.9261805,  lng:  9.1894091 },
-    // 'Börtgenhagen':            { lat: ???,         lng: ???         },  // nicht gefunden
     'Bössow':                     { lat: 53.9190988,  lng: 11.2158834 },
     'Brodau, Schashagen':         { lat: 54.1139706,  lng: 10.9010389 },
-    'Bür':                        { lat: 46.0533463,  lng: 11.4566004 },
     'Burg/D.':                    { lat: 51.1375247,  lng:  7.1519803 },
     'Ciry-Salsogne, Soissons':    { lat: 49.3613,     lng:  3.46174   },
     'Darry':                      { lat: 54.3123365,  lng: 10.5710349 },
     'Datteln':                    { lat: 51.651468,   lng:  7.3385906 },
     'Düsseldorf':                 { lat: 51.2254018,  lng:  6.7763137 },
-    'Düssin':                     { lat: 53.9210478,  lng: 14.7390662 },
+    'Düssin, Mecklenburg-Vorpommern': { lat: 53.9210478, lng: 14.7390662 },
     'Elmshorn':                   { lat: 53.7532486,  lng:  9.6524559 },
     'Ennigloh':                   { lat: 52.2054344,  lng:  8.5620635 },
     'Essen':                      { lat: 51.4582235,  lng:  7.0158171 },
@@ -225,7 +106,7 @@ var manualCache = {
     'Marne':                      { lat: 48.961264,   lng:  4.3122436 },
     'Mölln':                      { lat: 53.62892,    lng: 10.6880174 },
     'Muccum':                     { lat: 52.2212435,  lng:  8.5374879 },
-    'Neuenkirchen':               { lat: 45.6221024,  lng: 11.0295169 },
+    'Neuenkirchen, Kreis Dithmarschen': { lat: 54.2035, lng: 9.0791  },
     'Niebüll':                    { lat: 54.7869088,  lng:  8.8255846 },
     'Nortorf':                    { lat: 54.1684689,  lng:  9.8559648 },
     'Ochsenhals':                 { lat: 54.1503358,  lng: 10.6782968 },
@@ -233,8 +114,6 @@ var manualCache = {
     'Oldenburg':                  { lat: 53.1389753,  lng:  8.2146017 },
     'Oldenburg/H.':               { lat: 53.1451047,  lng:  8.2231279 },
     'Oldenswort':                 { lat: 54.3712288,  lng:  8.9411522 },
-    'Orjol':                      { lat: 52.9709262,  lng: 36.0642127 },
-    'Orjol Znamenka':             { lat: 52.89608,    lng: 35.986679  },
     'oрёл':                       { lat: 52.9709262,  lng: 36.0642127 },
     'oрёл знаменка':              { lat: 52.89608,    lng: 35.986679  },
     'Ostkilver':                  { lat: 52.2146416,  lng:  8.4890168 },
@@ -242,7 +121,7 @@ var manualCache = {
     'Ostrohe':                    { lat: 54.2146656,  lng:  9.1284721 },
     'Pansdorf':                   { lat: 50.6285541,  lng: 12.1176076 },
     'Pforzheim':                  { lat: 48.890934,   lng:  8.7025509 },
-    'Pölitz':                     { lat: 53.5486435,  lng: 14.5657399 },
+    'Pölitz, Schleswig-Holstein': { lat: 53.5486435,  lng: 14.5657399 },
     'Potsdam':                    { lat: 52.4009309,  lng: 13.0591397 },
     'Puls':                       { lat: 54.0835679,  lng:  9.5156084 },
     'Ratzeburg':                  { lat: 53.7011061,  lng: 10.774288  },
@@ -256,7 +135,7 @@ var manualCache = {
     'Seegalendorf, Eutin':        { lat: 54.3120838,  lng: 10.9516438 },
     'Spenge':                     { lat: 52.1419264,  lng:  8.4830331 },
     'St. Michaelisdonn':          { lat: 53.9833,     lng:  9.11667   },
-    'Stegen':                     { lat: 47.9815491,  lng:  7.9641532 },
+    'Stegen, Schleswig-Holstein': { lat: 54.2350,     lng: 10.0217    },
     'Stellshagen':                { lat: 53.9455447,  lng: 11.1382675 },
     'Stendorf':                   { lat: 50.7189985,  lng:  9.828059  },
     'Stockelsdorf':               { lat: 53.8981783,  lng: 10.6437687 },
@@ -267,7 +146,7 @@ var manualCache = {
     'Thesdorf':                   { lat: 53.6440678,  lng:  9.8143358 },
     'Treufeld':                   { lat: 54.2550505,  lng: 10.4762863 },
     'Vergünne, Lüneburg':         { lat: 53.14811,    lng: 11.09475   },
-    'Werfen':                     { lat: 47.4859287,  lng: 13.1063536 },
+    'Werfen, Kreis Herford':      { lat: 52.1850,     lng:  8.6200    },
     'Wesseln':                    { lat: 54.2094293,  lng:  9.0763054 },
     'Westerbüttel':               { lat: 53.9171592,  lng:  9.151358  },
     'Westkilver':                 { lat: 52.2209429,  lng:  8.4626567 },
@@ -276,13 +155,12 @@ var manualCache = {
     'Zarnekau':                   { lat: 54.1375301,  lng: 10.6873062 },
     'Zühr':                       { lat: 53.4371465,  lng: 11.0278604 },
     'залегощ':                    { lat: 52.90242,    lng: 36.893154  },
-}
+};
 
 window.addEventListener('load', function() {
 
     var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Geocoding-Cache vorbelegen mit manuellen Einträgen
     var geoCache = {};
     Object.keys(manualCache).forEach(function(place) {
         geoCache[place] = manualCache[place];
@@ -292,12 +170,8 @@ window.addEventListener('load', function() {
     var showDeath = true;
     var showLines = true;
 
-    // ── Auth ─────────────────────────────────────────────────────
     client.auth.getSession().then(function(result) {
-        if (!result.data.session) {
-            window.location.href = 'login.html';
-            return;
-        }
+        if (!result.data.session) { window.location.href = 'login.html'; return; }
         initMap();
     });
 
@@ -305,26 +179,21 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // ── Leaflet Karte ─────────────────────────────────────────────
     var map = null;
     var birthLayer = null;
     var deathLayer = null;
     var linesLayer = null;
 
     function initMap() {
-        // Leaflet initialisieren
         map = L.map('map').setView([53.5, 10.0], 6);
-
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
             maxZoom: 19,
         }).addTo(map);
-
         birthLayer = L.layerGroup().addTo(map);
         deathLayer = L.layerGroup().addTo(map);
         linesLayer = L.layerGroup().addTo(map);
 
-        // Legende als Leaflet-Control
         var legend = L.control({ position: 'bottomright' });
         legend.onAdd = function() {
             var div = L.DomUtil.create('div', 'map-legend');
@@ -336,83 +205,62 @@ window.addEventListener('load', function() {
             return div;
         };
         legend.addTo(map);
-
-        // Karte ist fertig – Daten laden
         loadData();
     }
 
-    // ── Daten laden ───────────────────────────────────────────────
     function loadData() {
         client.from('persons')
             .select('id, display_name, birth_date, death_date, birth_place, death_place, birth_date_estimated, death_date_estimated')
             .then(function(result) {
-                if (result.error) {
-                    alert('Fehler beim Laden: ' + result.error.message);
-                    return;
-                }
+                if (result.error) { alert('Fehler beim Laden: ' + result.error.message); return; }
                 var persons = result.data;
-
-                // Einzigartige Orte sammeln
-                // trim() entfernt führende/nachfolgende Leerzeichen
                 var placesSet = {};
                 persons.forEach(function(p) {
-                    if (p.birth_place) {
-                        p.birth_place = p.birth_place.trim();
-                        placesSet[p.birth_place] = true;
-                    }
-                    if (p.death_place) {
-                        p.death_place = p.death_place.trim();
-                        placesSet[p.death_place] = true;
-                    }
+                    if (p.birth_place) { p.birth_place = p.birth_place.trim(); placesSet[p.birth_place] = true; }
+                    if (p.death_place) { p.death_place = p.death_place.trim(); placesSet[p.death_place] = true; }
                 });
-                var places = Object.keys(placesSet);
-
-                geocodePlaces(places, persons);
+                geocodePlaces(Object.keys(placesSet), persons);
             });
     }
 
-    // ── Geocoding (Nominatim, 1 Anfrage/Sekunde) ──────────────────
+    // ── Geocoding ─────────────────────────────────────────────────
+    // Bekannte Orte (manualCache) sofort rendern.
+    // Unbekannte Orte per Nominatim im Hintergrund nachladen.
     function geocodePlaces(places, persons) {
-        var total    = places.length;
         var progWrap = document.getElementById('progress-wrap');
         var progText = document.getElementById('progress-text');
         var progBar  = document.getElementById('progress-bar-inner');
 
-        if (total === 0) { renderMarkers(persons); return; }
+        // Sofort mit bereits bekannten Orten rendern
+        renderMarkers(persons);
+
+        // Nur unbekannte Orte per Nominatim suchen
+        var unknown = places.filter(function(p) { return !geoCache.hasOwnProperty(p); });
+        if (unknown.length === 0) return;
+
+        var total = unknown.length;
         progWrap.classList.add('visible');
 
         function geocodeNext(index) {
-            if (index >= places.length) {
+            if (index >= unknown.length) {
                 progWrap.classList.remove('visible');
                 renderMarkers(persons);
                 return;
             }
-
-            var place = places[index];
+            var place = unknown[index];
             progText.textContent = place + ' (' + (index + 1) + '/' + total + ')';
             progBar.style.width  = Math.round((index + 1) / total * 100) + '%';
 
-            // Bereits bekannt (manuell oder vorher geocoded)?
-            if (geoCache.hasOwnProperty(place)) {
-                setTimeout(function() { geocodeNext(index + 1); }, 0);
-                return;
-            }
-
             var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' +
                       encodeURIComponent(place);
-
             fetch(url, { headers: { 'Accept-Language': 'de' } })
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.length > 0) {
-                        geoCache[place] = {
-                            lat: parseFloat(data[0].lat),
-                            lng: parseFloat(data[0].lon),
-                        };
+                        geoCache[place] = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
                     } else {
                         geoCache[place] = null;
                     }
-                    // Rate-Limit: 1.1 Sekunden warten
                     setTimeout(function() { geocodeNext(index + 1); }, 1100);
                 })
                 .catch(function() {
@@ -420,16 +268,12 @@ window.addEventListener('load', function() {
                     setTimeout(function() { geocodeNext(index + 1); }, 1100);
                 });
         }
-
         geocodeNext(0);
     }
 
-    // ── Marker setzen ─────────────────────────────────────────────
     function renderMarkers(persons) {
         birthLayer.clearLayers();
         deathLayer.clearLayers();
-
-        // Pro Ort: Personen sammeln
         var byBirth = {};
         var byDeath = {};
         persons.forEach(function(p) {
@@ -443,25 +287,20 @@ window.addEventListener('load', function() {
             }
         });
 
-        // Geburtsorte – blau
         Object.keys(byBirth).forEach(function(place) {
-            var geo   = geoCache[place];
-            var pList = byBirth[place];
-            var r     = 7 + Math.min(pList.length * 2, 12);
+            var geo = geoCache[place]; var pList = byBirth[place];
+            var r = 7 + Math.min(pList.length * 2, 12);
             var m = L.circleMarker([geo.lat, geo.lng], {
-                radius: r, color: '#1a5f9e', fillColor: '#3388ff',
-                fillOpacity: 0.75, weight: 2,
+                radius: r, color: '#1a5f9e', fillColor: '#3388ff', fillOpacity: 0.75, weight: 2,
             });
             m.bindPopup(buildPopup(place, pList, 'birth'));
             birthLayer.addLayer(m);
         });
 
-        // Sterbeorte – rot (leicht versetzt wenn Ort auch Geburtsort)
         Object.keys(byDeath).forEach(function(place) {
-            var geo      = geoCache[place];
-            var pList    = byDeath[place];
-            var isBoth   = byBirth[place] !== undefined;
-            var r        = 7 + Math.min(pList.length * 2, 12);
+            var geo = geoCache[place]; var pList = byDeath[place];
+            var isBoth = byBirth[place] !== undefined;
+            var r = 7 + Math.min(pList.length * 2, 12);
             var m = L.circleMarker([geo.lat + (isBoth ? 0.004 : 0), geo.lng], {
                 radius: r,
                 color:       isBoth ? '#6c1e8f' : '#c0392b',
@@ -472,29 +311,19 @@ window.addEventListener('load', function() {
             deathLayer.addLayer(m);
         });
 
-        // Lebenslinien: Geburtsort → Sterbeort pro Person
         linesLayer.clearLayers();
         persons.forEach(function(p) {
             if (!p.birth_place || !p.death_place) return;
-            if (p.birth_place === p.death_place) return;  // gleicher Ort → keine Linie
-            var geoB = geoCache[p.birth_place];
-            var geoD = geoCache[p.death_place];
+            if (p.birth_place === p.death_place) return;
+            var geoB = geoCache[p.birth_place]; var geoD = geoCache[p.death_place];
             if (!geoB || !geoD) return;
-
-            var line = L.polyline(
-                [[geoB.lat, geoB.lng], [geoD.lat, geoD.lng]],
-                {
-                    color:     '#5a3e2b',
-                    weight:    1,
-                    opacity:   0.35,
-                    dashArray: '4 4',   // fein gestrichelt
-                }
-            );
+            var line = L.polyline([[geoB.lat, geoB.lng], [geoD.lat, geoD.lng]], {
+                color: '#5a3e2b', weight: 1, opacity: 0.35, dashArray: '4 4',
+            });
             line.bindTooltip(p.display_name, { sticky: true, className: 'line-tooltip' });
             linesLayer.addLayer(line);
         });
 
-        // Statistik
         var notFound = Object.keys(geoCache).filter(function(k) { return geoCache[k] === null; });
         var statsEl  = document.getElementById('stats');
         statsEl.textContent =
@@ -502,23 +331,22 @@ window.addEventListener('load', function() {
             Object.keys(byDeath).length + ' Sterbeorte' +
             (notFound.length > 0 ? ' · ' + notFound.length + ' nicht gefunden' : '');
         if (notFound.length > 0) {
-            statsEl.title  = 'Nicht gefunden:\n' + notFound.join('\n');
+            statsEl.title = 'Nicht gefunden:\n' + notFound.join('\n');
             statsEl.style.cursor = 'help';
             statsEl.style.color  = '#c0392b';
+        } else {
+            statsEl.style.color = '#888';
         }
 
         fitAll();
     }
 
-    // ── Popup-Inhalt ──────────────────────────────────────────────
     function buildPopup(place, persons, type) {
         var html = '<div style="font-family:Georgia,serif; max-width:220px;">';
         html += '<b style="color:#5a3e2b;">📍 ' + place + '</b><br>';
         html += '<span style="font-size:0.82em; color:#888;">' +
                 (type === 'birth' ? '🔵 Geburtsort' : '🔴 Sterbeort') +
-                ' · ' + persons.length + ' Person' + (persons.length > 1 ? 'en' : '') +
-                '</span>';
-
+                ' · ' + persons.length + ' Person' + (persons.length > 1 ? 'en' : '') + '</span>';
         persons.slice(0, 8).forEach(function(p) {
             html += '<hr style="margin:0.3em 0; border-color:#eee;">';
             html += '<div style="font-size:0.88em;"><b>' + p.display_name + '</b><br>';
@@ -530,56 +358,43 @@ window.addEventListener('load', function() {
             }
             html += '</div>';
         });
-
         if (persons.length > 8) {
-            html += '<div style="font-size:0.78em;color:#aaa;margin-top:0.3em;">… und ' +
-                    (persons.length - 8) + ' weitere</div>';
+            html += '<div style="font-size:0.78em;color:#aaa;margin-top:0.3em;">… und ' + (persons.length - 8) + ' weitere</div>';
         }
         html += '</div>';
         return html;
     }
 
-    // ── Auf alle Marker einzoomen ─────────────────────────────────
     function fitAll() {
         var pts = [];
         birthLayer.eachLayer(function(l) { pts.push(l.getLatLng()); });
         deathLayer.eachLayer(function(l) { pts.push(l.getLatLng()); });
-        if (pts.length > 0) {
-            map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
-        }
+        if (pts.length > 0) map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
     }
 
     document.getElementById('fit-btn').addEventListener('click', fitAll);
 
-    // ── Layer ein-/ausblenden ─────────────────────────────────────
     document.getElementById('toggle-birth').addEventListener('click', function() {
         showBirth = !showBirth;
         this.classList.toggle('active', showBirth);
-        if (showBirth) birthLayer.addTo(map);
-        else map.removeLayer(birthLayer);
+        if (showBirth) birthLayer.addTo(map); else map.removeLayer(birthLayer);
     });
-
     document.getElementById('toggle-death').addEventListener('click', function() {
         showDeath = !showDeath;
         this.classList.toggle('active', showDeath);
-        if (showDeath) deathLayer.addTo(map);
-        else map.removeLayer(deathLayer);
+        if (showDeath) deathLayer.addTo(map); else map.removeLayer(deathLayer);
     });
-
     document.getElementById('toggle-lines').addEventListener('click', function() {
         showLines = !showLines;
         this.classList.toggle('active', showLines);
-        if (showLines) linesLayer.addTo(map);
-        else map.removeLayer(linesLayer);
+        if (showLines) linesLayer.addTo(map); else map.removeLayer(linesLayer);
     });
 
-    // ── Datum formatieren ─────────────────────────────────────────
     function formatDate(d) {
         if (!d) return '';
         var parts = d.split('T')[0].split('-');
         return parts.length === 3 ? parts[2] + '.' + parts[1] + '.' + parts[0] : d;
     }
-
 });
 </script>
 </body>
