@@ -368,7 +368,6 @@
     <select id="layout-select">
         <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
-        <option value="cola-dynamic">Organisch &amp; Dynamisch</option>
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
@@ -483,8 +482,6 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
-<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
-<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 
 
 <script>
@@ -568,8 +565,7 @@ window.addEventListener('load', function() {
     let showParent  = true;
     let showMarried = true;
     let showSiblings = true;
-    var repulsionValue  = 40000000;
-    var activeLayout    = null;  // laufende Layout-Instanz (für cola-dynamic stop)
+    var repulsionValue = 40000000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
@@ -1223,12 +1219,6 @@ window.addEventListener('load', function() {
     function runLayout(name) {
         if (!cy || cy.nodes().length === 0) return;
 
-        // Laufende Layout-Instanz stoppen (wichtig für cola infinite)
-        if (activeLayout) {
-            try { activeLayout.stop(); } catch(e) {}
-            activeLayout = null;
-        }
-
         // Zeitachse ein/ausblenden
         var tlDiv = document.getElementById('timeline');
         tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
@@ -1296,12 +1286,12 @@ window.addEventListener('load', function() {
                 minTemp: 1.0,
                 randomize: true,
             };
-            activeLayout = cy.layout(coseConfig);
-            activeLayout.on('layoutstop', function() {
+            var layout = cy.layout(coseConfig);
+            layout.on('layoutstop', function() {
                 // Y-Koordinaten durch Geburtsjahr ersetzen
                 applyTimelineLayout();
             });
-            activeLayout.run();
+            layout.run();
             return;
         }
 
@@ -1316,21 +1306,6 @@ window.addEventListener('load', function() {
                     gravity: 80,
                     numIter: 1500, initialTemp: 200, coolingFactor: 0.95,
                     minTemp: 1.0, randomize: true,
-                };
-                break;
-            case 'cola-dynamic':
-                // Dynamisches Live-Layout: Nodes ziehen sich an/stoßen ab
-                // infinite: true = Simulation läuft dauerhaft
-                config = {
-                    name:          'cola',
-                    animate:       true,
-                    infinite:      true,   // Live-Physik-Simulation
-                    fit:           true,
-                    padding:       40,
-                    nodeSpacing:   40,     // Mindestabstand zwischen Nodes
-                    edgeLength:    160,    // Ideale Kantenlänge
-                    avoidOverlap:  true,   // Überlappungen verhindern
-                    randomize:     true,
                 };
                 break;
             case 'klay':
@@ -1372,18 +1347,18 @@ window.addEventListener('load', function() {
                 config = { name: name, animate: true, animationDuration: 600 };
         }
 
-        activeLayout = cy.layout(config);
-        activeLayout.on('layoutstop', function() {
+        var layout = cy.layout(config);
+        layout.on('layoutstop', function() {
             cy.nodes().forEach(function(n) {
                 n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
             if (name === 'generations') {
                 applyGenerationsLayout();
-            } else if (name !== 'cola-dynamic') {
+            } else {
                 cy.fit(40);
             }
         });
-        activeLayout.run();
+        layout.run();
     }
 
     // Welche Familien aktuell angezeigt werden
