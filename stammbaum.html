@@ -368,6 +368,7 @@
     <select id="layout-select">
         <option value="timeline">Zeitachse + Organisch</option>
         <option value="cose">Organisch</option>
+        <option value="cola-dynamic">Organisch &amp; Dynamisch</option>
     </select>
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
     <button class="tool-btn" id="reset-filter">Alle zeigen</button>
@@ -482,6 +483,8 @@
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
+<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
+<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 
 
 <script>
@@ -711,7 +714,8 @@ window.addEventListener('load', function() {
                         'color': '#e8c84a',
                     }
                 },
-                { selector: '.faded', style: { 'opacity': 0.08 } }
+                { selector: '.faded',   style: { 'opacity': 0.04 } },
+                { selector: '.faded-2', style: { 'opacity': 0.45 } }
             ],
         });
 
@@ -736,19 +740,45 @@ window.addEventListener('load', function() {
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-panel').style.display    = 'block';
-            cy.elements().addClass('faded');
+
+            // ── 3-Stufen-Opacity beim Node-Klick ─────────────
+            // Stufe 0 (volle Sichtbarkeit): angeklickter Node + direkte Nachbarn + deren Kanten
+            // Stufe 1 (50% transparent):    zweite Nachbarschaft + deren Kanten
+            // Stufe 2 (ausgeblendet):        alle anderen
+
+            // Direkte Nachbarn (1. Ring)
+            var directNeighbours = node.connectedEdges().connectedNodes().not(node);
+            var directEdges      = node.connectedEdges();
+
+            // Zweite Nachbarschaft (2. Ring) – Nachbarn der Nachbarn, ohne Stufe 0
+            var ring2Nodes = directNeighbours.connectedEdges().connectedNodes()
+                                .not(node).not(directNeighbours);
+            var ring2Edges = directNeighbours.connectedEdges()
+                                .not(directEdges)
+                                .filter(function(e) {
+                                    return ring2Nodes.has(e.source()) || ring2Nodes.has(e.target());
+                                });
+
+            // Alles ausblenden
+            cy.elements().removeClass('faded-2').addClass('faded');
+
+            // Stufe 0: volle Sichtbarkeit
             node.removeClass('faded');
-            node.connectedEdges().removeClass('faded');
-            node.connectedEdges().connectedNodes().removeClass('faded');
+            directEdges.removeClass('faded');
+            directNeighbours.removeClass('faded');
+
+            // Stufe 1: 50% transparent
+            ring2Nodes.removeClass('faded').addClass('faded-2');
+            ring2Edges.removeClass('faded').addClass('faded-2');
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
-                cy.elements().removeClass('faded');
+                cy.elements().removeClass('faded').removeClass('faded-2');
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
         document.getElementById('info-close').addEventListener('click', function() {
-            cy.elements().removeClass('faded');
+            cy.elements().removeClass('faded').removeClass('faded-2');
             document.getElementById('info-panel').style.display = 'none';
         });
 
@@ -1306,6 +1336,21 @@ window.addEventListener('load', function() {
                     gravity: 80,
                     numIter: 1500, initialTemp: 200, coolingFactor: 0.95,
                     minTemp: 1.0, randomize: true,
+                };
+                break;
+            case 'cola-dynamic':
+                // Dynamisches Live-Layout: Nodes ziehen sich an/stoßen ab
+                // infinite: true = Simulation läuft dauerhaft
+                config = {
+                    name:          'cola',
+                    animate:       true,
+                    infinite:      true,   // Live-Physik-Simulation
+                    fit:           true,
+                    padding:       40,
+                    nodeSpacing:   40,     // Mindestabstand zwischen Nodes
+                    edgeLength:    160,    // Ideale Kantenlänge
+                    avoidOverlap:  true,   // Überlappungen verhindern
+                    randomize:     true,
                 };
                 break;
             case 'klay':
