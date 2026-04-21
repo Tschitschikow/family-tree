@@ -568,7 +568,8 @@ window.addEventListener('load', function() {
     let showParent  = true;
     let showMarried = true;
     let showSiblings = true;
-    var repulsionValue = 40000000;
+    var repulsionValue  = 40000000;
+    var activeLayout    = null;  // laufende Layout-Instanz (für cola-dynamic stop)
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
@@ -714,8 +715,7 @@ window.addEventListener('load', function() {
                         'color': '#e8c84a',
                     }
                 },
-                { selector: '.faded',   style: { 'opacity': 0.04 } },
-                { selector: '.faded-2', style: { 'opacity': 0.45 } }
+                { selector: '.faded', style: { 'opacity': 0.08 } }
             ],
         });
 
@@ -740,45 +740,19 @@ window.addEventListener('load', function() {
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-panel').style.display    = 'block';
-
-            // ── 3-Stufen-Opacity beim Node-Klick ─────────────
-            // Stufe 0 (volle Sichtbarkeit): angeklickter Node + direkte Nachbarn + deren Kanten
-            // Stufe 1 (50% transparent):    zweite Nachbarschaft + deren Kanten
-            // Stufe 2 (ausgeblendet):        alle anderen
-
-            // Direkte Nachbarn (1. Ring)
-            var directNeighbours = node.connectedEdges().connectedNodes().not(node);
-            var directEdges      = node.connectedEdges();
-
-            // Zweite Nachbarschaft (2. Ring) – Nachbarn der Nachbarn, ohne Stufe 0
-            var ring2Nodes = directNeighbours.connectedEdges().connectedNodes()
-                                .not(node).not(directNeighbours);
-            var ring2Edges = directNeighbours.connectedEdges()
-                                .not(directEdges)
-                                .filter(function(e) {
-                                    return ring2Nodes.has(e.source()) || ring2Nodes.has(e.target());
-                                });
-
-            // Alles ausblenden
-            cy.elements().removeClass('faded-2').addClass('faded');
-
-            // Stufe 0: volle Sichtbarkeit
+            cy.elements().addClass('faded');
             node.removeClass('faded');
-            directEdges.removeClass('faded');
-            directNeighbours.removeClass('faded');
-
-            // Stufe 1: 50% transparent
-            ring2Nodes.removeClass('faded').addClass('faded-2');
-            ring2Edges.removeClass('faded').addClass('faded-2');
+            node.connectedEdges().removeClass('faded');
+            node.connectedEdges().connectedNodes().removeClass('faded');
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
-                cy.elements().removeClass('faded').removeClass('faded-2');
+                cy.elements().removeClass('faded');
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
         document.getElementById('info-close').addEventListener('click', function() {
-            cy.elements().removeClass('faded').removeClass('faded-2');
+            cy.elements().removeClass('faded');
             document.getElementById('info-panel').style.display = 'none';
         });
 
@@ -1249,6 +1223,12 @@ window.addEventListener('load', function() {
     function runLayout(name) {
         if (!cy || cy.nodes().length === 0) return;
 
+        // Laufende Layout-Instanz stoppen (wichtig für cola infinite)
+        if (activeLayout) {
+            try { activeLayout.stop(); } catch(e) {}
+            activeLayout = null;
+        }
+
         // Zeitachse ein/ausblenden
         var tlDiv = document.getElementById('timeline');
         tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
@@ -1316,12 +1296,12 @@ window.addEventListener('load', function() {
                 minTemp: 1.0,
                 randomize: true,
             };
-            var layout = cy.layout(coseConfig);
-            layout.on('layoutstop', function() {
+            activeLayout = cy.layout(coseConfig);
+            activeLayout.on('layoutstop', function() {
                 // Y-Koordinaten durch Geburtsjahr ersetzen
                 applyTimelineLayout();
             });
-            layout.run();
+            activeLayout.run();
             return;
         }
 
@@ -1392,18 +1372,18 @@ window.addEventListener('load', function() {
                 config = { name: name, animate: true, animationDuration: 600 };
         }
 
-        var layout = cy.layout(config);
-        layout.on('layoutstop', function() {
+        activeLayout = cy.layout(config);
+        activeLayout.on('layoutstop', function() {
             cy.nodes().forEach(function(n) {
                 n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
             });
             if (name === 'generations') {
                 applyGenerationsLayout();
-            } else {
+            } else if (name !== 'cola-dynamic') {
                 cy.fit(40);
             }
         });
-        layout.run();
+        activeLayout.run();
     }
 
     // Welche Familien aktuell angezeigt werden
