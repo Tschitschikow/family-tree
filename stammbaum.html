@@ -150,14 +150,16 @@
 
         /* ── Legende: fixer linker Balken neben Graph ── */
         #legend {
-            width: 165px;
+            width: auto;
+            min-width: 140px;
+            max-width: 260px;
             flex-shrink: 0;
             background: #ffffff;
             border-right: 1px solid #e8e8e8;
-            padding: 0.6em 0.7em;
-            font-size: 0.70em;
+            padding: 0.6em 0.9em 0.6em 0.7em;
+            font-size: 0.78em;
             overflow-y: auto;
-            /* kein fixed, kein box-shadow – Teil des Layouts */
+            white-space: nowrap;
         }
         #legend h4 {
             color: #888;
@@ -185,7 +187,7 @@
             border-bottom: 1px solid #f0f0f0; padding-bottom: 0.35em;
         }
         .legend-ctrl-btn {
-            font-size: 0.78em; color: #aaa; background: none; border: none;
+            font-size: 1em; color: #aaa; background: none; border: none;
             cursor: pointer; padding: 0; font-family: inherit;
         }
         .legend-ctrl-btn:hover { color: #555; }
@@ -362,14 +364,14 @@
 
 
 <div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geburt:</span>
-    <input type="number" id="filter-birth-from" placeholder="von" title="Geburtsjahr von" style="width:68px;" min="1600" max="2030" />
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
+    <select id="filter-birth-from" title="Geburtsjahr von" style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">von</option></select>
     <span style="font-size:0.85em; color:#888;">–</span>
-    <input type="number" id="filter-birth-to"   placeholder="bis" title="Geburtsjahr bis" style="width:68px;" min="1600" max="2030" />
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Tod:</span>
-    <input type="number" id="filter-death-from" placeholder="von" title="Sterbejahr von"  style="width:68px;" min="1600" max="2030" />
+    <select id="filter-birth-to"   title="Geburtsjahr bis" style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">bis</option></select>
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Verstorben:</span>
+    <select id="filter-death-from" title="Sterbejahr von"  style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">von</option></select>
     <span style="font-size:0.85em; color:#888;">–</span>
-    <input type="number" id="filter-death-to"   placeholder="bis" title="Sterbejahr bis"  style="width:68px;" min="1600" max="2030" />
+    <select id="filter-death-to"   title="Sterbejahr bis"  style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">bis</option></select>
     <button class="tool-btn" id="reset-filter">Rücksetzen</button>
     <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
@@ -387,7 +389,7 @@
         Geschwister
     </label>
     <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="legend-neighbours" checked style="width:auto;">
+        <input type="checkbox" id="legend-neighbours" style="width:auto;">
         + Nachbarn
     </label>
 
@@ -607,6 +609,7 @@ window.addEventListener('load', function() {
             });
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
+        populateYearSelects(allPersons);
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
@@ -1510,7 +1513,9 @@ window.addEventListener('load', function() {
             dot.style.background = getFamilyColor(name);
 
             var label = document.createElement('span');
-            label.textContent = name;
+            // Title-Case: erster Buchstabe groß, Rest klein
+            label.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            label.title = name; // Original als Tooltip
 
             item.appendChild(cb);
             item.appendChild(dot);
@@ -1546,6 +1551,9 @@ window.addEventListener('load', function() {
         var bt = parseInt(document.getElementById('filter-birth-to').value)   || null;
         var df = parseInt(document.getElementById('filter-death-from').value) || null;
         var dt = parseInt(document.getElementById('filter-death-to').value)   || null;
+        // Wenn von=X und bis leer → exaktes Jahr (bis = von)
+        if (bf && !bt) bt = bf;
+        if (df && !dt) dt = df;
 
         // Kein Jahr angegeben → nur Ebene-1-Filter (Familienname)
         if (!bf && !bt && !df && !dt) {
@@ -1583,14 +1591,39 @@ window.addEventListener('load', function() {
     }
 
     ['filter-birth-from','filter-birth-to','filter-death-from','filter-death-to'].forEach(function(id) {
-        document.getElementById(id).addEventListener('input', applyYearFilter);
+        document.getElementById(id).addEventListener('change', applyYearFilter);
     });
 
+    // Jahres-Selects mit Optionen befüllen (alle vorkommenden Jahre aus Datenbank)
+    function populateYearSelects(persons) {
+        var birthYears = new Set(), deathYears = new Set();
+        persons.forEach(function(p) {
+            if (p.birth_date) birthYears.add(parseInt(p.birth_date.substring(0, 4)));
+            if (p.death_date) deathYears.add(parseInt(p.death_date.substring(0, 4)));
+        });
+        var bySorted = Array.from(birthYears).filter(Boolean).sort(function(a,b){return a-b;});
+        var dySorted = Array.from(deathYears).filter(Boolean).sort(function(a,b){return a-b;});
+
+        function fillSelect(id, years, placeholder) {
+            var sel = document.getElementById(id);
+            sel.innerHTML = '<option value="">' + placeholder + '</option>';
+            years.forEach(function(y) {
+                var o = document.createElement('option');
+                o.value = y; o.textContent = y;
+                sel.appendChild(o);
+            });
+        }
+        fillSelect('filter-birth-from', bySorted, 'von');
+        fillSelect('filter-birth-to',   bySorted, 'bis');
+        fillSelect('filter-death-from', dySorted, 'von');
+        fillSelect('filter-death-to',   dySorted, 'bis');
+    }
+
     document.getElementById('reset-filter').addEventListener('click', function() {
-        document.getElementById('filter-birth-from').value = '';
-        document.getElementById('filter-birth-to').value   = '';
-        document.getElementById('filter-death-from').value = '';
-        document.getElementById('filter-death-to').value   = '';
+        document.getElementById('filter-birth-from').selectedIndex = 0;
+        document.getElementById('filter-birth-to').selectedIndex   = 0;
+        document.getElementById('filter-death-from').selectedIndex = 0;
+        document.getElementById('filter-death-to').selectedIndex   = 0;
         applyFamilyFilter();
     });
 
