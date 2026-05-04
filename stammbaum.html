@@ -265,10 +265,16 @@
             border-bottom: 1px solid #f0f0f0; padding-bottom: 0.35em;
         }
         .legend-ctrl-btn {
-            font-size: 1em; color: #aaa; background: none; border: none;
-            cursor: pointer; padding: 0; font-family: inherit;
+            font-size: 0.82em;
+            color: #444;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 0.25em 0.6em;
+            font-family: inherit;
         }
-        .legend-ctrl-btn:hover { color: #555; }
+        .legend-ctrl-btn:hover { background: #e4e4e4; border-color: #bbb; color: #222; }
         .legend-hint { font-size: 0.78em; color: #ccc; margin-top: 0.4em; font-style: italic; }
 
         /* ── Info-Panel ── */
@@ -1610,7 +1616,9 @@ window.addEventListener('load', function() {
 
             var label = document.createElement('span');
             // Title-Case: erster Buchstabe groß, Rest klein
-            label.textContent = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+            label.textContent = name.split(' ').map(function(w) {
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            }).join(' ');
             label.title = name; // Original als Tooltip
 
             item.appendChild(cb);
