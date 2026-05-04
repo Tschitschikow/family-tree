@@ -69,6 +69,84 @@
             color: #333;
         }
         #filter-name:focus { outline: none; border-color: #aaa; background: white; }
+
+        /* ── Dual-Range-Slider ── */
+        .range-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            user-select: none;
+        }
+        .range-label-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.78em;
+            color: #5a3e2b;
+            font-weight: 500;
+        }
+        .range-label-row span {
+            min-width: 34px;
+            text-align: center;
+        }
+        .range-label-row span.inactive { color: #ccc; }
+        .dual-range {
+            position: relative;
+            width: 140px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .dual-range input[type=range] {
+            position: absolute;
+            width: 100%;
+            height: 4px;
+            background: transparent;
+            appearance: none;
+            -webkit-appearance: none;
+            pointer-events: none;
+            outline: none;
+        }
+        .dual-range input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #5a3e2b;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+            cursor: grab;
+            pointer-events: all;
+        }
+        .dual-range input[type=range]::-moz-range-thumb {
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #5a3e2b;
+            border: 2px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+            cursor: grab;
+            pointer-events: all;
+        }
+        .dual-range input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
+        .range-track {
+            position: absolute;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            width: 100%;
+            top: 50%; transform: translateY(-50%);
+            z-index: 0;
+        }
+        .range-track-fill {
+            position: absolute;
+            height: 4px;
+            background: #5a3e2b;
+            border-radius: 2px;
+            top: 50%; transform: translateY(-50%);
+            z-index: 1;
+            pointer-events: none;
+        }
         #layout-select {
             padding: 0.35em 0.7em;
             border: 1px solid #ddd;
@@ -365,13 +443,31 @@
 
 <div id="toolbar">
     <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
-    <select id="filter-birth-from" title="Geburtsjahr von" style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">von</option></select>
-    <span style="font-size:0.85em; color:#888;">–</span>
-    <select id="filter-birth-to"   title="Geburtsjahr bis" style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">bis</option></select>
+    <div class="range-wrap" id="birth-range-wrap">
+        <div class="range-label-row">
+            <span id="birth-from-label" class="inactive">–</span>
+            <span id="birth-to-label"   class="inactive">–</span>
+        </div>
+        <div class="dual-range" id="birth-dual">
+            <div class="range-track"></div>
+            <div class="range-track-fill" id="birth-fill"></div>
+            <input type="range" id="filter-birth-from" min="1660" max="2030" value="1660" step="1">
+            <input type="range" id="filter-birth-to"   min="1660" max="2030" value="2030" step="1">
+        </div>
+    </div>
     <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Verstorben:</span>
-    <select id="filter-death-from" title="Sterbejahr von"  style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">von</option></select>
-    <span style="font-size:0.85em; color:#888;">–</span>
-    <select id="filter-death-to"   title="Sterbejahr bis"  style="width:76px; font-family:inherit; font-size:0.9em; border:1px solid #ccc; border-radius:4px; padding:2px 4px; background:white;"><option value="">bis</option></select>
+    <div class="range-wrap" id="death-range-wrap">
+        <div class="range-label-row">
+            <span id="death-from-label" class="inactive">–</span>
+            <span id="death-to-label"   class="inactive">–</span>
+        </div>
+        <div class="dual-range" id="death-dual">
+            <div class="range-track"></div>
+            <div class="range-track-fill" id="death-fill"></div>
+            <input type="range" id="filter-death-from" min="1660" max="2030" value="1660" step="1">
+            <input type="range" id="filter-death-to"   min="1660" max="2030" value="2030" step="1">
+        </div>
+    </div>
     <button class="tool-btn" id="reset-filter">Rücksetzen</button>
     <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
@@ -1545,85 +1641,118 @@ window.addEventListener('load', function() {
     // ── Ebene 2: Jahresbereich-Filter ───────────────────────────
     // Läuft NACH applyFamilyFilter – wirkt als UND-Einschränkung
     // auf das was Ebene 1 bereits setzt.
-    function applyYearFilter() {
-        if (!cy) return;
-        var bf = parseInt(document.getElementById('filter-birth-from').value) || null;
-        var bt = parseInt(document.getElementById('filter-birth-to').value)   || null;
-        var df = parseInt(document.getElementById('filter-death-from').value) || null;
-        var dt = parseInt(document.getElementById('filter-death-to').value)   || null;
-        // Wenn von=X und bis leer → exaktes Jahr (bis = von)
-        if (bf && !bt) bt = bf;
-        if (df && !dt) dt = df;
+    // ── Dual-Range-Slider Logik ─────────────────────────────────
+    var sliderActive = { birth: false, death: false };
 
-        // Kein Jahr angegeben → nur Ebene-1-Filter (Familienname)
-        if (!bf && !bt && !df && !dt) {
-            applyFamilyFilter();
-            return;
+    function updateSliderUI(prefix) {
+        var fromEl = document.getElementById('filter-' + prefix + '-from');
+        var toEl   = document.getElementById('filter-' + prefix + '-to');
+        var fill   = document.getElementById(prefix + '-fill');
+        var fromLbl = document.getElementById(prefix + '-from-label');
+        var toLbl   = document.getElementById(prefix + '-to-label');
+        var min = parseInt(fromEl.min), max = parseInt(fromEl.max);
+        var f   = parseInt(fromEl.value), t = parseInt(toEl.value);
+
+        // Kreuzung verhindern
+        if (f > t) { fromEl.value = t; f = t; }
+
+        var pctFrom = (f - min) / (max - min) * 100;
+        var pctTo   = (t - min) / (max - min) * 100;
+        fill.style.left  = pctFrom + '%';
+        fill.style.width = (pctTo - pctFrom) + '%';
+
+        // Labels anzeigen wenn aktiv
+        if (sliderActive[prefix]) {
+            fromLbl.textContent = f;
+            toLbl.textContent   = t;
+            fromLbl.classList.remove('inactive');
+            toLbl.classList.remove('inactive');
+        } else {
+            fromLbl.textContent = '–';
+            toLbl.textContent   = '–';
+            fromLbl.classList.add('inactive');
+            toLbl.classList.add('inactive');
         }
-
-        // Zuerst Familien-Filter setzen (Ebene 1)
-        applyFamilyFilter();
-
-        // Dann: Nodes die den Jahresbereich NICHT erfüllen weiter ausblenden
-        cy.nodes().forEach(function(n) {
-            // Bereits ganz unsichtbar durch Ebene 1 → nicht anfassen
-            if (parseFloat(n.style('opacity')) <= 0.05) return;
-
-            var d = n.data();
-            var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
-            var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
-
-            // SCHNITTMENGE: alle angegebenen Bedingungen müssen erfüllt sein
-            var ok = true;
-            if (bf && !(byear && byear >= bf)) ok = false;
-            if (bt && !(byear && byear <= bt)) ok = false;
-            if (df && !(dyear && dyear >= df)) ok = false;
-            if (dt && !(dyear && dyear <= dt)) ok = false;
-
-            if (!ok) {
-                n.style('opacity', 0.04);
-                // Kanten zu diesem Node ebenfalls ausblenden
-                n.connectedEdges().forEach(function(e) {
-                    e.style('opacity', 0);
-                });
-            }
-        });
     }
 
-    ['filter-birth-from','filter-birth-to','filter-death-from','filter-death-to'].forEach(function(id) {
-        document.getElementById(id).addEventListener('change', applyYearFilter);
-    });
+    function initSlider(prefix, globalMin, globalMax) {
+        var fromEl = document.getElementById('filter-' + prefix + '-from');
+        var toEl   = document.getElementById('filter-' + prefix + '-to');
+        fromEl.min = globalMin; fromEl.max = globalMax; fromEl.value = globalMin;
+        toEl.min   = globalMin; toEl.max   = globalMax; toEl.value   = globalMax;
+        sliderActive[prefix] = false;
+        updateSliderUI(prefix);
 
-    // Jahres-Selects mit Optionen befüllen (alle vorkommenden Jahre aus Datenbank)
+        function onChange() {
+            var f = parseInt(fromEl.value), t = parseInt(toEl.value);
+            if (f > t) { this.value = (this === fromEl) ? t : f; }
+            // Aktiv sobald nicht mehr am vollen Rand
+            sliderActive[prefix] = !(parseInt(fromEl.value) === globalMin && parseInt(toEl.value) === globalMax);
+            updateSliderUI(prefix);
+            applyYearFilter();
+        }
+        fromEl.addEventListener('input', onChange);
+        toEl.addEventListener('input', onChange);
+    }
+
     function populateYearSelects(persons) {
         var birthYears = new Set(), deathYears = new Set();
         persons.forEach(function(p) {
             if (p.birth_date) birthYears.add(parseInt(p.birth_date.substring(0, 4)));
             if (p.death_date) deathYears.add(parseInt(p.death_date.substring(0, 4)));
         });
-        var bySorted = Array.from(birthYears).filter(Boolean).sort(function(a,b){return a-b;});
-        var dySorted = Array.from(deathYears).filter(Boolean).sort(function(a,b){return a-b;});
+        var bMin = Math.min.apply(null, Array.from(birthYears).filter(Boolean));
+        var bMax = Math.max.apply(null, Array.from(birthYears).filter(Boolean));
+        var dMin = Math.min.apply(null, Array.from(deathYears).filter(Boolean));
+        var dMax = Math.max.apply(null, Array.from(deathYears).filter(Boolean));
+        initSlider('birth', bMin, bMax);
+        initSlider('death', dMin, dMax);
+    }
 
-        function fillSelect(id, years, placeholder) {
-            var sel = document.getElementById(id);
-            sel.innerHTML = '<option value="">' + placeholder + '</option>';
-            years.forEach(function(y) {
-                var o = document.createElement('option');
-                o.value = y; o.textContent = y;
-                sel.appendChild(o);
-            });
+    function applyYearFilter() {
+        if (!cy) return;
+        var bf = sliderActive.birth ? parseInt(document.getElementById('filter-birth-from').value) : null;
+        var bt = sliderActive.birth ? parseInt(document.getElementById('filter-birth-to').value)   : null;
+        var df = sliderActive.death ? parseInt(document.getElementById('filter-death-from').value) : null;
+        var dt = sliderActive.death ? parseInt(document.getElementById('filter-death-to').value)   : null;
+
+        // Kein Slider aktiv → nur Familien-Filter
+        if (!bf && !bt && !df && !dt) {
+            applyFamilyFilter();
+            return;
         }
-        fillSelect('filter-birth-from', bySorted, 'von');
-        fillSelect('filter-birth-to',   bySorted, 'bis');
-        fillSelect('filter-death-from', dySorted, 'von');
-        fillSelect('filter-death-to',   dySorted, 'bis');
+
+        // Zuerst Familien-Filter (Ebene 1)
+        applyFamilyFilter();
+
+        // Dann Jahresfilter drauflegen
+        cy.nodes().forEach(function(n) {
+            if (parseFloat(n.style('opacity')) <= 0.05) return;
+            var d = n.data();
+            var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
+            var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
+            var ok = true;
+            if (bf !== null && !(byear && byear >= bf)) ok = false;
+            if (bt !== null && !(byear && byear <= bt)) ok = false;
+            if (df !== null && !(dyear && dyear >= df)) ok = false;
+            if (dt !== null && !(dyear && dyear <= dt)) ok = false;
+            if (!ok) {
+                n.style('opacity', 0.04);
+                n.connectedEdges().forEach(function(e) { e.style('opacity', 0); });
+            }
+        });
     }
 
     document.getElementById('reset-filter').addEventListener('click', function() {
-        document.getElementById('filter-birth-from').selectedIndex = 0;
-        document.getElementById('filter-birth-to').selectedIndex   = 0;
-        document.getElementById('filter-death-from').selectedIndex = 0;
-        document.getElementById('filter-death-to').selectedIndex   = 0;
+        // Slider auf volle Range zurücksetzen
+        ['birth','death'].forEach(function(prefix) {
+            var fromEl = document.getElementById('filter-' + prefix + '-from');
+            var toEl   = document.getElementById('filter-' + prefix + '-to');
+            fromEl.value = fromEl.min;
+            toEl.value   = toEl.max;
+            sliderActive[prefix] = false;
+            updateSliderUI(prefix);
+        });
         applyFamilyFilter();
     });
 
