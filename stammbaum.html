@@ -2512,11 +2512,9 @@ window.addEventListener('load', function() {
             var year = p.birth_date ? p.birth_date.substring(0, 4) : '';
             var dyear = p.death_date ? p.death_date.substring(0, 4) : '';
             var label = (p.given_name || p.display_name);
-            if (p.maiden_name) label += '
-geb. ' + p.maiden_name;
-            if (year)  label += '
-* ' + year;
-            if (dyear) label += '  † ' + dyear;
+            if (p.maiden_name) label += '\ngeb. ' + p.maiden_name;
+            if (year)  label += '\n* ' + year;
+            if (dyear) label += '  \u2020 ' + dyear;
             elements.push({ group: 'nodes', data: {
                 id: String(p.id),
                 label: label,
