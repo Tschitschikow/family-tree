@@ -2378,27 +2378,53 @@ window.addEventListener('load', function() {
             }
         });
 
-        // Alle einzuschließenden Personen bestimmen
-        var included = new Set();
+        // Alle einzuschließenden Personen + ihr Level bestimmen
+        var included = new Set();   // IDs die angezeigt werden
+        var depthOf  = {};          // id → noch verbleibende Aufwärts-Tiefe
 
+        // walkUp: verfolgt Vorfahren-Kette aufwärts
+        // Wichtig: eine Person kann von mehreren Wegen aus gefunden werden
+        // → immer mit dem GRÖSSTEN depth weiterverfolgen (nicht früh abbrechen)
         function walkUp(id, depth) {
-            if (included.has(id)) return;
+            // Erst hinzufügen
             included.add(id);
-            // Ehepartner auf gleicher Ebene
-            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
-            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
+            // Ehepartner immer auf gleicher Ebene mitführen
+            (spousesOf[id]   || []).forEach(function(s) { included.add(s); });
+            (exSpousesOf[id] || []).forEach(function(s) { included.add(s); });
+
+            // Nur aufwärts gehen wenn depth größer als bisher gesehen
+            var prev = depthOf[id];
+            if (prev !== undefined && prev >= depth) return;
+            depthOf[id] = depth;
+
             if (depth > 0) {
-                (parentsOf[id] || []).forEach(function(pid) { walkUp(pid, depth - 1); });
+                // Eltern beider Ehepartner verfolgen
+                var allToTrack = [id];
+                (spousesOf[id]   || []).forEach(function(s) { allToTrack.push(s); });
+                (exSpousesOf[id] || []).forEach(function(s) { allToTrack.push(s); });
+
+                allToTrack.forEach(function(pid_person) {
+                    (parentsOf[pid_person] || []).forEach(function(pid) {
+                        walkUp(pid, depth - 1);
+                    });
+                });
             }
-            if (showSiblings && depth < genUp) {
-                // Geschwister = andere Kinder der Eltern
-                (parentsOf[id] || []).forEach(function(pid) {
-                    (childrenOf[pid] || []).forEach(function(sib) {
-                        if (!included.has(sib)) {
-                            included.add(sib);
-                            // Ehepartner der Geschwister
-                            (spousesOf[sib]  || []).forEach(function(s) { included.add(s); });
-                        }
+
+            // Geschwister: alle Kinder der Eltern auf gleicher Ebene
+            if (showSiblings) {
+                var allToSib = [id];
+                (spousesOf[id]   || []).forEach(function(s) { allToSib.push(s); });
+                (exSpousesOf[id] || []).forEach(function(s) { allToSib.push(s); });
+
+                allToSib.forEach(function(cur) {
+                    (parentsOf[cur] || []).forEach(function(pid) {
+                        (childrenOf[pid] || []).forEach(function(sib) {
+                            if (!included.has(sib)) {
+                                included.add(sib);
+                                (spousesOf[sib]   || []).forEach(function(s) { included.add(s); });
+                                (exSpousesOf[sib] || []).forEach(function(s) { included.add(s); });
+                            }
+                        });
                     });
                 });
             }
@@ -2438,31 +2464,54 @@ window.addEventListener('load', function() {
         }
         setDownLevel(anchorId, genUp);
 
-        // Aufwärts
+        // Aufwärts: Level für alle Vorfahren setzen
+        // Beide Ehepartner werden verfolgt (nicht nur einer)
+        var upVisited = {};
         function setUpLevel(id, lv) {
+            if (upVisited[id] !== undefined && upVisited[id] <= lv) return;
+            upVisited[id] = lv;
             if (levelOf[id] === undefined || levelOf[id] > lv) levelOf[id] = lv;
-            (spousesOf[id]  || []).forEach(function(s) { if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv; });
-            (exSpousesOf[id]|| []).forEach(function(s) { if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv; });
+
+            // Ehepartner auf gleicher Ebene
+            var partners = (spousesOf[id] || []).concat(exSpousesOf[id] || []);
+            partners.forEach(function(s) {
+                if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv;
+            });
+
             if (lv > 0) {
+                // Eltern DIESER Person aufwärts
                 (parentsOf[id] || []).forEach(function(pid) { setUpLevel(pid, lv - 1); });
+                // Eltern der Ehepartner ebenfalls aufwärts
+                partners.forEach(function(s) {
+                    (parentsOf[s] || []).forEach(function(pid) { setUpLevel(pid, lv - 1); });
+                });
             }
         }
         setUpLevel(anchorId, genUp);
 
-        // Geschwister: gleiche Ebene wie deren Hauptperson
-        if (showSiblings) {
-            persons.forEach(function(p) {
-                if (levelOf[p.id] === undefined) {
-                    // Finde Ebene über Eltern
-                    (parentsOf[p.id] || []).forEach(function(pid) {
-                        var parentLv = levelOf[pid];
-                        if (parentLv !== undefined && (levelOf[p.id] === undefined || levelOf[p.id] > parentLv + 1)) {
-                            levelOf[p.id] = parentLv + 1;
+        // Geschwister-Level: gleich wie Ankerperson auf dieser Ebene
+        // Alle included Personen ohne Level → Level über Eltern ableiten
+        persons.forEach(function(p) {
+            if (levelOf[p.id] === undefined) {
+                (parentsOf[p.id] || []).forEach(function(pid) {
+                    var parentLv = levelOf[pid];
+                    if (parentLv !== undefined) {
+                        var sibLv = parentLv + 1;
+                        if (levelOf[p.id] === undefined || levelOf[p.id] > sibLv) {
+                            levelOf[p.id] = sibLv;
                         }
-                    });
-                }
-            });
-        }
+                    }
+                });
+            }
+        });
+        // Ehepartner von Geschwistern auf gleiche Ebene
+        persons.forEach(function(p) {
+            if (levelOf[p.id] !== undefined) {
+                var lv = levelOf[p.id];
+                (spousesOf[p.id]   || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
+                (exSpousesOf[p.id] || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
+            }
+        });
 
         // Ehe-Knoten aufbauen
         var marriageMap = {};  // "min_max" → {id, p1, p2, ex}
@@ -2511,7 +2560,12 @@ window.addEventListener('load', function() {
         persons.forEach(function(p) {
             var year = p.birth_date ? p.birth_date.substring(0, 4) : '';
             var dyear = p.death_date ? p.death_date.substring(0, 4) : '';
-            var label = (p.given_name || p.display_name);
+            // Vollständiger Name: Vorname + Familienname aus display_name
+            var nameParts = (p.display_name || '').split(' ');
+            // display_name ist z.B. "BAHRS Hannes" → "Hannes Bahrs"
+            var fn = nameParts[0] ? nameParts[0].charAt(0) + nameParts[0].slice(1).toLowerCase() : '';
+            var gn = nameParts.slice(1).join(' ');
+            var label = gn ? gn + '\n' + fn : fn;
             if (p.maiden_name) label += '\ngeb. ' + p.maiden_name;
             if (year)  label += '\n* ' + year;
             if (dyear) label += '  \u2020 ' + dyear;
