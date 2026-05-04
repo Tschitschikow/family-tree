@@ -2797,49 +2797,7 @@ window.addEventListener('load', function() {
             }
         });
 
-        // ── Iterativer Überlappungs-Fix (3 Durchläufe) ──────────
-        // Pro Level: Nodes horizontal sortieren und Mindestabstand erzwingen
-        for (var iter = 0; iter < 3; iter++) {
-            // Alle belegten Levels sammeln
-            var byLevel = {};
-            Object.keys(posMap).forEach(function(nid) {
-                // Level bestimmen
-                var lv;
-                if (nid.indexOf('M_') === 0) {
-                    lv = levelOf[nid];
-                } else {
-                    var numId = parseInt(nid);
-                    lv = levelOf[numId] !== undefined ? levelOf[numId] : genUp;
-                }
-                if (lv === undefined) return;
-                if (!byLevel[lv]) byLevel[lv] = [];
-                byLevel[lv].push(nid);
-            });
-
-            Object.keys(byLevel).forEach(function(lv) {
-                var nodes = byLevel[lv];
-                // Nach X sortieren
-                nodes.sort(function(a, b) { return posMap[a].x - posMap[b].x; });
-                // Mindestabstand: zwischen zwei Personen-Nodes NODE_W+H_GAP,
-                // zwischen Person und Ehe-Knoten SP_GAP/2
-                for (var i = 1; i < nodes.length; i++) {
-                    var prev = nodes[i-1], cur = nodes[i];
-                    var isMarriagePrev = prev.indexOf('M_') === 0;
-                    var isMarriageCur  = cur.indexOf('M_')  === 0;
-                    var minDist = (isMarriagePrev || isMarriageCur)
-                        ? SP_GAP / 2 + 5
-                        : NODE_W + H_GAP;
-                    var gap = posMap[cur].x - posMap[prev].x;
-                    if (gap < minDist) {
-                        var shift = minDist - gap;
-                        // Alle Nodes ab cur nach rechts schieben
-                        for (var j = i; j < nodes.length; j++) {
-                            posMap[nodes[j]].x += shift;
-                        }
-                    }
-                }
-            });
-        }
+        // (kein separater Überlappungs-Pass – Layout-Algorithmus hält Abstände bereits ein)
 
         // ── Cytoscape im Overlay aufbauen ─────────────────────
         if (treeCy) { treeCy.destroy(); treeCy = null; }
@@ -2917,44 +2875,46 @@ window.addEventListener('load', function() {
 
         treeCy.on('grabon', 'node', function(e) {
             var grabbed = e.target;
+            var grabbedId = grabbed.id();
             _dragLockedY = grabbed.position('y');
 
-            // Gruppe bestimmen: gegriffener Node + alle verbundenen Partner + Ehe-Knoten
-            var groupIds = new Set();
-            groupIds.add(grabbed.id());
+            // Gruppe: gegriffener Node + alle Ehe-Partner + Ehe-Knoten
+            var groupIds = new Set([grabbedId]);
 
-            // Alle Ehe-Kanten des gegriffenen Nodes
-            grabbed.connectedEdges('[edgeType="married"],[edgeType="ex"]').forEach(function(edge) {
-                var other = edge.source().id() === grabbed.id() ? edge.target() : edge.source();
-                groupIds.add(other.id());
-                // Ehe-Knoten-Nachbarn dieses Partners ebenfalls
-                other.connectedEdges('[edgeType="married"],[edgeType="ex"]').forEach(function(e2) {
-                    var o2 = e2.source().id() === other.id() ? e2.target() : e2.source();
-                    groupIds.add(o2.id());
-                });
-            });
-            // Falls gegriffener Node ein Ehe-Knoten ist
-            if (grabbed.data('nodeType') === 'marriage') {
-                grabbed.connectedEdges('[edgeType="married"],[edgeType="ex"]').forEach(function(edge) {
-                    var other = edge.source().id() === grabbed.id() ? edge.target() : edge.source();
-                    groupIds.add(other.id());
+            function addSpouseGroup(node) {
+                node.connectedEdges('[edgeType="married"],[edgeType="ex"]').forEach(function(edge) {
+                    var other = edge.source().id() === node.id() ? edge.target() : edge.source();
+                    if (!groupIds.has(other.id())) {
+                        groupIds.add(other.id());
+                        addSpouseGroup(other);  // rekursiv für Ketten
+                    }
                 });
             }
+            addSpouseGroup(grabbed);
 
             var grabX = grabbed.position('x');
             _dragGroup = [];
             groupIds.forEach(function(nid) {
-                var n = treeCy.$('#' + CSS.escape(nid));
-                if (n.length > 0) {
+                // Cytoscape-Selektor: ID mit Sonderzeichen escapen
+                var safeId = nid.replace(/([^a-zA-Z0-9_-])/g, '\\$1');
+                var n = treeCy.$('#' + safeId);
+                if (n.length > 0 && n.id() !== grabbedId) {
+                    // Nur Nicht-gegriffene in Gruppe – gegriffener bewegt sich selbst
                     _dragGroup.push({ node: n, offsetX: n.position('x') - grabX });
                 }
             });
         });
 
         treeCy.on('drag', 'node', function(e) {
-            if (!_dragGroup) return;
-            var grabbed = e.target;
-            var newX = grabbed.position('x');
+            if (!_dragGroup || _dragGroup.length === 0) {
+                // Nur Y sperren
+                if (_dragLockedY !== null) e.target.position('y', _dragLockedY);
+                return;
+            }
+            var newX = e.target.position('x');
+            // Y des gegriffenen sperren
+            e.target.position('y', _dragLockedY);
+            // Mitglieder der Gruppe relativ mitbewegen
             _dragGroup.forEach(function(item) {
                 item.node.position({
                     x: newX + item.offsetX,
