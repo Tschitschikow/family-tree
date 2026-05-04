@@ -914,7 +914,7 @@ window.addEventListener('load', function() {
     let allRels    = [];
     let showParent  = true;
     let showMarried = true;
-    let showSiblings = true;
+    let showSiblingsEdges = true;  // globale Edge-Anzeige (nicht Stammbaum-Geschwister)
     var repulsionValue = 40000000;
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
@@ -1645,8 +1645,8 @@ window.addEventListener('load', function() {
                 'label':   showMarried ? 'data(label)' : '',
             })
             .selector('edge[type = "sibling"]').style({
-                'display': showSiblings ? 'element' : 'none',
-                'label':   showSiblings ? 'data(label)' : '',
+                'display': showSiblingsEdges ? 'element' : 'none',
+                'label':   showSiblingsEdges ? 'data(label)' : '',
             })
             .update();
 
@@ -2035,8 +2035,8 @@ window.addEventListener('load', function() {
                 'label':   showMarried  ? 'data(label)' : '',
             })
             .selector('edge[type = "sibling"]').style({
-                'display': showSiblings ? 'element' : 'none',
-                'label':   showSiblings ? 'data(label)' : '',
+                'display': showSiblingsEdges ? 'element' : 'none',
+                'label':   showSiblingsEdges ? 'data(label)' : '',
             })
             .update();
     }
@@ -2050,7 +2050,7 @@ window.addEventListener('load', function() {
         updateEdgeVisibility();
     });
     document.getElementById('show-siblings').addEventListener('change', function() {
-        showSiblings = this.checked;
+        showSiblingsEdges = this.checked;
         updateEdgeVisibility();
     });
 
