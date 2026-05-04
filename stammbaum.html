@@ -275,6 +275,175 @@
             font-family: inherit;
         }
         .legend-ctrl-btn:hover { background: #e4e4e4; border-color: #bbb; color: #222; }
+
+        /* ── Stammbaum-Vollbild-Overlay ── */
+        #tree-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #fdf8f0;
+            z-index: 200;
+            flex-direction: row;
+            overflow: hidden;
+        }
+        #tree-overlay.active { display: flex; }
+
+        /* Schrittweises Setup-Panel links */
+        #tree-setup {
+            width: 280px;
+            min-width: 260px;
+            background: #fff;
+            border-right: 1px solid #e0d4c4;
+            padding: 1.4em 1.2em;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1em;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.06);
+        }
+        #tree-setup h3 {
+            font-family: Georgia, serif;
+            color: #5a3e2b;
+            font-size: 1em;
+            margin: 0 0 0.2em 0;
+            border-bottom: 1px solid #e8d8c4;
+            padding-bottom: 0.4em;
+        }
+        .tree-step {
+            display: none;
+            flex-direction: column;
+            gap: 0.5em;
+        }
+        .tree-step.active { display: flex; }
+        .tree-step label {
+            font-size: 0.85em;
+            color: #5a3e2b;
+            font-weight: 600;
+        }
+        .tree-step p {
+            font-size: 0.78em;
+            color: #888;
+            margin: 0;
+            line-height: 1.4;
+        }
+        .tree-step select, .tree-step input[type=text] {
+            font-family: Georgia, serif;
+            font-size: 0.9em;
+            padding: 0.4em 0.5em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .tree-gen-btns {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .tree-gen-btn {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 2px solid #c8b49a;
+            background: white;
+            color: #5a3e2b;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .tree-gen-btn:hover { background: #f0e8dc; }
+        .tree-gen-btn.selected { background: #5a3e2b; color: white; border-color: #5a3e2b; }
+        .tree-btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 0.3em;
+        }
+        .tree-btn-primary {
+            flex: 1;
+            padding: 0.5em 0.8em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: Georgia, serif;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .tree-btn-primary:hover { background: #7a5e4b; }
+        .tree-btn-secondary {
+            padding: 0.5em 0.8em;
+            background: white;
+            color: #5a3e2b;
+            border: 1px solid #c8b49a;
+            border-radius: 6px;
+            font-family: Georgia, serif;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .tree-btn-secondary:hover { background: #f8f0e8; }
+
+        /* Zurück-Button oben */
+        #tree-close-btn {
+            position: absolute;
+            top: 10px; right: 14px;
+            background: transparent;
+            border: none;
+            font-size: 1.4em;
+            cursor: pointer;
+            color: #999;
+            z-index: 10;
+        }
+        #tree-close-btn:hover { color: #5a3e2b; }
+
+        /* Geschwister-Checkbox */
+        .tree-check-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85em;
+            color: #5a3e2b;
+        }
+        .tree-check-row input { width: auto; }
+
+        /* Zeichenfläche */
+        #tree-canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #fdf8f0;
+        }
+        #tree-cy {
+            position: absolute;
+            inset: 0;
+        }
+        #tree-export-btn {
+            position: absolute;
+            bottom: 18px; right: 18px;
+            padding: 0.5em 1.1em;
+            background: #5a3e2b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: Georgia, serif;
+            font-size: 0.85em;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+            display: none;
+        }
+        #tree-export-btn:hover { background: #7a5e4b; }
+
+        /* Schritt-Fortschritt */
+        #tree-step-indicator {
+            font-size: 0.72em;
+            color: #b0a090;
+            text-align: center;
+        }
+        #tree-anchor-name {
+            font-size: 0.82em;
+            color: #5a3e2b;
+            font-weight: bold;
+            min-height: 1.2em;
+        }
         .legend-hint { font-size: 0.78em; color: #ccc; margin-top: 0.4em; font-style: italic; }
 
         /* ── Info-Panel ── */
@@ -580,6 +749,80 @@
     <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
     <div class="field">Beruf: <span id="info-profession"></span></div>
     <div class="field">Mädchenname: <span id="info-maiden"></span></div>
+</div>
+
+<!-- ── Stammbaum-Vollbild-Overlay ── -->
+<div id="tree-overlay">
+    <div id="tree-setup" style="position:relative;">
+        <button id="tree-close-btn" title="Schließen">✕</button>
+        <h3>🌳 Stammbaum-Ansicht</h3>
+        <div id="tree-step-indicator">Schritt 1 von 4</div>
+
+        <!-- Schritt 1: Ankerperson -->
+        <div class="tree-step active" id="tree-step-1">
+            <label>1. Ankerperson wählen</label>
+            <p>Die gewählte Person wird zur Mitte des Stammbaums.</p>
+            <input type="text" id="tree-anchor-search" placeholder="Name suchen…" autocomplete="off" />
+            <select id="tree-anchor-select" size="8" style="height:180px;"></select>
+            <div id="tree-anchor-name"></div>
+            <div class="tree-btn-row">
+                <button class="tree-btn-primary" id="tree-step1-next">Weiter →</button>
+            </div>
+        </div>
+
+        <!-- Schritt 2: Vorfahren-Generationen -->
+        <div class="tree-step" id="tree-step-2">
+            <label>2. Vorfahren-Generationen</label>
+            <p>Wie viele Generationen aufwärts sollen angezeigt werden?</p>
+            <div class="tree-gen-btns" id="tree-up-btns">
+                <button class="tree-gen-btn" data-val="0">0</button>
+                <button class="tree-gen-btn selected" data-val="1">1</button>
+                <button class="tree-gen-btn" data-val="2">2</button>
+                <button class="tree-gen-btn" data-val="3">3</button>
+                <button class="tree-gen-btn" data-val="4">4</button>
+                <button class="tree-gen-btn" data-val="5">5</button>
+            </div>
+            <div class="tree-btn-row">
+                <button class="tree-btn-secondary" id="tree-step2-back">← Zurück</button>
+                <button class="tree-btn-primary"   id="tree-step2-next">Weiter →</button>
+            </div>
+        </div>
+
+        <!-- Schritt 3: Nachkommen-Generationen -->
+        <div class="tree-step" id="tree-step-3">
+            <label>3. Nachkommen-Generationen</label>
+            <p>Wie viele Generationen abwärts sollen angezeigt werden?</p>
+            <div class="tree-gen-btns" id="tree-down-btns">
+                <button class="tree-gen-btn" data-val="0">0</button>
+                <button class="tree-gen-btn selected" data-val="1">1</button>
+                <button class="tree-gen-btn" data-val="2">2</button>
+                <button class="tree-gen-btn" data-val="3">3</button>
+                <button class="tree-gen-btn" data-val="4">4</button>
+                <button class="tree-gen-btn" data-val="5">5</button>
+            </div>
+            <div class="tree-btn-row">
+                <button class="tree-btn-secondary" id="tree-step3-back">← Zurück</button>
+                <button class="tree-btn-primary"   id="tree-step3-next">Weiter →</button>
+            </div>
+        </div>
+
+        <!-- Schritt 4: Geschwister -->
+        <div class="tree-step" id="tree-step-4">
+            <label>4. Geschwister anzeigen?</label>
+            <p>Geschwister der Ankerperson und aller Vorfahren werden mit angezeigt.</p>
+            <label class="tree-check-row">
+                <input type="checkbox" id="tree-siblings"> Geschwister einblenden
+            </label>
+            <div class="tree-btn-row">
+                <button class="tree-btn-secondary" id="tree-step4-back">← Zurück</button>
+                <button class="tree-btn-primary"   id="tree-draw-btn">🌳 Zeichnen</button>
+            </div>
+        </div>
+    </div>
+    <div id="tree-canvas">
+        <div id="tree-cy"></div>
+        <button id="tree-export-btn">💾 PNG exportieren</button>
+    </div>
 </div>
 
 <script src="config.js"></script>
@@ -2014,27 +2257,481 @@ window.addEventListener('load', function() {
         else       { btn.style.background = ''; btn.style.color = ''; }
     }
 
-    document.getElementById('print-btn').addEventListener('click', function() {
-        if (colaLoaded) { openColaPanel(); return; }
-        // WebCola dynamisch nachladen
-        var s1 = document.createElement('script');
-        s1.src = 'https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js';
-        s1.onload = function() {
-            var s2 = document.createElement('script');
-            s2.src = 'https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js';
-            s2.onload = function() {
-                colaLoaded = true;
-                openColaPanel();
-            };
-            s2.onerror = function() {
-                alert('WebCola konnte nicht geladen werden. Bitte Internetverbindung prüfen.');
-            };
-            document.head.appendChild(s2);
-        };
-        s1.onerror = function() {
-            alert('WebCola konnte nicht geladen werden. Bitte Internetverbindung prüfen.');
-        };
-        document.head.appendChild(s1);
+    // ── Stammbaum-Vollbild-Overlay ──────────────────────────────
+    var treeCy = null;
+    var treeStep = 1;
+    var treeAnchorId = null;
+    var treeGenUp = 1;
+    var treeGenDown = 1;
+
+    function showTreeStep(n) {
+        treeStep = n;
+        for (var i = 1; i <= 4; i++) {
+            document.getElementById('tree-step-' + i).classList.toggle('active', i === n);
+        }
+        document.getElementById('tree-step-indicator').textContent = 'Schritt ' + n + ' von 4';
+    }
+
+    // Anchor-Suche
+    function fillTreeAnchor(filter) {
+        var sel = document.getElementById('tree-anchor-select');
+        sel.innerHTML = '';
+        var sorted = allPersons.slice().sort(function(a, b) {
+            return a.display_name.localeCompare(b.display_name);
+        });
+        var q = (filter || '').trim().toLowerCase();
+        sorted.forEach(function(p) {
+            if (q && p.display_name.toLowerCase().indexOf(q) < 0 &&
+                     (p.given_name || '').toLowerCase().indexOf(q) < 0) return;
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            var year = p.birth_date ? p.birth_date.substring(0, 4) : '?';
+            opt.textContent = p.display_name + ' (*' + year + ')';
+            sel.appendChild(opt);
+        });
+    }
+
+    document.getElementById('tree-anchor-search').addEventListener('input', function() {
+        fillTreeAnchor(this.value);
+    });
+    document.getElementById('tree-anchor-select').addEventListener('change', function() {
+        treeAnchorId = parseInt(this.value);
+        var p = allPersons.find(function(x) { return x.id === treeAnchorId; });
+        document.getElementById('tree-anchor-name').textContent = p ? p.display_name : '';
+    });
+
+    // Gen-Buttons
+    function initGenBtns(containerId, storeFn) {
+        var container = document.getElementById(containerId);
+        container.querySelectorAll('.tree-gen-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                container.querySelectorAll('.tree-gen-btn').forEach(function(b) {
+                    b.classList.remove('selected');
+                });
+                btn.classList.add('selected');
+                storeFn(parseInt(btn.dataset.val));
+            });
+        });
+    }
+    initGenBtns('tree-up-btns',   function(v) { treeGenUp   = v; });
+    initGenBtns('tree-down-btns', function(v) { treeGenDown = v; });
+
+    // Schritt-Navigation
+    document.getElementById('tree-step1-next').addEventListener('click', function() {
+        if (!treeAnchorId) { alert('Bitte eine Person wählen.'); return; }
+        showTreeStep(2);
+    });
+    document.getElementById('tree-step2-back').addEventListener('click', function() { showTreeStep(1); });
+    document.getElementById('tree-step2-next').addEventListener('click', function() { showTreeStep(3); });
+    document.getElementById('tree-step3-back').addEventListener('click', function() { showTreeStep(2); });
+    document.getElementById('tree-step3-next').addEventListener('click', function() { showTreeStep(4); });
+    document.getElementById('tree-step4-back').addEventListener('click', function() { showTreeStep(3); });
+
+    // Overlay öffnen/schließen
+    function openTreeOverlay() {
+        document.getElementById('tree-overlay').classList.add('active');
+        document.getElementById('tree-export-btn').style.display = 'none';
+        showTreeStep(1);
+        fillTreeAnchor('');
+        treeAnchorId = null;
+        document.getElementById('tree-anchor-name').textContent = '';
+        document.getElementById('tree-anchor-search').value = '';
+    }
+    function closeTreeOverlay() {
+        document.getElementById('tree-overlay').classList.remove('active');
+        if (treeCy) { treeCy.destroy(); treeCy = null; }
+    }
+
+    document.getElementById('print-btn').addEventListener('click', openTreeOverlay);
+    document.getElementById('tree-close-btn').addEventListener('click', closeTreeOverlay);
+
+    // ── Stammbaum zeichnen ────────────────────────────────────
+    document.getElementById('tree-draw-btn').addEventListener('click', function() {
+        if (!treeAnchorId) { alert('Bitte Ankerperson wählen.'); return; }
+        var showSiblings = document.getElementById('tree-siblings').checked;
+        drawTreeOverlay(treeAnchorId, treeGenUp, treeGenDown, showSiblings);
+    });
+
+    function drawTreeOverlay(anchorId, genUp, genDown, showSiblings) {
+
+        // Hilfsmaps aus allRels
+        var parentsOf  = {};   // childId → [parentId]
+        var childrenOf = {};   // parentId → [childId]
+        var spousesOf  = {};   // personId → [spouseId]
+        var exSpousesOf = {};  // personId → [exSpouseId]
+
+        allRels.forEach(function(r) {
+            var t = r.relationship_type;
+            if (t === 'hasMother' || t === 'hasFather') {
+                if (!parentsOf[r.person_id])             parentsOf[r.person_id]  = [];
+                if (!childrenOf[r.related_person_id])    childrenOf[r.related_person_id] = [];
+                parentsOf[r.person_id].push(r.related_person_id);
+                childrenOf[r.related_person_id].push(r.person_id);
+            }
+            if (t === 'hasWife' || t === 'hasHusband') {
+                if (!spousesOf[r.person_id]) spousesOf[r.person_id] = [];
+                spousesOf[r.person_id].push(r.related_person_id);
+            }
+            if (t === 'hasExWife' || t === 'hasExHusband') {
+                if (!exSpousesOf[r.person_id]) exSpousesOf[r.person_id] = [];
+                exSpousesOf[r.person_id].push(r.related_person_id);
+            }
+        });
+
+        // Alle einzuschließenden Personen bestimmen
+        var included = new Set();
+
+        function walkUp(id, depth) {
+            if (included.has(id)) return;
+            included.add(id);
+            // Ehepartner auf gleicher Ebene
+            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
+            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
+            if (depth > 0) {
+                (parentsOf[id] || []).forEach(function(pid) { walkUp(pid, depth - 1); });
+            }
+            if (showSiblings && depth < genUp) {
+                // Geschwister = andere Kinder der Eltern
+                (parentsOf[id] || []).forEach(function(pid) {
+                    (childrenOf[pid] || []).forEach(function(sib) {
+                        if (!included.has(sib)) {
+                            included.add(sib);
+                            // Ehepartner der Geschwister
+                            (spousesOf[sib]  || []).forEach(function(s) { included.add(s); });
+                        }
+                    });
+                });
+            }
+        }
+
+        function walkDown(id, depth) {
+            if (depth < 0) return;
+            included.add(id);
+            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
+            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
+            if (depth > 0) {
+                (childrenOf[id] || []).forEach(function(cid) { walkDown(cid, depth - 1); });
+            }
+        }
+
+        walkUp(anchorId, genUp);
+        walkDown(anchorId, genDown);
+
+        var personMap = {};
+        allPersons.forEach(function(p) { personMap[p.id] = p; });
+        var persons = Array.from(included).map(function(id) { return personMap[id]; }).filter(Boolean);
+
+        // Level-Zuweisung: Anker = genUp
+        var levelOf = {};
+        levelOf[anchorId] = genUp;
+
+        // Abwärts
+        function setDownLevel(id, lv) {
+            levelOf[id] = lv;
+            (spousesOf[id]  || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
+            (exSpousesOf[id]|| []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
+            (childrenOf[id] || []).forEach(function(cid) {
+                if (levelOf[cid] === undefined || levelOf[cid] < lv + 1) {
+                    setDownLevel(cid, lv + 1);
+                }
+            });
+        }
+        setDownLevel(anchorId, genUp);
+
+        // Aufwärts
+        function setUpLevel(id, lv) {
+            if (levelOf[id] === undefined || levelOf[id] > lv) levelOf[id] = lv;
+            (spousesOf[id]  || []).forEach(function(s) { if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv; });
+            (exSpousesOf[id]|| []).forEach(function(s) { if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv; });
+            if (lv > 0) {
+                (parentsOf[id] || []).forEach(function(pid) { setUpLevel(pid, lv - 1); });
+            }
+        }
+        setUpLevel(anchorId, genUp);
+
+        // Geschwister: gleiche Ebene wie deren Hauptperson
+        if (showSiblings) {
+            persons.forEach(function(p) {
+                if (levelOf[p.id] === undefined) {
+                    // Finde Ebene über Eltern
+                    (parentsOf[p.id] || []).forEach(function(pid) {
+                        var parentLv = levelOf[pid];
+                        if (parentLv !== undefined && (levelOf[p.id] === undefined || levelOf[p.id] > parentLv + 1)) {
+                            levelOf[p.id] = parentLv + 1;
+                        }
+                    });
+                }
+            });
+        }
+
+        // Ehe-Knoten aufbauen
+        var marriageMap = {};  // "min_max" → {id, p1, p2, ex}
+        allRels.forEach(function(r) {
+            if (r.relationship_type !== 'hasWife' && r.relationship_type !== 'hasExWife') return;
+            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
+            var key = Math.min(r.person_id, r.related_person_id) + '_' +
+                      Math.max(r.person_id, r.related_person_id);
+            if (!marriageMap[key]) {
+                marriageMap[key] = {
+                    id: 'M_' + key,
+                    p1: r.person_id,
+                    p2: r.related_person_id,
+                    ex: r.relationship_type === 'hasExWife',
+                };
+            }
+        });
+
+        // spouseOf[personId] = marriageId
+        var spouseOf = {};
+        Object.values(marriageMap).forEach(function(m) {
+            spouseOf[m.p1] = m.id;
+            spouseOf[m.p2] = m.id;
+            // Ehe-Knoten auf gleicher Ebene wie Eheleute
+            var lv = levelOf[m.p1] !== undefined ? levelOf[m.p1] : levelOf[m.p2];
+            levelOf[m.id] = lv;
+        });
+
+        // Eltern-Kind-Kanten (von Ehe-Knoten oder direkt)
+        var parentSrcOf = {};   // childId → sourceId (Ehe-Knoten oder Person)
+        var childSrcMap = {};   // srcId → [childId]
+        allRels.forEach(function(r) {
+            if (r.relationship_type !== 'hasMother' && r.relationship_type !== 'hasFather') return;
+            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
+            var parentId = r.related_person_id, childId = r.person_id;
+            var mId = spouseOf[parentId];
+            var srcId = mId || parentId;
+            if (!parentSrcOf[childId] || mId) parentSrcOf[childId] = srcId;
+            if (!childSrcMap[srcId]) childSrcMap[srcId] = [];
+            if (childSrcMap[srcId].indexOf(childId) < 0) childSrcMap[srcId].push(childId);
+        });
+
+        // ── Cytoscape-Elemente ────────────────────────────────
+        var elements = [];
+
+        persons.forEach(function(p) {
+            var year = p.birth_date ? p.birth_date.substring(0, 4) : '';
+            var dyear = p.death_date ? p.death_date.substring(0, 4) : '';
+            var label = (p.given_name || p.display_name);
+            if (p.maiden_name) label += '
+geb. ' + p.maiden_name;
+            if (year)  label += '
+* ' + year;
+            if (dyear) label += '  † ' + dyear;
+            elements.push({ group: 'nodes', data: {
+                id: String(p.id),
+                label: label,
+                sex: p.sex,
+                isAnchor: p.id === anchorId,
+                famColor: getFamilyColor(p.family_name),
+                nodeType: 'person',
+            }});
+        });
+
+        Object.values(marriageMap).forEach(function(m) {
+            elements.push({ group: 'nodes', data: {
+                id: m.id, nodeType: 'marriage', ex: m.ex, label: '',
+            }});
+            ['p1', 'p2'].forEach(function(k) {
+                elements.push({ group: 'edges', data: {
+                    id: 'me_' + m.id + '_' + k,
+                    source: String(m[k]), target: m.id,
+                    edgeType: m.ex ? 'ex' : 'married',
+                }});
+            });
+        });
+
+        // Eltern → Kind Kanten (vom Ehe-Knoten oder direkt)
+        var drawnEdges = new Set();
+        allRels.forEach(function(r) {
+            if (r.relationship_type !== 'hasMother' && r.relationship_type !== 'hasFather') return;
+            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
+            var parentId = r.related_person_id, childId = r.person_id;
+            var srcId = parentSrcOf[childId] || String(parentId);
+            var eid = 'pc_' + srcId + '_' + childId;
+            if (drawnEdges.has(eid)) return;
+            drawnEdges.add(eid);
+            elements.push({ group: 'edges', data: {
+                id: eid, source: String(srcId), target: String(childId), edgeType: 'parent',
+            }});
+        });
+
+        // ── Layout berechnen ──────────────────────────────────
+        var NODE_W = 120, NODE_H = 50, H_GAP = 20, SP_GAP = 10, V_GAP = 100, PAD = 60;
+
+        // Primary/Secondary für X-Verteilung
+        var primary = new Set(), secondary = new Set();
+        persons.forEach(function(p) {
+            var id = String(p.id);
+            if (secondary.has(id)) return;
+            var mId = spouseOf[p.id];
+            if (mId) {
+                var m = marriageMap[Object.keys(marriageMap).find(function(k) { return marriageMap[k].id === mId; })];
+                if (m) {
+                    var other = String(m.p1 === p.id ? m.p2 : m.p1);
+                    if (!primary.has(other)) { primary.add(id); secondary.add(other); }
+                    else secondary.add(id);
+                } else primary.add(id);
+            } else primary.add(id);
+        });
+
+        function realChildrenPrimary(srcId) {
+            return (childSrcMap[srcId] || []).filter(function(c) { return primary.has(String(c)); });
+        }
+
+        var wCache = {};
+        function subtreeW(id) {
+            var sid = String(id);
+            if (wCache[sid] !== undefined) return wCache[sid];
+            var mId = spouseOf[parseInt(id)];
+            var src = mId || sid;
+            var coupleW = mId ? NODE_W * 2 + SP_GAP : NODE_W;
+            var kids = realChildrenPrimary(src);
+            var w = kids.length === 0 ? coupleW :
+                Math.max(coupleW, kids.reduce(function(s, c) { return s + subtreeW(c); }, 0)
+                    + Math.max(0, kids.length - 1) * H_GAP);
+            wCache[sid] = w;
+            return w;
+        }
+
+        var posMap = {};
+        function placeNode(id, cx) {
+            var sid = String(id);
+            if (posMap[sid]) return;
+            var lv = levelOf[id] !== undefined ? levelOf[id] : levelOf[sid] !== undefined ? levelOf[sid] : genUp;
+            var y = PAD + lv * (NODE_H + V_GAP) + NODE_H / 2;
+            var mId = spouseOf[parseInt(id)];
+            if (mId) {
+                var mArr = Object.values(marriageMap);
+                var m = mArr.find(function(mv) { return mv.id === mId; });
+                var other = m ? String(m.p1 === parseInt(id) ? m.p2 : m.p1) : null;
+                posMap[sid]  = { x: cx - NODE_W / 2 - SP_GAP / 2, y: y };
+                posMap[mId]  = { x: cx, y: y };
+                if (other && !posMap[other]) posMap[other] = { x: cx + NODE_W / 2 + SP_GAP / 2, y: y };
+            } else {
+                posMap[sid] = { x: cx, y: y };
+            }
+            var src = mId || sid;
+            var kids = realChildrenPrimary(src);
+            if (kids.length === 0) return;
+            var totalW = kids.reduce(function(s, c) { return s + subtreeW(c); }, 0)
+                         + Math.max(0, kids.length - 1) * H_GAP;
+            var x = cx - totalW / 2;
+            kids.forEach(function(cid) {
+                var cw = subtreeW(cid);
+                placeNode(cid, x + cw / 2);
+                x += cw + H_GAP;
+            });
+        }
+
+        // Wurzeln = primäre Personen auf minLv
+        var minLv = Math.min.apply(null, persons.map(function(p) { return levelOf[p.id] !== undefined ? levelOf[p.id] : genUp; }));
+        var roots = persons.filter(function(p) {
+            return primary.has(String(p.id)) && (levelOf[p.id] === minLv || (levelOf[p.id] === undefined && minLv === genUp));
+        }).map(function(p) { return p.id; });
+        if (roots.length === 0) roots = [anchorId];
+
+        var totalRW = roots.reduce(function(s, r) { return s + subtreeW(r); }, 0)
+                      + Math.max(0, roots.length - 1) * H_GAP * 2;
+        var rx = PAD + totalRW / 2;
+        roots.forEach(function(r) {
+            var rw = subtreeW(r);
+            placeNode(r, rx);
+            rx += rw + H_GAP * 2;
+        });
+        // Fallback für noch nicht platzierte Personen
+        persons.forEach(function(p) {
+            var sid = String(p.id);
+            if (!posMap[sid]) {
+                var lv = levelOf[p.id] !== undefined ? levelOf[p.id] : genUp;
+                posMap[sid] = { x: PAD + 50, y: PAD + lv * (NODE_H + V_GAP) + NODE_H / 2 };
+            }
+        });
+        Object.values(marriageMap).forEach(function(m) {
+            if (!posMap[m.id]) {
+                var lv = levelOf[m.id] !== undefined ? levelOf[m.id] : genUp;
+                var a = posMap[String(m.p1)], b = posMap[String(m.p2)];
+                posMap[m.id] = { x: a && b ? (a.x + b.x) / 2 : (a ? a.x : PAD), y: PAD + lv * (NODE_H + V_GAP) + NODE_H / 2 };
+            }
+        });
+
+        // ── Cytoscape im Overlay aufbauen ─────────────────────
+        if (treeCy) { treeCy.destroy(); treeCy = null; }
+
+        treeCy = cytoscape({
+            container: document.getElementById('tree-cy'),
+            elements: elements,
+            style: [
+                { selector: 'node[nodeType="person"][sex="m"]', style: {
+                    shape: 'rectangle', 'corner-radius': '4px',
+                    width: NODE_W, height: NODE_H,
+                    'background-color': 'data(famColor)',
+                    label: 'data(label)', 'font-size': '8px',
+                    'text-valign': 'center', 'text-halign': 'center',
+                    'text-wrap': 'wrap', 'text-max-width': '110px',
+                    'border-width': '1px', 'border-color': 'rgba(0,0,0,0.15)', color: '#333',
+                }},
+                { selector: 'node[nodeType="person"][sex="f"]', style: {
+                    shape: 'ellipse',
+                    width: NODE_W, height: NODE_H,
+                    'background-color': 'data(famColor)',
+                    label: 'data(label)', 'font-size': '8px',
+                    'text-valign': 'center', 'text-halign': 'center',
+                    'text-wrap': 'wrap', 'text-max-width': '110px',
+                    'border-width': '1px', 'border-color': 'rgba(0,0,0,0.15)', color: '#333',
+                }},
+                { selector: 'node[?isAnchor]', style: {
+                    'border-width': '3px', 'border-color': '#e8c84a',
+                }},
+                { selector: 'node[nodeType="marriage"]', style: {
+                    shape: 'ellipse', width: 10, height: 10,
+                    'background-color': '#e8c84a', label: '', 'border-width': 0,
+                }},
+                { selector: 'node[nodeType="marriage"][?ex]', style: {
+                    'background-color': '#aaa',
+                }},
+                { selector: 'edge[edgeType="married"]', style: {
+                    'line-color': '#e8c84a', width: 3,
+                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                    'line-style': 'solid', 'curve-style': 'straight',
+                }},
+                { selector: 'edge[edgeType="ex"]', style: {
+                    'line-color': '#aaa', width: 1.5,
+                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                    'line-style': 'dashed', 'curve-style': 'straight',
+                }},
+                { selector: 'edge[edgeType="parent"]', style: {
+                    'line-color': '#555', width: 1.5,
+                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                    'curve-style': 'taxi', 'taxi-direction': 'downward',
+                }},
+            ],
+            layout: { name: 'preset' },
+            userZoomingEnabled: true,
+            userPanningEnabled: true,
+        });
+
+        treeCy.nodes().forEach(function(n) {
+            var p = posMap[n.id()];
+            if (p) n.position({ x: p.x, y: p.y });
+        });
+
+        treeCy.fit(PAD);
+
+        document.getElementById('tree-export-btn').style.display = 'block';
+
+        // Panel schließen → Zeichnung bleibt sichtbar
+        showTreeStep(4);
+        // Statt Panel weg → weiter sichtbar lassen, User kann erneut zeichnen
+    }
+
+    // PNG-Export
+    document.getElementById('tree-export-btn').addEventListener('click', function() {
+        if (!treeCy) return;
+        var png = treeCy.png({ full: true, scale: 2, bg: '#fdf8f0' });
+        var a = document.createElement('a');
+        a.href = png;
+        a.download = 'stammbaum_' + new Date().toISOString().substring(0, 10) + '.png';
+        a.click();
     });
 
     // ── Personen-Auswahl per BFS um Ankerperson ──────────────
