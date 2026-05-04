@@ -2379,8 +2379,9 @@ window.addEventListener('load', function() {
         });
 
         // Alle einzuschließenden Personen + ihr Level bestimmen
-        var included = new Set();   // IDs die angezeigt werden
-        var depthOf  = {};          // id → noch verbleibende Aufwärts-Tiefe
+        var included    = new Set();  // IDs die angezeigt werden
+        var mainLine    = new Set();  // direkte Vorfahren/Nachkommen des Ankers
+        var depthOf     = {};         // id → noch verbleibende Aufwärts-Tiefe
 
         // walkUp: verfolgt Vorfahren-Kette aufwärts
         // Wichtig: eine Person kann von mehreren Wegen aus gefunden werden
@@ -2391,6 +2392,9 @@ window.addEventListener('load', function() {
             // Ehepartner immer auf gleicher Ebene mitführen
             (spousesOf[id]   || []).forEach(function(s) { included.add(s); });
             (exSpousesOf[id] || []).forEach(function(s) { included.add(s); });
+            // Hauptlinie = Personen die direkt vom Anker aus erreicht werden
+            mainLine.add(id);
+            (spousesOf[id]   || []).forEach(function(s) { mainLine.add(s); });
 
             // Nur aufwärts gehen wenn depth größer als bisher gesehen
             var prev = depthOf[id];
@@ -2433,15 +2437,40 @@ window.addEventListener('load', function() {
         function walkDown(id, depth) {
             if (depth < 0) return;
             included.add(id);
-            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
+            mainLine.add(id);
+            (spousesOf[id]  || []).forEach(function(s) { included.add(s); mainLine.add(s); });
             (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
             if (depth > 0) {
                 (childrenOf[id] || []).forEach(function(cid) { walkDown(cid, depth - 1); });
             }
         }
 
+        // Geschwister-Kinder: Kinder und Kindeskinder von Ankerperson-Geschwistern
+        function walkSiblingDown(id, depth) {
+            if (depth < 0) return;
+            included.add(id);
+            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
+            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
+            if (depth > 0) {
+                (childrenOf[id] || []).forEach(function(cid) { walkSiblingDown(cid, depth - 1); });
+            }
+        }
+
         walkUp(anchorId, genUp);
         walkDown(anchorId, genDown);
+
+        // Geschwister und deren Kinder/Kindeskinder einschließen
+        if (showSiblings && genDown > 0) {
+            // Geschwister der Ankerperson: Kinder derselben Eltern
+            (parentsOf[anchorId] || []).forEach(function(pid) {
+                (childrenOf[pid] || []).forEach(function(sib) {
+                    if (sib !== anchorId && included.has(sib)) {
+                        // Kinder der Geschwister bis genDown-1 Ebenen
+                        walkSiblingDown(sib, genDown - 1);
+                    }
+                });
+            });
+        }
 
         var personMap = {};
         allPersons.forEach(function(p) { personMap[p.id] = p; });
@@ -2602,13 +2631,16 @@ window.addEventListener('load', function() {
             var eid = 'pc_' + srcId + '_' + childId;
             if (drawnEdges.has(eid)) return;
             drawnEdges.add(eid);
+            // Hauptlinie: Kind UND Elternteil sind in mainLine
+            var isMain = mainLine.has(r.person_id) && mainLine.has(r.related_person_id);
             elements.push({ group: 'edges', data: {
-                id: eid, source: String(srcId), target: String(childId), edgeType: 'parent',
+                id: eid, source: String(srcId), target: String(childId),
+                edgeType: isMain ? 'parent-main' : 'parent-side',
             }});
         });
 
         // ── Layout berechnen ──────────────────────────────────
-        var NODE_W = 120, NODE_H = 50, H_GAP = 20, SP_GAP = 10, V_GAP = 100, PAD = 60;
+        var NODE_W = 115, NODE_H = 50, H_GAP = 22, SP_GAP = 30, V_GAP = 110, PAD = 60;
 
         // Primary/Secondary für X-Verteilung
         var primary = new Set(), secondary = new Set();
@@ -2713,27 +2745,26 @@ window.addEventListener('load', function() {
             container: document.getElementById('tree-cy'),
             elements: elements,
             style: [
-                { selector: 'node[nodeType="person"][sex="m"]', style: {
-                    shape: 'rectangle', 'corner-radius': '4px',
-                    width: NODE_W, height: NODE_H,
-                    'background-color': 'data(famColor)',
+                // Personen: weiß, männlich = Rechteck, weiblich = Ellipse
+                { selector: 'node[nodeType="person"]', style: {
+                    'background-color': '#ffffff',
                     label: 'data(label)', 'font-size': '8px',
                     'text-valign': 'center', 'text-halign': 'center',
                     'text-wrap': 'wrap', 'text-max-width': '110px',
-                    'border-width': '1px', 'border-color': 'rgba(0,0,0,0.15)', color: '#333',
+                    'border-width': '1.5px', 'border-color': '#aaaaaa', color: '#222',
+                    width: NODE_W, height: NODE_H,
+                }},
+                { selector: 'node[nodeType="person"][sex="m"]', style: {
+                    shape: 'rectangle', 'corner-radius': '4px',
                 }},
                 { selector: 'node[nodeType="person"][sex="f"]', style: {
                     shape: 'ellipse',
-                    width: NODE_W, height: NODE_H,
-                    'background-color': 'data(famColor)',
-                    label: 'data(label)', 'font-size': '8px',
-                    'text-valign': 'center', 'text-halign': 'center',
-                    'text-wrap': 'wrap', 'text-max-width': '110px',
-                    'border-width': '1px', 'border-color': 'rgba(0,0,0,0.15)', color: '#333',
                 }},
                 { selector: 'node[?isAnchor]', style: {
                     'border-width': '3px', 'border-color': '#e8c84a',
+                    'background-color': '#fffae8',
                 }},
+                // Ehe-Knoten: goldener Punkt
                 { selector: 'node[nodeType="marriage"]', style: {
                     shape: 'ellipse', width: 10, height: 10,
                     'background-color': '#e8c84a', label: '', 'border-width': 0,
@@ -2741,18 +2772,26 @@ window.addEventListener('load', function() {
                 { selector: 'node[nodeType="marriage"][?ex]', style: {
                     'background-color': '#aaa',
                 }},
+                // Ehe-Kanten: kurze goldene Linie (Ehepaar mit Abstand)
                 { selector: 'edge[edgeType="married"]', style: {
                     'line-color': '#e8c84a', width: 3,
                     'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
                     'line-style': 'solid', 'curve-style': 'straight',
                 }},
                 { selector: 'edge[edgeType="ex"]', style: {
-                    'line-color': '#aaa', width: 1.5,
+                    'line-color': '#bbb', width: 1.5,
                     'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
                     'line-style': 'dashed', 'curve-style': 'straight',
                 }},
-                { selector: 'edge[edgeType="parent"]', style: {
-                    'line-color': '#555', width: 1.5,
+                // Hauptlinie (direkte Vorfahren/Nachkommen): dick, dunkel
+                { selector: 'edge[edgeType="parent-main"]', style: {
+                    'line-color': '#333', width: 2.5,
+                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
+                    'curve-style': 'taxi', 'taxi-direction': 'downward',
+                }},
+                // Seitenlinie (Geschwister, Nichten/Neffen): dünn, grau
+                { selector: 'edge[edgeType="parent-side"]', style: {
+                    'line-color': '#aaa', width: 1,
                     'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
                     'curve-style': 'taxi', 'taxi-direction': 'downward',
                 }},
@@ -2768,6 +2807,36 @@ window.addEventListener('load', function() {
         });
 
         treeCy.fit(PAD);
+
+        // ── Horizontales Drag: Y-Position sperren ────────────
+        var _treeLockedY = null;
+        treeCy.on('grabon', 'node', function(e) {
+            _treeLockedY = e.target.position('y');
+        });
+        treeCy.on('drag', 'node', function(e) {
+            if (_treeLockedY !== null) {
+                e.target.position('y', _treeLockedY);
+                // Ehe-Knoten mitziehen: wenn Person zu Ehe-Knoten gehört
+                var nid = e.target.id();
+                treeCy.nodes('[nodeType="marriage"]').forEach(function(mn) {
+                    var spouseEdges = mn.connectedEdges('[edgeType="married"],[edgeType="ex"]');
+                    var connected = spouseEdges.map(function(e) {
+                        return e.source().id() === mn.id() ? e.target().id() : e.source().id();
+                    });
+                    if (connected.indexOf(nid) >= 0) {
+                        // Ehe-Knoten mittig zwischen den beiden Partnern
+                        var partners = connected.map(function(pid) {
+                            return treeCy.$('#' + pid);
+                        }).filter(function(n) { return n.length > 0; });
+                        if (partners.length === 2) {
+                            var mx = (partners[0].position('x') + partners[1].position('x')) / 2;
+                            mn.position({ x: mx, y: _treeLockedY });
+                        }
+                    }
+                });
+            }
+        });
+        treeCy.on('free', 'node', function() { _treeLockedY = null; });
 
         document.getElementById('tree-export-btn').style.display = 'block';
 
