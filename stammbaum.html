@@ -362,11 +362,15 @@
 
 
 <div id="toolbar">
-    <label>🔍 Filter:</label>
-    <input type="text" id="filter-name" placeholder="Familienname..." />
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">🔍 Filter:</span>
+    <input type="text" id="filter-familyname" placeholder="Familienname" title="Familienname" style="width:120px;" />
+    <input type="text" id="filter-givenname"  placeholder="Vorname"      title="Vorname"      style="width:100px;" />
+    <input type="text" id="filter-birthyear"  placeholder="Geburtsjahr"  title="Geburtsjahr"  style="width:90px;"  />
+    <input type="text" id="filter-deathyear"  placeholder="Sterbejahr"   title="Sterbejahr"   style="width:90px;"  />
+    <button class="tool-btn" id="reset-filter">Rücksetzen</button>
+    <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
-    <button class="tool-btn" id="reset-filter">Alle zeigen</button>
     <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
         <input type="checkbox" id="show-parent" checked style="width:auto;">
         Eltern-Kind
@@ -385,8 +389,8 @@
     </label>
 
     <span id="person-count"></span>
-    <button class="tool-btn" id="path-toggle">🔍 Pfad suchen</button>
-    <button class="tool-btn" id="print-btn">🖨️ Stammbaum-Ansicht</button>
+    <button class="tool-btn admin-only" id="path-toggle" style="display:none;">🔍 Pfad suchen</button>
+    <button class="tool-btn admin-only" id="print-btn"   style="display:none;">🖨️ Stammbaum-Ansicht</button>
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -570,6 +574,9 @@ window.addEventListener('load', function() {
         else {
             if (result.data.session.user.email === ADMIN_EMAIL) {
                 document.getElementById('admin-btn').style.display = 'inline-block';
+                document.querySelectorAll('.admin-only').forEach(function(el) {
+                    el.style.display = 'inline-block';
+                });
             }
             loadData();
         }
@@ -732,19 +739,51 @@ window.addEventListener('load', function() {
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-panel').style.display    = 'block';
-            cy.elements().addClass('faded');
-            node.removeClass('faded');
-            node.connectedEdges().removeClass('faded');
-            node.connectedEdges().connectedNodes().removeClass('faded');
+
+            // Highlight-Logik über Family-Filter-Opacity:
+            // Sichtbare Nodes = opacity > 0.1 → nur diese einbeziehen
+            // Der angeklickte Node + direkte Nachbarn: volle Sichtbarkeit
+            // Alle anderen sichtbaren: faded
+            // Unsichtbare (opacity~0): bleiben unsichtbar
+
+            var highlight = new Set();
+            highlight.add(node.id());
+            node.connectedEdges().forEach(function(e) {
+                // Kante nur hervorheben wenn beide Endpunkte sichtbar genug
+                var src = e.source(), tgt = e.target();
+                if (parseFloat(src.style('opacity')) > 0.1 && parseFloat(tgt.style('opacity')) > 0.1) {
+                    highlight.add(src.id());
+                    highlight.add(tgt.id());
+                }
+            });
+
+            cy.nodes().forEach(function(n) {
+                var curOp = parseFloat(n.style('opacity'));
+                if (curOp <= 0.1) return; // war schon unsichtbar → unverändert lassen
+                n.addClass(highlight.has(n.id()) ? '' : 'faded');
+                if (highlight.has(n.id())) n.removeClass('faded');
+            });
+            cy.edges().forEach(function(e) {
+                var s = e.source().id(), t = e.target().id();
+                var bothHighlight = highlight.has(s) && highlight.has(t);
+                var srcOp = parseFloat(e.source().style('opacity'));
+                var tgtOp = parseFloat(e.target().style('opacity'));
+                if (srcOp <= 0.1 || tgtOp <= 0.1) return; // war unsichtbar
+                if (bothHighlight) e.removeClass('faded');
+                else               e.addClass('faded');
+            });
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
                 cy.elements().removeClass('faded');
+                // Familien-Filter wiederherstellen
+                applyFamilyFilter();
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
         document.getElementById('info-close').addEventListener('click', function() {
             cy.elements().removeClass('faded');
+            applyFamilyFilter();
             document.getElementById('info-panel').style.display = 'none';
         });
 
@@ -1491,18 +1530,27 @@ window.addEventListener('load', function() {
         };
     }
 
-    document.getElementById('filter-name').addEventListener('input', function() {
-        var q = this.value.trim().toLowerCase();
-        if (!q) {
-            // Zurück zum Checkbox-Filter
+    // ── 4-Felder-Filter (ODER-Verknüpfung) ─────────────────────
+    function applyTextFilter() {
+        var fn = document.getElementById('filter-familyname').value.trim().toLowerCase();
+        var gn = document.getElementById('filter-givenname').value.trim().toLowerCase();
+        var by = document.getElementById('filter-birthyear').value.trim();
+        var dy = document.getElementById('filter-deathyear').value.trim();
+
+        // Kein Eintrag in einem Feld → Familien-Checkbox-Filter
+        if (!fn && !gn && !by && !dy) {
             applyFamilyFilter();
             return;
         }
-        // Textsuche übersteuert Checkboxen vorübergehend
+
         var directMatches = allPersons.filter(function(p) {
-            return p.family_name.toLowerCase().includes(q) ||
-                   p.display_name.toLowerCase().includes(q);
+            if (fn && (p.family_name || '').toLowerCase().includes(fn)) return true;
+            if (gn && (p.given_name  || '').toLowerCase().includes(gn)) return true;
+            if (by && p.birth_date && p.birth_date.startsWith(by))      return true;
+            if (dy && p.death_date && p.death_date.startsWith(dy))      return true;
+            return false;
         });
+
         var directIds = new Set(directMatches.map(function(p) { return p.id; }));
         var neighbourIds = new Set();
         allRels.forEach(function(r) {
@@ -1513,11 +1561,17 @@ window.addEventListener('load', function() {
             return neighbourIds.has(p.id) && !directIds.has(p.id);
         });
         applyFilter(directMatches.concat(neighbours), allRels);
+    }
+
+    ['filter-familyname','filter-givenname','filter-birthyear','filter-deathyear'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', applyTextFilter);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
-        document.getElementById('filter-name').value = '';
-        // Zurück zum Checkbox-Filter
+        document.getElementById('filter-familyname').value = '';
+        document.getElementById('filter-givenname').value  = '';
+        document.getElementById('filter-birthyear').value  = '';
+        document.getElementById('filter-deathyear').value  = '';
         applyFamilyFilter();
     });
 
