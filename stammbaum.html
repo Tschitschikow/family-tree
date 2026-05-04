@@ -362,11 +362,14 @@
 
 
 <div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">🔍 Filter:</span>
-    <input type="text" id="filter-familyname" placeholder="Familienname" title="Familienname" style="width:120px;" />
-    <input type="text" id="filter-givenname"  placeholder="Vorname"      title="Vorname"      style="width:100px;" />
-    <input type="text" id="filter-birthyear"  placeholder="Geburtsjahr"  title="Geburtsjahr"  style="width:90px;"  />
-    <input type="text" id="filter-deathyear"  placeholder="Sterbejahr"   title="Sterbejahr"   style="width:90px;"  />
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geburt:</span>
+    <input type="number" id="filter-birth-from" placeholder="von" title="Geburtsjahr von" style="width:68px;" min="1600" max="2030" />
+    <span style="font-size:0.85em; color:#888;">–</span>
+    <input type="number" id="filter-birth-to"   placeholder="bis" title="Geburtsjahr bis" style="width:68px;" min="1600" max="2030" />
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Tod:</span>
+    <input type="number" id="filter-death-from" placeholder="von" title="Sterbejahr von"  style="width:68px;" min="1600" max="2030" />
+    <span style="font-size:0.85em; color:#888;">–</span>
+    <input type="number" id="filter-death-to"   placeholder="bis" title="Sterbejahr bis"  style="width:68px;" min="1600" max="2030" />
     <button class="tool-btn" id="reset-filter">Rücksetzen</button>
     <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
@@ -1412,10 +1415,12 @@ window.addEventListener('load', function() {
         // Checkbox: Nachbarn (+1 Verbindung) anzeigen?
         var showNeighbours = document.getElementById('legend-neighbours').checked;
 
-        // Direkt aktive Familien
+        // Direkt aktive Familien (auch Mädchenname)
         var directIds = new Set();
         cy.nodes().forEach(function(n) {
-            if (activeFamilies.has(n.data('family_name'))) {
+            var fn = n.data('family_name');
+            var mn = n.data('maiden_name');
+            if (activeFamilies.has(fn) || (mn && activeFamilies.has(mn))) {
                 directIds.add(n.id());
             }
         });
@@ -1446,9 +1451,11 @@ window.addEventListener('load', function() {
         });
     }
 
-    // Checkbox-Änderung sofort anwenden
+    // Checkbox-Änderung sofort anwenden (Ebene 1 + Ebene 2)
+    // applyYearFilter wird weiter unten definiert – wrapper damit kein ReferenceError
     document.getElementById('legend-neighbours').addEventListener('change', function() {
-        applyFamilyFilter();
+        if (typeof applyYearFilter === 'function') applyYearFilter();
+        else applyFamilyFilter();
     });
 
     function buildLegend(persons) {
@@ -1530,48 +1537,60 @@ window.addEventListener('load', function() {
         };
     }
 
-    // ── 4-Felder-Filter (ODER-Verknüpfung) ─────────────────────
-    function applyTextFilter() {
-        var fn = document.getElementById('filter-familyname').value.trim().toLowerCase();
-        var gn = document.getElementById('filter-givenname').value.trim().toLowerCase();
-        var by = document.getElementById('filter-birthyear').value.trim();
-        var dy = document.getElementById('filter-deathyear').value.trim();
+    // ── Ebene 2: Jahresbereich-Filter ───────────────────────────
+    // Läuft NACH applyFamilyFilter – wirkt als UND-Einschränkung
+    // auf das was Ebene 1 bereits setzt.
+    function applyYearFilter() {
+        if (!cy) return;
+        var bf = parseInt(document.getElementById('filter-birth-from').value) || null;
+        var bt = parseInt(document.getElementById('filter-birth-to').value)   || null;
+        var df = parseInt(document.getElementById('filter-death-from').value) || null;
+        var dt = parseInt(document.getElementById('filter-death-to').value)   || null;
 
-        // Kein Eintrag in einem Feld → Familien-Checkbox-Filter
-        if (!fn && !gn && !by && !dy) {
+        // Kein Jahr angegeben → nur Ebene-1-Filter (Familienname)
+        if (!bf && !bt && !df && !dt) {
             applyFamilyFilter();
             return;
         }
 
-        var directMatches = allPersons.filter(function(p) {
-            if (fn && (p.family_name || '').toLowerCase().includes(fn)) return true;
-            if (gn && (p.given_name  || '').toLowerCase().includes(gn)) return true;
-            if (by && p.birth_date && p.birth_date.startsWith(by))      return true;
-            if (dy && p.death_date && p.death_date.startsWith(dy))      return true;
-            return false;
-        });
+        // Zuerst Familien-Filter setzen (Ebene 1)
+        applyFamilyFilter();
 
-        var directIds = new Set(directMatches.map(function(p) { return p.id; }));
-        var neighbourIds = new Set();
-        allRels.forEach(function(r) {
-            if (directIds.has(r.person_id))         neighbourIds.add(r.related_person_id);
-            if (directIds.has(r.related_person_id)) neighbourIds.add(r.person_id);
+        // Dann: Nodes die den Jahresbereich NICHT erfüllen weiter ausblenden
+        cy.nodes().forEach(function(n) {
+            // Bereits ganz unsichtbar durch Ebene 1 → nicht anfassen
+            if (parseFloat(n.style('opacity')) <= 0.05) return;
+
+            var d = n.data();
+            var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
+            var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
+
+            // SCHNITTMENGE: alle angegebenen Bedingungen müssen erfüllt sein
+            var ok = true;
+            if (bf && !(byear && byear >= bf)) ok = false;
+            if (bt && !(byear && byear <= bt)) ok = false;
+            if (df && !(dyear && dyear >= df)) ok = false;
+            if (dt && !(dyear && dyear <= dt)) ok = false;
+
+            if (!ok) {
+                n.style('opacity', 0.04);
+                // Kanten zu diesem Node ebenfalls ausblenden
+                n.connectedEdges().forEach(function(e) {
+                    e.style('opacity', 0);
+                });
+            }
         });
-        var neighbours = allPersons.filter(function(p) {
-            return neighbourIds.has(p.id) && !directIds.has(p.id);
-        });
-        applyFilter(directMatches.concat(neighbours), allRels);
     }
 
-    ['filter-familyname','filter-givenname','filter-birthyear','filter-deathyear'].forEach(function(id) {
-        document.getElementById(id).addEventListener('input', applyTextFilter);
+    ['filter-birth-from','filter-birth-to','filter-death-from','filter-death-to'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', applyYearFilter);
     });
 
     document.getElementById('reset-filter').addEventListener('click', function() {
-        document.getElementById('filter-familyname').value = '';
-        document.getElementById('filter-givenname').value  = '';
-        document.getElementById('filter-birthyear').value  = '';
-        document.getElementById('filter-deathyear').value  = '';
+        document.getElementById('filter-birth-from').value = '';
+        document.getElementById('filter-birth-to').value   = '';
+        document.getElementById('filter-death-from').value = '';
+        document.getElementById('filter-death-to').value   = '';
         applyFamilyFilter();
     });
 
