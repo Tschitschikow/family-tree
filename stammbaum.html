@@ -281,7 +281,7 @@
             display: none;
             position: fixed;
             inset: 0;
-            background: #fdf8f0;
+            background: #f0f0f0;
             z-index: 200;
             flex-direction: row;
             overflow: hidden;
@@ -410,7 +410,7 @@
             flex: 1;
             position: relative;
             overflow: hidden;
-            background: #fdf8f0;
+            background: #f0f0f0;
         }
         #tree-cy {
             position: absolute;
@@ -749,6 +749,10 @@
     <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
     <div class="field">Beruf: <span id="info-profession"></span></div>
     <div class="field">Mädchenname: <span id="info-maiden"></span></div>
+    <div class="field" style="margin-top:0.5em; font-size:0.78em; color:#bbb; border-top:1px solid #eee; padding-top:0.4em; line-height:1.5em;">
+        Person-ID: <span id="info-pid" style="color:#aaa;"></span><br>
+        Beziehungs-IDs: <span id="info-relids" style="color:#aaa; word-break:break-all;"></span>
+    </div>
 </div>
 
 <!-- ── Stammbaum-Vollbild-Overlay ── -->
@@ -981,10 +985,10 @@ window.addEventListener('load', function() {
                         'width':            'data(nodeW)',
                         'height':           'data(nodeH)',
                         'shape':            'ellipse',
-                        'background-color': 'data(famColor)',
-                        'border-width':     '0.5px',
-                        'border-color':     'rgba(0,0,0,0.18)',
-                        'color':            '#444',
+                        'background-color': '#ffffff',
+                        'border-width':     '3px',
+                        'border-color':     'data(famColor)',
+                        'color':            '#222',
                     }
                 },
                 { selector: 'node[sex = "f"]', style: {
@@ -992,15 +996,15 @@ window.addEventListener('load', function() {
                     'border-style': 'solid',
                 }},
                 { selector: 'node[sex = "m"]', style: {
-                    'shape':        'rectangle',
-                    'border-style': 'solid',
-                    'corner-radius':'3px',
+                    'shape':           'round-rectangle',
+                    'border-style':    'solid',
+                    'corner-radius':   '6px',
                 }},
                 {
                     selector: 'node.married',
-                    style: { 'border-color': '#d4a820', 'border-width': '0.5px' }
+                    style: { 'border-color': 'data(famColor)', 'border-width': '3px' }
                 },
-                { selector: 'node:selected', style: { 'border-width': '2px', 'border-color': '#666', 'border-style': 'solid' } },
+                { selector: 'node:selected', style: { 'border-width': '4px', 'border-color': '#333', 'border-style': 'solid' } },
                 {
                     selector: 'edge',
                     style: {
@@ -1012,57 +1016,52 @@ window.addEventListener('load', function() {
                         'color': '#aaa', 'label': '',
                     }
                 },
-                { selector: 'edge[type = "hasMother"]', style: { 'line-color': '#e8a0b0', 'target-arrow-color': '#e8a0b0', 'color': '#e8a0b0', 'width': 1 } },
-                { selector: 'edge[type = "hasFather"]', style: { 'line-color': '#a0c0e0', 'target-arrow-color': '#a0c0e0', 'color': '#a0c0e0', 'width': 1 } },
+                { selector: 'edge[type = "hasMother"]', style: {
+                    'line-color': '#333', 'target-arrow-color': '#333', 'color': '#555', 'width': 1.2,
+                    'line-style': 'solid',
+                }},
+                { selector: 'edge[type = "hasFather"]', style: {
+                    'line-color': '#333', 'target-arrow-color': '#333', 'color': '#555', 'width': 1.2,
+                    'line-style': 'solid',
+                }},
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
-                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
-                        'line-style': 'solid', 'width': 3.5, 'opacity': 0.7, 'color': '#e8c84a',
+                        'line-color': '#222', 'target-arrow-shape': 'none',
+                        'line-style': 'solid', 'width': 3, 'color': '#444',
                     }
                 },
                 {
                     selector: 'edge[type = "hasExWife"]',
                     style: {
-                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
-                        'line-style': 'dashed', 'line-dash-pattern': [6, 4],
-                        'width': 2, 'opacity': 0.6, 'color': '#e8c84a',
+                        'line-color': '#999', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'line-dash-pattern': [5, 4],
+                        'width': 1.2, 'color': '#999',
                     }
                 },
                 {
                     selector: 'edge[type = "hasExHusband"]',
                     style: {
-                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
-                        'line-style': 'dashed', 'line-dash-pattern': [6, 4],
-                        'width': 2, 'opacity': 0.6, 'color': '#e8c84a',
+                        'line-color': '#999', 'target-arrow-shape': 'none',
+                        'line-style': 'dashed', 'line-dash-pattern': [5, 4],
+                        'width': 1.2, 'color': '#999',
                     }
                 },
                 {
                     selector: 'edge[type = "sibling"]',
                     style: {
-                        'line-color': '#6abf69',
+                        'line-color': '#888',
                         'source-arrow-shape': 'none',
-                        'source-arrow-color': '#6abf69',
                         'target-arrow-shape': 'none',
-                        'target-arrow-color': '#6abf69',
-                        'line-style': 'solid',
+                        'line-style': 'dashed', 'line-dash-pattern': [4, 4],
                         'width': 1,
-                        'opacity': 0.7,
-                        'color': '#6abf69',
+                        'color': '#888',
                         'curve-style': 'bezier',
                         'font-size': '7px',
                         'font-family': 'Helvetica Neue, Arial, sans-serif',
                         'text-rotation': 'autorotate',
                         'text-margin-y': '-8px',
                         'label': '',
-                    }
-                },
-                {
-                    selector: 'edge[type = "hasExWife"]',
-                    style: {
-                        'line-color': '#e8c84a', 'target-arrow-shape': 'none',
-                        'line-style': 'dashed', 'width': 2, 'opacity': 0.6,
-                        'color': '#e8c84a',
                     }
                 },
                 { selector: '.faded', style: { 'opacity': 0.08 } }
@@ -1089,6 +1088,12 @@ window.addEventListener('load', function() {
             document.getElementById('info-deathplace').textContent = d.death_place  || '–';
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
+            document.getElementById('info-pid').textContent = d.id || node.id();
+            var relIds = allRels
+                .filter(function(r) { return r.person_id === d.id || r.related_person_id === d.id; })
+                .map(function(r) { return r.id; })
+                .sort(function(a, b) { return a - b; });
+            document.getElementById('info-relids').textContent = relIds.length ? relIds.join(', ') : '–';
             document.getElementById('info-panel').style.display    = 'block';
 
             // Highlight-Logik über Family-Filter-Opacity:
@@ -2938,7 +2943,7 @@ window.addEventListener('load', function() {
     // PNG-Export
     document.getElementById('tree-export-btn').addEventListener('click', function() {
         if (!treeCy) return;
-        var png = treeCy.png({ full: true, scale: 2, bg: '#fdf8f0' });
+        var png = treeCy.png({ full: true, scale: 2, bg: '#f0f0f0' });
         var a = document.createElement('a');
         a.href = png;
         a.download = 'stammbaum_' + new Date().toISOString().substring(0, 10) + '.png';
