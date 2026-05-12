@@ -1318,8 +1318,9 @@ window.addEventListener('load', function() {
                 'hasExWife':    'hat Ex-Ehefrau',
                 'hasExHusband': 'hat Ex-Ehemann',
             };
+            var numId = parseInt(d.id) || d.id;  // String → Zahl für Vergleich
             var myRels = allRels
-                .filter(function(r) { return r.person_id === d.id || r.related_person_id === d.id; })
+                .filter(function(r) { return r.person_id === numId || r.related_person_id === numId; })
                 .sort(function(a, b) { return a.id - b.id; });
 
             var relIdsList = myRels.map(function(r) { return r.id; }).join(', ');
