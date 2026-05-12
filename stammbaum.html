@@ -1203,7 +1203,6 @@ window.addEventListener('load', function() {
                 { selector: 'node[sex = "m"]', style: {
                     'shape':           'round-rectangle',
                     'border-style':    'solid',
-                    'corner-radius':   '6px',
                 }},
                 {
                     selector: 'node.married',
@@ -3026,7 +3025,7 @@ window.addEventListener('load', function() {
                     width: NODE_W, height: NODE_H,
                 }},
                 { selector: 'node[nodeType="person"][sex="m"]', style: {
-                    shape: 'rectangle', 'corner-radius': '4px',
+                    shape: 'rectangle',
                 }},
                 { selector: 'node[nodeType="person"][sex="f"]', style: {
                     shape: 'ellipse',
@@ -3337,7 +3336,7 @@ window.addEventListener('load', function() {
 
         cy.style()
             .selector('node[nodeType = "person"][sex = "m"]').style({
-                'shape': 'rectangle', 'corner-radius': '3px',
+                'shape': 'rectangle',
                 'width': 120, 'height': 46,
                 'background-color': 'data(famColor)',
                 'label': 'data(label)', 'font-size': '7.5px',
@@ -3897,7 +3896,6 @@ window.addEventListener('load', function() {
         if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
     }
 
-    document.getElementById('cola-toggle-btn').addEventListener('click', openColaView);
     document.getElementById('cola-close-btn').addEventListener('click', closeColaView);
     document.getElementById('cola-refit').addEventListener('click', function() {
         if (colaCy) colaCy.fit(60);
@@ -3987,7 +3985,7 @@ window.addEventListener('load', function() {
                     'border-width': '2.5px', 'border-color': 'data(famColor)',
                     width: '80px', height: '44px',
                 }},
-                { selector: 'node[sex="m"]', style: { shape: 'round-rectangle', 'corner-radius': '5px' }},
+                { selector: 'node[sex="m"]', style: { shape: 'round-rectangle',  }},
                 { selector: 'node[sex="f"]', style: { shape: 'ellipse' }},
                 { selector: 'node:selected', style: {
                     'border-width': '4px', 'border-color': '#334466',
