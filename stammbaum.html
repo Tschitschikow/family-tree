@@ -3716,15 +3716,11 @@ window.addEventListener('load', function() {
         });
         document.getElementById('view-dropdown').classList.remove('open');
 
-        // Toolbar + Hauptgraph
+        // Toolbar + Hauptgraph (Zeitleiste)
         var showMain = (view === 'timeline');
-        document.getElementById('toolbar').style.display     = showMain ? '' : 'none';
-        document.getElementById('graph-wrap').style.display  = showMain ? '' : 'none';
-        document.getElementById('time-axis').style.display   = showMain ? '' : 'none';
-        document.getElementById('status-bar').style.display  = showMain ? '' : 'none';
-
-        // Legende
-        document.getElementById('legend').style.display = showMain ? '' : 'none';
+        document.getElementById('toolbar').style.display    = showMain ? '' : 'none';
+        document.getElementById('graph-wrap').style.display = showMain ? '' : 'none';
+        document.getElementById('status-bar').style.display = showMain ? '' : 'none';
 
         // Cola-Overlay
         var colaViewEl = document.getElementById('cola-view');
