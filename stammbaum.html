@@ -451,6 +451,8 @@
             display: none;
             position: fixed; top: 70px; right: 20px;
             width: 260px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
             background: white;
             border-radius: 8px;
             box-shadow: 0 2px 20px rgba(0,0,0,0.10);
@@ -1334,7 +1336,9 @@ window.addEventListener('load', function() {
                 var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
                 return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
             });
-            document.getElementById('info-reltext').innerHTML = relLines.join('');
+            var relContainer = document.getElementById('info-reltext');
+            relContainer.innerHTML = relLines.join('');
+            console.log('myRels:', myRels.length, 'relLines:', relLines.length, 'numId:', numId);
 
             document.getElementById('info-panel').style.display    = 'block';
 
