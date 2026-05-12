@@ -592,13 +592,13 @@
         #view-menu-btn {
             display: flex; align-items: center; gap: 0.4em;
             padding: 0.32em 0.85em;
-            background: #f0f2f5;
-            border: 1px solid #ccd;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
             border-radius: 5px; cursor: pointer;
-            color: #334; font-size: 0.88em;
-            font-family: inherit; font-weight: 500;
+            color: white; font-size: 0.88em;
+            font-family: inherit;
         }
-        #view-menu-btn:hover { background: #e4e8f0; border-color: #aab; }
+        #view-menu-btn:hover { background: rgba(255,255,255,0.25); }
         #view-menu-btn::after { content: ' ▾'; font-size:0.8em; }
         #view-dropdown {
             display: none; position: absolute; top: calc(100% + 4px); right: 0;
@@ -682,6 +682,22 @@
         .rc-val { color:#223; font-weight:500; }
         #reg-card-hint { color:#bbc; font-style:italic; font-size:0.82em; }
 
+        /* ── Zurück-Button in Overlays ── */
+        .back-to-home {
+            padding: 0.3em 0.85em;
+            background: #fff;
+            border: 1px solid #ccd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-family: inherit;
+            color: #445;
+            display: flex;
+            align-items: center;
+            gap: 0.3em;
+        }
+        .back-to-home:hover { background: #f0f2f5; }
+
         /* ── Cola-Netzwerk-Ansicht ── */
         #cola-view {
             display: none; position: fixed; inset: 0;
@@ -731,10 +747,7 @@
            🌐 3D-Ansicht
         </a>
         -->
-        <a href="karte.html"
-           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
-           🗺️ Karte
-        </a>
+
         <a href="eingabe.html" class="admin-only"
            style="display:none; color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
            ✏️ Eintrag hinzufügen
@@ -759,6 +772,9 @@
                 </div>
                 <div class="vd-item" data-view="register">
                     <span class="vd-icon">📋</span> Register
+                </div>
+                <div class="vd-item" data-view="karte">
+                    <span class="vd-icon">🗺️</span> Karte
                 </div>
             </div>
         </div>
@@ -816,8 +832,7 @@
     </label>
 
     <span id="person-count"></span>
-    <button class="tool-btn admin-only" id="path-toggle" style="display:none;">🔍 Pfad suchen</button>
-    <button class="tool-btn admin-only" id="print-btn"   style="display:none;">🖨️ Stammbaum-Ansicht</button>
+
 </div>
 
 <!-- Pfadsuche Panel -->
@@ -909,7 +924,7 @@
 <!-- ── Stammbaum-Vollbild-Overlay ── -->
 <div id="tree-overlay">
     <div id="tree-setup" style="position:relative;">
-        <button id="tree-close-btn" title="Schließen">✕</button>
+        <button id="tree-close-btn" title="Zurück zur Zeitleiste" style="font-size:0.85em; padding:0.2em 0.6em; background:#f0f2f5; border:1px solid #ccd; border-radius:4px; cursor:pointer; color:#445;">← Zurück</button>
         <h3>🌳 Stammbaum-Ansicht</h3>
         <div id="tree-step-indicator">Schritt 1 von 4</div>
 
@@ -987,7 +1002,7 @@
         <input type="text" id="cola-search" placeholder="Name suchen…" autocomplete="off">
         <button class="cola-hbtn" id="cola-reset-hl">Auswahl zurücksetzen</button>
         <button class="cola-hbtn" id="cola-refit">🎯 Einpassen</button>
-        <button class="cola-hbtn" id="cola-close-btn">✕ Schließen</button>
+        <button class="back-to-home" id="cola-close-btn">← Zurück</button>
     </div>
     <div id="cola-body">
         <div id="cola-cy"></div>
@@ -1004,6 +1019,7 @@
     <div id="register-header">
         <h2>📋 Register</h2>
         <input type="text" id="reg-search" placeholder="Name, Beruf, Ort suchen…">
+        <button class="back-to-home" onclick="switchView('timeline')" style="margin-left:0;">← Zurück</button>
         <button class="reg-btn" id="reg-clear">✕ Leeren</button>
         <span id="reg-count"></span>
     </div>
@@ -1013,6 +1029,7 @@
                 <thead>
                     <tr>
                         <th data-col="display_name">Name <span class="sort-arrow">↕</span></th>
+                        <th data-col="maiden_name">Mädchenname <span class="sort-arrow">↕</span></th>
                         <th data-col="sex">Geschl. <span class="sort-arrow">↕</span></th>
                         <th data-col="birth_date">Geboren <span class="sort-arrow">↕</span></th>
                         <th data-col="death_date">Gestorben <span class="sort-arrow">↕</span></th>
@@ -1286,8 +1303,8 @@ window.addEventListener('load', function() {
             var node = e.target, d = node.data();
             document.getElementById('info-name').textContent       = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
-            document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' 🔮 geschätzt' : '');
-            document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' 🔮 geschätzt' : '');
+            document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' (geschätzt)' : '');
+            document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' (geschätzt)' : '');
             document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
             document.getElementById('info-deathplace').textContent = d.death_place  || '–';
             document.getElementById('info-profession').textContent = d.profession   || '–';
@@ -3746,6 +3763,11 @@ window.addEventListener('load', function() {
         } else {
             regEl.classList.remove('active');
         }
+
+        // Karte
+        if (view === 'karte') {
+            window.location.href = 'karte.html';
+        }
     }
 
     document.querySelectorAll('.vd-item').forEach(function(el) {
@@ -3755,13 +3777,19 @@ window.addEventListener('load', function() {
     // ── Register-Logik ─────────────────────────────────
     var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
 
-    function formatDateShort(d) {
+    function formatDateShort(d, estimated) {
         if (!d) return '';
-        return d.substring(0, 4);  // nur Jahr
-    }
-    function formatDateFull(d) {
-        if (!d) return '–';
+        if (estimated) return d.substring(0, 4);  // geschätzt: nur Jahr
         var p = d.split('T')[0].split('-');
+        // Wenn Monat/Tag = 07/01 (Platzhalter) → nur Jahr
+        if (p[1] === '07' && p[2] === '01') return p[0];
+        return p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : d;
+    }
+    function formatDateFull(d, estimated) {
+        if (!d) return '–';
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        var p = d.split('T')[0].split('-');
+        if (p[1] === '07' && p[2] === '01') return p[0];
         return p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : d;
     }
 
@@ -3790,11 +3818,12 @@ window.addEventListener('load', function() {
             var tr = document.createElement('tr');
             tr.innerHTML =
                 '<td>' + (p.display_name || '–') + '</td>' +
+                '<td>' + (p.maiden_name || '') + '</td>' +
                 '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
-                '<td>' + (formatDateShort(p.birth_date) || '–') +
-                         (p.birth_date_estimated ? ' 🔮' : '') + '</td>' +
-                '<td>' + (formatDateShort(p.death_date) || '–') +
-                         (p.death_date_estimated ? ' 🔮' : '') + '</td>' +
+                '<td>' + (formatDateShort(p.birth_date, p.birth_date_estimated) || '–') +
+                         (p.birth_date_estimated ? ' (geschätzt)' : '') + '</td>' +
+                '<td>' + (formatDateShort(p.death_date, p.death_date_estimated) || '–') +
+                         (p.death_date_estimated ? ' (geschätzt)' : '') + '</td>' +
                 '<td>' + (p.birth_place || '–') + '</td>' +
                 '<td>' + (p.death_place || '–') + '</td>' +
                 '<td>' + (p.profession || '–') + '</td>';
@@ -3835,13 +3864,11 @@ window.addEventListener('load', function() {
             '<div class="rc-row"><span class="rc-lbl">Mädchenname</span>' +
             '<span class="rc-val">' + (p.maiden_name||'–') + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Geboren</span>' +
-            '<span class="rc-val">' + formatDateFull(p.birth_date) +
-            (p.birth_date_estimated?' 🔮':'') + '</span></div>' +
+            '<span class="rc-val">' + formatDateFull(p.birth_date, p.birth_date_estimated) + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Geburtsort</span>' +
             '<span class="rc-val">' + (p.birth_place||'–') + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Gestorben</span>' +
-            '<span class="rc-val">' + formatDateFull(p.death_date) +
-            (p.death_date_estimated?' 🔮':'') + '</span></div>' +
+            '<span class="rc-val">' + formatDateFull(p.death_date, p.death_date_estimated) + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Sterbeort</span>' +
             '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
