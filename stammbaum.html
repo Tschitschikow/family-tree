@@ -913,13 +913,11 @@
     <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
     <div class="field">Beruf: <span id="info-profession"></span></div>
     <div class="field">Mädchenname: <span id="info-maiden"></span></div>
-    <div class="field" style="margin-top:0.5em; font-size:0.78em; color:#bbb; border-top:1px solid #eee; padding-top:0.4em; line-height:1.5em;">
-        Person-ID: <span id="info-pid" style="color:#aaa;"></span><br>
-        Beziehungs-IDs: <span id="info-relids" style="color:#aaa; word-break:break-all;"></span>
+    <div class="field" style="border-top:1px solid #eee; padding-top:0.4em; margin-top:0.5em;">
+        Person-ID: <span id="info-pid"></span>
     </div>
-    <div class="field" style="margin-top:0.4em; font-size:0.78em; line-height:1.6em;">
-        <div id="info-reltext" style="color:#888;"></div>
-    </div>
+    <div class="field">Beziehungs-IDs: <span id="info-relids"></span></div>
+    <div id="info-reltext"></div>
 </div>
 
 <!-- ── Stammbaum-Vollbild-Overlay ── -->
@@ -1333,10 +1331,9 @@ window.addEventListener('load', function() {
                 var nameA = personA ? personA.display_name : 'ID ' + r.person_id;
                 var nameB = personB ? personB.display_name : 'ID ' + r.related_person_id;
                 var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
-                return '• ' + nameA + ' ' + verb + ' ' + nameB;
+                return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
             });
-            document.getElementById('info-reltext').innerHTML =
-                relLines.join('<br>');
+            document.getElementById('info-reltext').innerHTML = relLines.join('');
 
             document.getElementById('info-panel').style.display    = 'block';
 
