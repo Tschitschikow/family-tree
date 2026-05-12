@@ -917,6 +917,9 @@
         Person-ID: <span id="info-pid" style="color:#aaa;"></span><br>
         Beziehungs-IDs: <span id="info-relids" style="color:#aaa; word-break:break-all;"></span>
     </div>
+    <div class="field" style="margin-top:0.4em; font-size:0.78em; line-height:1.6em;">
+        <div id="info-reltext" style="color:#888;"></div>
+    </div>
 </div>
 
 <!-- ── Stammbaum-Vollbild-Overlay ── -->
@@ -1298,18 +1301,43 @@ window.addEventListener('load', function() {
             var node = e.target, d = node.data();
             document.getElementById('info-name').textContent       = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
             document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
-            document.getElementById('info-birth').textContent      = (formatDate(d.birth_date) || '–') + (d.birth_date_estimated ? ' (geschätzt)' : '');
-            document.getElementById('info-death').textContent      = (formatDate(d.death_date) || '–') + (d.death_date_estimated ? ' (geschätzt)' : '');
+            document.getElementById('info-birth').textContent      = formatDate(d.birth_date, d.birth_date_estimated) || '–';
+            document.getElementById('info-death').textContent      = formatDate(d.death_date, d.death_date_estimated) || '–';
             document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
             document.getElementById('info-deathplace').textContent = d.death_place  || '–';
             document.getElementById('info-profession').textContent = d.profession   || '–';
             document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
             document.getElementById('info-pid').textContent = d.id || node.id();
-            var relIds = allRels
+
+            // Beziehungen ausgeschrieben
+            var personMap = {};
+            allPersons.forEach(function(p) { personMap[p.id] = p; });
+            var relTypeDE = {
+                'hasMother':    'hat Mutter',
+                'hasFather':    'hat Vater',
+                'hasWife':      'hat Ehefrau',
+                'hasHusband':   'hat Ehemann',
+                'hasExWife':    'hat Ex-Ehefrau',
+                'hasExHusband': 'hat Ex-Ehemann',
+            };
+            var myRels = allRels
                 .filter(function(r) { return r.person_id === d.id || r.related_person_id === d.id; })
-                .map(function(r) { return r.id; })
-                .sort(function(a, b) { return a - b; });
-            document.getElementById('info-relids').textContent = relIds.length ? relIds.join(', ') : '–';
+                .sort(function(a, b) { return a.id - b.id; });
+
+            var relIdsList = myRels.map(function(r) { return r.id; }).join(', ');
+            document.getElementById('info-relids').textContent = relIdsList || '–';
+
+            var relLines = myRels.map(function(r) {
+                var personA = personMap[r.person_id];
+                var personB = personMap[r.related_person_id];
+                var nameA = personA ? personA.display_name : 'ID ' + r.person_id;
+                var nameB = personB ? personB.display_name : 'ID ' + r.related_person_id;
+                var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
+                return '• ' + nameA + ' ' + verb + ' ' + nameB;
+            });
+            document.getElementById('info-reltext').innerHTML =
+                relLines.join('<br>');
+
             document.getElementById('info-panel').style.display    = 'block';
 
             // Highlight-Logik über Family-Filter-Opacity:
@@ -2277,10 +2305,10 @@ window.addEventListener('load', function() {
 
 
 
-    function formatDate(d) {
+    function formatDate(d, estimated) {
         if (!d) return '';
-        var parts = d.split('T')[0].split('-');
-        return parts.length === 3 ? parts[2]+'.'+parts[1]+'.'+parts[0] : d;
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        return d.split('T')[0];  // yyyy-mm-dd
     }
     function updateCount(n) {
         document.getElementById('person-count').textContent = n + ' Personen';
@@ -3763,18 +3791,13 @@ window.addEventListener('load', function() {
 
     function formatDateShort(d, estimated) {
         if (!d) return '';
-        if (estimated) return d.substring(0, 4);  // geschätzt: nur Jahr
-        var p = d.split('T')[0].split('-');
-        // Wenn Monat/Tag = 07/01 (Platzhalter) → nur Jahr
-        if (p[1] === '07' && p[2] === '01') return p[0];
-        return p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : d;
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        return d.split('T')[0];  // yyyy-mm-dd
     }
     function formatDateFull(d, estimated) {
         if (!d) return '–';
         if (estimated) return d.substring(0, 4) + ' (geschätzt)';
-        var p = d.split('T')[0].split('-');
-        if (p[1] === '07' && p[2] === '01') return p[0];
-        return p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : d;
+        return d.split('T')[0];  // yyyy-mm-dd
     }
 
     function renderRegister() {
@@ -3805,9 +3828,8 @@ window.addEventListener('load', function() {
                 '<td>' + (p.maiden_name || '') + '</td>' +
                 '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
                 '<td>' + (formatDateShort(p.birth_date, p.birth_date_estimated) || '–') +
-                         (p.birth_date_estimated ? ' (geschätzt)' : '') + '</td>' +
-                '<td>' + (formatDateShort(p.death_date, p.death_date_estimated) || '–') +
-                         (p.death_date_estimated ? ' (geschätzt)' : '') + '</td>' +
+                         '' + '</td>' +
+                '<td>' + (formatDateShort(p.death_date, p.death_date_estimated) || '–') + '' + '</td>' +
                 '<td>' + (p.birth_place || '–') + '</td>' +
                 '<td>' + (p.death_place || '–') + '</td>' +
                 '<td>' + (p.profession || '–') + '</td>';
