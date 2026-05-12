@@ -584,6 +584,104 @@
                       overflow: hidden; text-overflow: ellipsis; }
         .pcard-row  { color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .pcard-row span { color: #444; font-weight: 500; }
+        /* ── Ansichten-Dropdown-Menü ── */
+        #view-menu-wrap {
+            position: relative;
+            display: inline-flex;
+        }
+        #view-menu-btn {
+            display: flex; align-items: center; gap: 0.4em;
+            padding: 0.32em 0.85em;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            border-radius: 5px; cursor: pointer;
+            color: white; font-size: 0.88em;
+            font-family: inherit;
+        }
+        #view-menu-btn:hover { background: rgba(255,255,255,0.25); }
+        #view-menu-btn::after { content: ' ▾'; font-size:0.8em; }
+        #view-dropdown {
+            display: none; position: absolute; top: calc(100% + 4px); right: 0;
+            background: #fff; border: 1px solid #ddd; border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 999;
+            min-width: 200px; overflow: hidden;
+        }
+        #view-dropdown.open { display: block; }
+        .vd-item {
+            display: flex; align-items: center; gap: 0.6em;
+            padding: 0.6em 1em; cursor: pointer;
+            font-size: 0.88em; color: #334;
+            border-bottom: 1px solid #f0f0f0;
+            font-family: inherit;
+        }
+        .vd-item:last-child { border-bottom: none; }
+        .vd-item:hover { background: #f5f7fa; }
+        .vd-item.active-view { background: #eef2ff; color: #223488; font-weight: 600; }
+        .vd-item .vd-icon { font-size: 1.1em; width: 1.4em; text-align: center; }
+
+        /* ── Register / Tabellen-Ansicht ── */
+        #register-view {
+            display: none; position: fixed; inset: 0;
+            background: #f8f9fa; z-index: 200; flex-direction: column;
+        }
+        #register-view.active { display: flex; }
+        #register-header {
+            background: #fff; border-bottom: 1px solid #dde;
+            padding: 0.55em 1.2em; display: flex; align-items: center;
+            gap: 0.8em; flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+        #register-header h2 { font-size:0.92em; font-weight:600; color:#334; margin:0; font-family:'Helvetica Neue',Arial,sans-serif; }
+        #reg-search {
+            padding: 0.3em 0.7em; border: 1px solid #ccd; border-radius: 5px;
+            font-size: 0.82em; width: 200px; font-family: inherit; color: #334;
+        }
+        #reg-search:focus { outline:none; border-color:#8899cc; }
+        .reg-btn {
+            padding: 0.3em 0.8em; background: #fff; border: 1px solid #ccd;
+            border-radius: 5px; cursor: pointer; font-size: 0.8em;
+            font-family: inherit; color: #445;
+        }
+        .reg-btn:hover { background: #f0f2f5; }
+        #register-body { flex:1; display:flex; overflow:hidden; }
+        #reg-table-wrap { flex:1; overflow:auto; padding: 0.8em; }
+        table#reg-table {
+            width:100%; border-collapse: collapse;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.82em; background: #fff;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+            border-radius: 6px; overflow: hidden;
+        }
+        #reg-table th {
+            background: #f0f2f5; color: #334; font-weight: 600;
+            padding: 0.55em 0.8em; text-align: left;
+            border-bottom: 2px solid #dde; cursor: pointer;
+            white-space: nowrap; user-select: none;
+        }
+        #reg-table th:hover { background: #e8eaf0; }
+        #reg-table th .sort-arrow { color: #aab; margin-left: 3px; font-size: 0.85em; }
+        #reg-table td {
+            padding: 0.45em 0.8em; border-bottom: 1px solid #eef;
+            color: #334; vertical-align: top;
+        }
+        #reg-table tr:last-child td { border-bottom: none; }
+        #reg-table tr:hover td { background: #f5f7fc; cursor: pointer; }
+        #reg-table tr.reg-selected td { background: #eef2ff; }
+        #reg-count { font-size:0.78em; color:#99a; margin-left:auto; }
+
+        /* Karteikarte */
+        #reg-card {
+            width: 260px; flex-shrink:0; background:#fff;
+            border-left: 1px solid #dde; padding: 1em;
+            overflow-y: auto; font-family: 'Helvetica Neue',Arial,sans-serif;
+            font-size:0.82em; color:#445;
+        }
+        #reg-card h3 { font-size:0.95em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em; }
+        .rc-row { margin:0.3em 0; }
+        .rc-lbl { color:#99a; font-size:0.85em; display:block; }
+        .rc-val { color:#223; font-weight:500; }
+        #reg-card-hint { color:#bbc; font-style:italic; font-size:0.82em; }
+
         /* ── Cola-Netzwerk-Ansicht ── */
         #cola-view {
             display: none; position: fixed; inset: 0;
@@ -647,7 +745,23 @@
                   padding:0.35em 0.9em; border-radius:5px;">
            🔐 Admin
         </a>
-        <button id="cola-toggle-btn" class="cola-hbtn" style="margin-right:0.2em;">🕸️ Netzwerk</button>
+        <div id="view-menu-wrap">
+            <button id="view-menu-btn">Ansicht</button>
+            <div id="view-dropdown">
+                <div class="vd-item active-view" data-view="timeline">
+                    <span class="vd-icon">📅</span> Zeitleiste
+                </div>
+                <div class="vd-item" data-view="network">
+                    <span class="vd-icon">🕸️</span> Dynamisches Netzwerk
+                </div>
+                <div class="vd-item" data-view="stammbaum">
+                    <span class="vd-icon">🌳</span> Klassischer Stammbaum
+                </div>
+                <div class="vd-item" data-view="register">
+                    <span class="vd-icon">📋</span> Register
+                </div>
+            </div>
+        </div>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
@@ -881,6 +995,39 @@
             <h3>Details</h3>
             <p id="cola-hint">Knoten anklicken.</p>
             <div id="cola-info-content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Register / Tabellen-Ansicht ── -->
+<div id="register-view">
+    <div id="register-header">
+        <h2>📋 Register</h2>
+        <input type="text" id="reg-search" placeholder="Name, Beruf, Ort suchen…">
+        <button class="reg-btn" id="reg-clear">✕ Leeren</button>
+        <span id="reg-count"></span>
+    </div>
+    <div id="register-body">
+        <div id="reg-table-wrap">
+            <table id="reg-table">
+                <thead>
+                    <tr>
+                        <th data-col="display_name">Name <span class="sort-arrow">↕</span></th>
+                        <th data-col="sex">Geschl. <span class="sort-arrow">↕</span></th>
+                        <th data-col="birth_date">Geboren <span class="sort-arrow">↕</span></th>
+                        <th data-col="death_date">Gestorben <span class="sort-arrow">↕</span></th>
+                        <th data-col="birth_place">Geburtsort <span class="sort-arrow">↕</span></th>
+                        <th data-col="death_place">Sterbeort <span class="sort-arrow">↕</span></th>
+                        <th data-col="profession">Beruf <span class="sort-arrow">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="reg-tbody"></tbody>
+            </table>
+        </div>
+        <div id="reg-card">
+            <h3>Details</h3>
+            <p id="reg-card-hint">Zeile anklicken.</p>
+            <div id="reg-card-content"></div>
         </div>
     </div>
 </div>
@@ -3545,6 +3692,192 @@ window.addEventListener('load', function() {
         a.href     = png;
         a.download = 'stammbaum_' + new Date().toISOString().substring(0,10) + '.png';
         a.click();
+    });
+
+    // ════════════════════════════════════════════════════
+    // ── Ansichten-Steuerung ────────────────────────────
+    // ════════════════════════════════════════════════════
+    var currentView = 'timeline';
+
+    // Dropdown öffnen/schließen
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
+
+    function switchView(view) {
+        currentView = view;
+        // Dropdown-Items markieren
+        document.querySelectorAll('.vd-item').forEach(function(el) {
+            el.classList.toggle('active-view', el.dataset.view === view);
+        });
+        document.getElementById('view-dropdown').classList.remove('open');
+
+        // Toolbar + Hauptgraph
+        var showMain = (view === 'timeline');
+        document.getElementById('toolbar').style.display     = showMain ? '' : 'none';
+        document.getElementById('graph-wrap').style.display  = showMain ? '' : 'none';
+        document.getElementById('time-axis').style.display   = showMain ? '' : 'none';
+        document.getElementById('status-bar').style.display  = showMain ? '' : 'none';
+
+        // Legende
+        document.getElementById('legend').style.display = showMain ? '' : 'none';
+
+        // Cola-Overlay
+        var colaViewEl = document.getElementById('cola-view');
+        if (view === 'network') {
+            colaViewEl.classList.add('active');
+            if (!colaInited) { initColaCy(); colaInited = true; }
+        } else {
+            colaViewEl.classList.remove('active');
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+        }
+
+        // Tree-Overlay (Klassischer Stammbaum)
+        if (view === 'stammbaum') {
+            openTreeOverlay();
+        } else {
+            document.getElementById('tree-overlay').classList.remove('active');
+        }
+
+        // Register
+        var regEl = document.getElementById('register-view');
+        if (view === 'register') {
+            regEl.classList.add('active');
+            renderRegister();
+        } else {
+            regEl.classList.remove('active');
+        }
+    }
+
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() { switchView(el.dataset.view); });
+    });
+
+    // ── Register-Logik ─────────────────────────────────
+    var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
+
+    function formatDateShort(d) {
+        if (!d) return '';
+        return d.substring(0, 4);  // nur Jahr
+    }
+    function formatDateFull(d) {
+        if (!d) return '–';
+        var p = d.split('T')[0].split('-');
+        return p.length === 3 ? p[2]+'.'+p[1]+'.'+p[0] : d;
+    }
+
+    function renderRegister() {
+        var q = regFilter.toLowerCase();
+        var rows = allPersons.filter(function(p) {
+            if (!q) return true;
+            return (p.display_name   || '').toLowerCase().includes(q) ||
+                   (p.profession     || '').toLowerCase().includes(q) ||
+                   (p.birth_place    || '').toLowerCase().includes(q) ||
+                   (p.death_place    || '').toLowerCase().includes(q) ||
+                   (p.maiden_name    || '').toLowerCase().includes(q);
+        });
+
+        // Sortieren
+        rows.sort(function(a, b) {
+            var av = a[regSortCol] || '', bv = b[regSortCol] || '';
+            return regSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+
+        document.getElementById('reg-count').textContent = rows.length + ' Personen';
+
+        var tbody = document.getElementById('reg-tbody');
+        tbody.innerHTML = '';
+        rows.forEach(function(p) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + (p.display_name || '–') + '</td>' +
+                '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
+                '<td>' + (formatDateShort(p.birth_date) || '–') +
+                         (p.birth_date_estimated ? ' 🔮' : '') + '</td>' +
+                '<td>' + (formatDateShort(p.death_date) || '–') +
+                         (p.death_date_estimated ? ' 🔮' : '') + '</td>' +
+                '<td>' + (p.birth_place || '–') + '</td>' +
+                '<td>' + (p.death_place || '–') + '</td>' +
+                '<td>' + (p.profession || '–') + '</td>';
+            tr.addEventListener('click', function() {
+                document.querySelectorAll('#reg-tbody tr').forEach(function(r) {
+                    r.classList.remove('reg-selected');
+                });
+                tr.classList.add('reg-selected');
+                showRegCard(p);
+            });
+            tbody.appendChild(tr);
+        });
+
+        // Sort-Pfeile aktualisieren
+        document.querySelectorAll('#reg-table th').forEach(function(th) {
+            var arrow = th.querySelector('.sort-arrow');
+            if (!arrow) return;
+            if (th.dataset.col === regSortCol) {
+                arrow.textContent = regSortAsc ? '↑' : '↓';
+                arrow.style.color = '#334';
+            } else {
+                arrow.textContent = '↕';
+                arrow.style.color = '#aab';
+            }
+        });
+    }
+
+    function showRegCard(p) {
+        var relIds = allRels
+            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+            .map(function(r){ return r.id; }).sort(function(a,b){return a-b;});
+        document.getElementById('reg-card-hint').style.display = 'none';
+        document.getElementById('reg-card-content').innerHTML =
+            '<div class="rc-row"><span class="rc-lbl">Name</span>' +
+            '<span class="rc-val">' + (p.display_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geschlecht</span>' +
+            '<span class="rc-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Mädchenname</span>' +
+            '<span class="rc-val">' + (p.maiden_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geboren</span>' +
+            '<span class="rc-val">' + formatDateFull(p.birth_date) +
+            (p.birth_date_estimated?' 🔮':'') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geburtsort</span>' +
+            '<span class="rc-val">' + (p.birth_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Gestorben</span>' +
+            '<span class="rc-val">' + formatDateFull(p.death_date) +
+            (p.death_date_estimated?' 🔮':'') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Sterbeort</span>' +
+            '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
+            '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>';
+    }
+
+    // Sortieren per Spalten-Klick
+    document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            if (regSortCol === th.dataset.col) {
+                regSortAsc = !regSortAsc;
+            } else {
+                regSortCol = th.dataset.col;
+                regSortAsc = true;
+            }
+            renderRegister();
+        });
+    });
+
+    // Suchfeld live
+    document.getElementById('reg-search').addEventListener('input', function() {
+        regFilter = this.value;
+        renderRegister();
+    });
+    document.getElementById('reg-clear').addEventListener('click', function() {
+        document.getElementById('reg-search').value = '';
+        regFilter = '';
+        renderRegister();
     });
 
     // ════════════════════════════════════════════════════
