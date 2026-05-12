@@ -2286,13 +2286,7 @@ window.addEventListener('load', function() {
         document.getElementById('person-count').textContent = n + ' Personen';
     }
 
-    // ── Pfadsuche ─────────────────────────────────────────────────
-
-    // Panel öffnen/schließen
-    document.getElementById('path-toggle').addEventListener('click', function() {
-        var panel = document.getElementById('path-panel');
-        panel.classList.toggle('open');
-    });
+    // ── Pfadsuche (deaktiviert) ──────────────────────────────────
 
     // Dropdowns befüllen wenn Daten geladen sind
     function fillPathDropdowns() {
@@ -2471,11 +2465,7 @@ window.addEventListener('load', function() {
 
     function openColaPanel() {
         var panel = document.getElementById('cola-panel');
-        var btn   = document.getElementById('print-btn');
-        var open  = panel.classList.toggle('open');
-        btn.textContent = open ? '✕ Schließen' : '🖨️ Stammbaum-Ansicht';
-        if (open) { btn.style.background = '#5a3e2b'; btn.style.color = 'white'; }
-        else       { btn.style.background = ''; btn.style.color = ''; }
+        if (panel) panel.classList.toggle('open');
     }
 
     // ── Stammbaum-Vollbild-Overlay ──────────────────────────────
@@ -2563,7 +2553,6 @@ window.addEventListener('load', function() {
         if (treeCy) { treeCy.destroy(); treeCy = null; }
     }
 
-    document.getElementById('print-btn').addEventListener('click', openTreeOverlay);
     document.getElementById('tree-close-btn').addEventListener('click', closeTreeOverlay);
 
     // ── Stammbaum zeichnen ────────────────────────────────────
