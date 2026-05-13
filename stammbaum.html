@@ -702,6 +702,43 @@
         .back-to-home:hover { background: #f0f2f5; }
 
         /* ── Cola-Netzwerk-Ansicht ── */
+        #cola-legend {
+            width: 160px;
+            min-width: 140px;
+            flex-shrink: 0;
+            background: #fff;
+            border-right: 1px solid #dde;
+            padding: 0.8em 0.7em;
+            overflow-y: auto;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.78em;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3em;
+        }
+        #cola-legend h4 {
+            font-size: 0.85em; font-weight: 600; color: #334;
+            margin: 0 0 0.4em; padding-bottom: 0.3em;
+            border-bottom: 1px solid #eef;
+        }
+        .cola-fam-item {
+            display: flex; align-items: center; gap: 0.4em;
+            cursor: pointer; padding: 0.15em 0; user-select: none;
+        }
+        .cola-fam-item input { width: auto; margin: 0; cursor: pointer; }
+        .cola-fam-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .cola-legend-ctrl {
+            display: flex; gap: 6px; margin-bottom: 0.3em;
+        }
+        .cola-legend-ctrl button {
+            flex: 1; font-size: 0.82em; padding: 0.2em 0.3em;
+            background: #f0f2f5; border: 1px solid #dde;
+            border-radius: 4px; cursor: pointer; font-family: inherit; color: #445;
+        }
+        .cola-legend-ctrl button:hover { background: #e4e8f0; }
         #cola-view {
             display: none; position: fixed; inset: 0;
             background: #f8f9fa; z-index: 200; flex-direction: column;
@@ -827,8 +864,7 @@
         Geschwister
     </label>
     <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="legend-neighbours" style="width:auto;">
-        + Nachbarn
+        <input type="checkbox" id="legend-neighbours" style="display:none;">
     </label>
 
     <span id="person-count"></span>
@@ -1006,6 +1042,14 @@
         <button class="back-to-home" id="cola-close-btn">← Zurück</button>
     </div>
     <div id="cola-body">
+        <div id="cola-legend">
+            <h4>Familienname</h4>
+            <div class="cola-legend-ctrl">
+                <button id="cola-fam-all">Alle</button>
+                <button id="cola-fam-none">Keine</button>
+            </div>
+            <div id="cola-fam-list"></div>
+        </div>
         <div id="cola-cy"></div>
         <div id="cola-info">
             <h3>Details</h3>
@@ -1336,41 +1380,56 @@ window.addEventListener('load', function() {
                 var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
                 return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
             });
-            document.getElementById('info-reltext').innerHTML = relLines.join('');
+            var relContainer = document.getElementById('info-reltext');
+            relContainer.innerHTML = relLines.join('');
 
             document.getElementById('info-panel').style.display    = 'block';
 
-            // Highlight-Logik über Family-Filter-Opacity:
-            // Sichtbare Nodes = opacity > 0.1 → nur diese einbeziehen
-            // Der angeklickte Node + direkte Nachbarn: volle Sichtbarkeit
-            // Alle anderen sichtbaren: faded
-            // Unsichtbare (opacity~0): bleiben unsichtbar
+            // Highlight: 1. Ring voll sichtbar, 2. Ring ausgegraut, Rest unsichtbar
+            // Familienfilter-Opacity wird respektiert: opacity ≤ 0.1 → unsichtbar lassen
+            var firstRing  = new Set([node.id()]);
+            var secondRing = new Set();
 
-            var highlight = new Set();
-            highlight.add(node.id());
-            node.connectedEdges().forEach(function(e) {
-                // Kante nur hervorheben wenn beide Endpunkte sichtbar genug
-                var src = e.source(), tgt = e.target();
-                if (parseFloat(src.style('opacity')) > 0.1 && parseFloat(tgt.style('opacity')) > 0.1) {
-                    highlight.add(src.id());
-                    highlight.add(tgt.id());
+            // 1. Ring: direkte Nachbarn (nur sichtbare)
+            node.connectedEdges().forEach(function(edge) {
+                var src = edge.source(), tgt = edge.target();
+                if (parseFloat(src.style('opacity')) > 0.1 &&
+                    parseFloat(tgt.style('opacity')) > 0.1) {
+                    firstRing.add(src.id());
+                    firstRing.add(tgt.id());
                 }
             });
 
+            // 2. Ring: Nachbarn der Nachbarn (nur sichtbare, nicht im 1. Ring)
+            firstRing.forEach(function(nid) {
+                colyCy_node = cy.getElementById(nid);
+                colyCy_node.connectedEdges().forEach(function(edge) {
+                    var src = edge.source(), tgt = edge.target();
+                    if (parseFloat(src.style('opacity')) > 0.1 &&
+                        parseFloat(tgt.style('opacity')) > 0.1) {
+                        if (!firstRing.has(src.id())) secondRing.add(src.id());
+                        if (!firstRing.has(tgt.id())) secondRing.add(tgt.id());
+                    }
+                });
+            });
+
             cy.nodes().forEach(function(n) {
-                var curOp = parseFloat(n.style('opacity'));
-                if (curOp <= 0.1) return; // war schon unsichtbar → unverändert lassen
-                n.addClass(highlight.has(n.id()) ? '' : 'faded');
-                if (highlight.has(n.id())) n.removeClass('faded');
+                var op = parseFloat(n.style('opacity'));
+                if (op <= 0.1) return;  // Familienfilter: unsichtbar lassen
+                if (firstRing.has(n.id()))       { n.removeClass('faded'); n.style('opacity', 1); }
+                else if (secondRing.has(n.id())) { n.removeClass('faded'); n.style('opacity', 0.25); }
+                else                             { n.addClass('faded'); }
             });
             cy.edges().forEach(function(e) {
                 var s = e.source().id(), t = e.target().id();
-                var bothHighlight = highlight.has(s) && highlight.has(t);
-                var srcOp = parseFloat(e.source().style('opacity'));
-                var tgtOp = parseFloat(e.target().style('opacity'));
-                if (srcOp <= 0.1 || tgtOp <= 0.1) return; // war unsichtbar
-                if (bothHighlight) e.removeClass('faded');
-                else               e.addClass('faded');
+                var sOp = parseFloat(e.source().style('opacity'));
+                var tOp = parseFloat(e.target().style('opacity'));
+                if (sOp <= 0.1 || tOp <= 0.1) return;
+                var bothFirst  = firstRing.has(s)  && firstRing.has(t);
+                var eitherSec  = secondRing.has(s) || secondRing.has(t);
+                if (bothFirst)       { e.removeClass('faded'); e.style('opacity', 1); }
+                else if (eitherSec)  { e.removeClass('faded'); e.style('opacity', 0.2); }
+                else                 { e.addClass('faded'); }
             });
         });
         cy.on('tap', function(e) {
@@ -2009,8 +2068,8 @@ window.addEventListener('load', function() {
             return;
         }
 
-        // Checkbox: Nachbarn (+1 Verbindung) anzeigen?
-        var showNeighbours = document.getElementById('legend-neighbours').checked;
+        // Nachbarn-Logik deaktiviert (Highlight per Klick übernimmt das)
+        var showNeighbours = false;
 
         // Direkt aktive Familien (auch Mädchenname)
         var directIds = new Set();
@@ -3858,26 +3917,9 @@ window.addEventListener('load', function() {
     }
 
     function showRegCard(p) {
-        var myRels = allRels
+        var relIds = allRels
             .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
-            .sort(function(a,b){return a.id-b.id;});
-        var relIds = myRels.map(function(r){ return r.id; });
-        var personMap = {};
-        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
-        var relTypeDE = {
-            'hasMother':'hat Mutter','hasFather':'hat Vater',
-            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
-            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
-        };
-        var relLines = myRels.map(function(r) {
-            var nameA = personMap[r.person_id]
-                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
-            var nameB = personMap[r.related_person_id]
-                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
-            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
-            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
-                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
-        }).join('');
+            .map(function(r){ return r.id; }).sort(function(a,b){return a-b;});
         document.getElementById('reg-card-hint').style.display = 'none';
         document.getElementById('reg-card-content').innerHTML =
             '<div class="rc-row"><span class="rc-lbl">Name</span>' +
@@ -3896,11 +3938,9 @@ window.addEventListener('load', function() {
             '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
             '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
-            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<div class="rc-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
             '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
-            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
-            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
-            relLines;
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>';
     }
 
     // Sortieren per Spalten-Klick
@@ -3953,7 +3993,10 @@ window.addEventListener('load', function() {
         if (colaCy) colaCy.fit(60);
     });
     document.getElementById('cola-reset-hl').addEventListener('click', function() {
-        if (colaCy) colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+        if (colaCy) {
+            colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+            applyColaFamilyFilter();
+        }
         document.getElementById('cola-search').value = '';
         document.getElementById('cola-hint').style.display = '';
         document.getElementById('cola-info-content').innerHTML = '';
@@ -4083,6 +4126,74 @@ window.addEventListener('load', function() {
             colaLayout.run();
         }, 200);
 
+        // ── Familiennamen-Filter für Cola ────────────────────
+        var colaActiveFamilies = new Set();
+        var colaAllFamilies    = [];
+
+        function buildColaLegend() {
+            var famSet = new Set();
+            allPersons.forEach(function(p) {
+                if (p.family_name) famSet.add(p.family_name);
+                if (p.maiden_name) famSet.add(p.maiden_name);
+            });
+            colaAllFamilies = Array.from(famSet).sort();
+            colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+
+            var list = document.getElementById('cola-fam-list');
+            list.innerHTML = '';
+            colaAllFamilies.forEach(function(fn) {
+                var color = getFamilyColor(fn);
+                var label = fn.split(' ').map(function(w) {
+                    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+                }).join(' ');
+                var div = document.createElement('div');
+                div.className = 'cola-fam-item';
+                div.innerHTML =
+                    '<input type="checkbox" checked data-fam="' + fn + '">' +
+                    '<span class="cola-fam-dot" style="background:' + color + ';border:1.5px solid ' + color + ';"></span>' +
+                    '<span>' + label + '</span>';
+                div.querySelector('input').addEventListener('change', function() {
+                    if (this.checked) colaActiveFamilies.add(fn);
+                    else              colaActiveFamilies.delete(fn);
+                    applyColaFamilyFilter();
+                });
+                list.appendChild(div);
+            });
+        }
+
+        function applyColaFamilyFilter() {
+            if (!colaCy) return;
+            // Alle Familien aktiv → alles voll sichtbar
+            var allActive = colaActiveFamilies.size === colaAllFamilies.length;
+            colaCy.nodes().forEach(function(n) {
+                var raw = n.data('raw') || {};
+                var fn  = raw.family_name || '';
+                var mn  = raw.maiden_name || '';
+                var visible = allActive || colaActiveFamilies.has(fn) || colaActiveFamilies.has(mn);
+                n.style('opacity', visible ? 1 : 0.04);
+            });
+            colaCy.edges().forEach(function(e) {
+                var sOp = parseFloat(e.source().style('opacity'));
+                var tOp = parseFloat(e.target().style('opacity'));
+                e.style('opacity', (sOp > 0.1 && tOp > 0.1) ? 1 : 0);
+            });
+            // Highlight zurücksetzen
+            colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+        }
+
+        document.getElementById('cola-fam-all').addEventListener('click', function() {
+            colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+            document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = true; });
+            applyColaFamilyFilter();
+        });
+        document.getElementById('cola-fam-none').addEventListener('click', function() {
+            colaActiveFamilies.clear();
+            document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = false; });
+            applyColaFamilyFilter();
+        });
+
+        buildColaLegend();
+
         // Knoten-Klick: Highlight + Info
         colaCy.on('tap', 'node', function(evt) {
             var node = evt.target, d = node.data(), p = d.raw || {};
@@ -4113,14 +4224,35 @@ window.addEventListener('load', function() {
                 '<span class="ci-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>';
 
             // 1. Ring voll, 2. Ring gedimmt, Rest hidden
-            colaCy.elements().addClass('cola-hidden');
+            // Familienfilter-Opacity wird respektiert (opacity ≤ 0.1 → bleibt unsichtbar)
+            colaCy.nodes().forEach(function(n) {
+                if (parseFloat(n.style('opacity')) > 0.1) n.addClass('cola-hidden');
+            });
+            colaCy.edges().forEach(function(e) {
+                if (parseFloat(e.source().style('opacity')) > 0.1 &&
+                    parseFloat(e.target().style('opacity')) > 0.1) {
+                    e.addClass('cola-hidden');
+                }
+            });
+
             node.removeClass('cola-hidden').addClass('cola-focused');
-            var firstEdges = node.connectedEdges();
-            var firstN     = firstEdges.connectedNodes().not(node);
+            var firstEdges = node.connectedEdges().filter(function(e) {
+                return parseFloat(e.source().style('opacity')) > 0.1 &&
+                       parseFloat(e.target().style('opacity')) > 0.1;
+            });
+            var firstN = firstEdges.connectedNodes().not(node).filter(function(n) {
+                return parseFloat(n.style('opacity')) > 0.1;
+            });
             firstN.removeClass('cola-hidden').addClass('cola-focused');
             firstEdges.removeClass('cola-hidden').addClass('cola-focused');
-            var secondEdges = firstN.connectedEdges().not(firstEdges);
-            var secondN     = secondEdges.connectedNodes().not(node).not(firstN);
+
+            var secondEdges = firstN.connectedEdges().not(firstEdges).filter(function(e) {
+                return parseFloat(e.source().style('opacity')) > 0.1 &&
+                       parseFloat(e.target().style('opacity')) > 0.1;
+            });
+            var secondN = secondEdges.connectedNodes().not(node).not(firstN).filter(function(n) {
+                return parseFloat(n.style('opacity')) > 0.1;
+            });
             secondN.removeClass('cola-hidden').addClass('cola-faded');
             secondEdges.removeClass('cola-hidden').addClass('cola-faded');
         });
@@ -4128,6 +4260,7 @@ window.addEventListener('load', function() {
         colaCy.on('tap', function(evt) {
             if (evt.target === colaCy) {
                 colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+                applyColaFamilyFilter();  // Familienfilter wiederherstellen
                 document.getElementById('cola-hint').style.display = '';
                 document.getElementById('cola-info-content').innerHTML = '';
             }
