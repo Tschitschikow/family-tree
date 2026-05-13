@@ -725,7 +725,7 @@
             display: flex; align-items: center; gap: 0.4em;
             cursor: pointer; padding: 0.15em 0; user-select: none;
         }
-        .cola-fam-item input { width: auto; margin: 0; cursor: pointer; }
+        .cola-fam-item input { width: auto; margin: 0; cursor: pointer; accent-color: #888; }
         .cola-fam-dot {
             width: 10px; height: 10px; border-radius: 50%;
             flex-shrink: 0;
@@ -1327,7 +1327,7 @@ window.addEventListener('load', function() {
                         'label': '',
                     }
                 },
-                { selector: '.faded', style: { 'opacity': 0.08 } }
+                { selector: '.faded', style: { 'opacity': 0.05 } }
             ],
         });
 
@@ -1385,69 +1385,74 @@ window.addEventListener('load', function() {
 
             document.getElementById('info-panel').style.display    = 'block';
 
-            // Highlight: 1. Ring voll sichtbar, 2. Ring ausgegraut, Rest unsichtbar
-            // Familienfilter-Opacity wird respektiert: opacity ≤ 0.1 → unsichtbar lassen
+            // Highlight: sichtbare Nodes (Familienfilter > 0.1) aufteilen in Ringe
+            // Strategie: nur faded-Klasse verwenden (CSS übernimmt opacity)
+            //            kein direktes .style('opacity') im tap – das verwirrt den Reset
             var firstRing  = new Set([node.id()]);
             var secondRing = new Set();
 
-            // 1. Ring: direkte Nachbarn (nur sichtbare)
+            // Sichtbare Nodes = Familienfilter hat sie nicht ausgeblendet
+            function isVisible(n) { return parseFloat(n.style('opacity')) > 0.1; }
+
+            // 1. Ring: direkte sichtbare Nachbarn
             node.connectedEdges().forEach(function(edge) {
                 var src = edge.source(), tgt = edge.target();
-                if (parseFloat(src.style('opacity')) > 0.1 &&
-                    parseFloat(tgt.style('opacity')) > 0.1) {
+                if (isVisible(src) && isVisible(tgt)) {
                     firstRing.add(src.id());
                     firstRing.add(tgt.id());
                 }
             });
 
-            // 2. Ring: Nachbarn der Nachbarn (nur sichtbare, nicht im 1. Ring)
+            // 2. Ring: Nachbarn der Nachbarn
             firstRing.forEach(function(nid) {
-                colyCy_node = cy.getElementById(nid);
-                colyCy_node.connectedEdges().forEach(function(edge) {
+                cy.getElementById(nid).connectedEdges().forEach(function(edge) {
                     var src = edge.source(), tgt = edge.target();
-                    if (parseFloat(src.style('opacity')) > 0.1 &&
-                        parseFloat(tgt.style('opacity')) > 0.1) {
+                    if (isVisible(src) && isVisible(tgt)) {
                         if (!firstRing.has(src.id())) secondRing.add(src.id());
                         if (!firstRing.has(tgt.id())) secondRing.add(tgt.id());
                     }
                 });
             });
 
+            // Nodes: Ringe hervorheben, Rest faden
             cy.nodes().forEach(function(n) {
-                var op = parseFloat(n.style('opacity'));
-                if (op <= 0.1) return;  // Familienfilter: unsichtbar lassen
-                if (firstRing.has(n.id()))       { n.removeClass('faded'); n.style('opacity', 1); }
-                else if (secondRing.has(n.id())) { n.removeClass('faded'); n.style('opacity', 0.25); }
-                else                             { n.addClass('faded'); }
-            });
-            cy.edges().forEach(function(e) {
-                var s = e.source().id(), t = e.target().id();
-                var sOp = parseFloat(e.source().style('opacity'));
-                var tOp = parseFloat(e.target().style('opacity'));
-                if (sOp <= 0.1 || tOp <= 0.1) {
-                    e.style('opacity', 0);  // Familienfilter: unsichtbar
-                    return;
+                if (!isVisible(n)) return;  // Familienfilter: nicht anfassen
+                n.removeClass('faded');
+                if (!firstRing.has(n.id()) && !secondRing.has(n.id())) {
+                    n.addClass('faded');
+                } else if (secondRing.has(n.id())) {
+                    // 2. Ring: extra dim via inline style (zusätzlich zu CSS)
+                    n.style('opacity', 0.25);
                 }
-                var bothFirst = firstRing.has(s)  && firstRing.has(t);
-                var eitherSec = secondRing.has(s) || secondRing.has(t);
-                if (bothFirst)      { e.removeClass('faded'); e.style('opacity', 1); }
-                else if (eitherSec) { e.removeClass('faded'); e.style('opacity', 0.15); }
-                else                { e.style('opacity', 0.04); }  // nicht relevant: fast unsichtbar
+            });
+
+            // Kanten
+            cy.edges().forEach(function(e) {
+                var s = e.source(), t = e.target();
+                if (!isVisible(s) || !isVisible(t)) return;
+                var bothFirst = firstRing.has(s.id()) && firstRing.has(t.id());
+                var eitherSec = secondRing.has(s.id()) || secondRing.has(t.id());
+                e.removeClass('faded');
+                if (!bothFirst && !eitherSec) {
+                    e.addClass('faded');
+                } else if (!bothFirst && eitherSec) {
+                    e.style('opacity', 0.2);
+                }
             });
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
                 cy.elements().removeClass('faded');
-                cy.edges().style('opacity', '');  // opacity zurücksetzen
-                cy.nodes().style('opacity', '');
+                cy.edges().removeStyle('opacity');  // opacity zurücksetzen
+                cy.nodes().removeStyle('opacity');
                 applyFamilyFilter();
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
         document.getElementById('info-close').addEventListener('click', function() {
             cy.elements().removeClass('faded');
-            cy.edges().style('opacity', '');
-            cy.nodes().style('opacity', '');
+            cy.edges().removeStyle('opacity');
+            cy.nodes().removeStyle('opacity');
             applyFamilyFilter();
             document.getElementById('info-panel').style.display = 'none';
         });
@@ -2318,11 +2323,11 @@ window.addEventListener('load', function() {
             sliderActive[prefix] = false;
             updateSliderUI(prefix);
         });
-        // Highlight zurücksetzen (faded-Klasse + opacity von tap-Handler)
+        // Highlight + inline-opacity zurücksetzen
         if (cy) {
             cy.elements().removeClass('faded');
-            cy.nodes().style('opacity', '');
-            cy.edges().style('opacity', '');
+            cy.nodes().removeStyle('opacity');
+            cy.edges().removeStyle('opacity');
         }
         document.getElementById('info-panel').style.display = 'none';
         applyFamilyFilter();
@@ -4276,36 +4281,39 @@ window.addEventListener('load', function() {
                 '<div class="ci-row" style="margin-top:0.3em;"><span class="ci-lbl">Beziehungen:</span></div>' +
                 relLines;
 
-            // 1. Ring voll, 2. Ring gedimmt, Rest hidden
-            // Familienfilter-Opacity wird respektiert (opacity ≤ 0.1 → bleibt unsichtbar)
+            // 1. Ring voll, 2. Ring gedimmt, Rest ausgeblendet
+            // Nur Nodes die der Familienfilter nicht ausgeblendet hat (opacity > 0.04)
+            function colaIsVisible(el) {
+                return parseFloat(el.style('opacity')) > 0.04;
+            }
+
+            // Alle sichtbaren Elemente zunächst hidden
+            colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
             colaCy.nodes().forEach(function(n) {
-                if (parseFloat(n.style('opacity')) > 0.1) n.addClass('cola-hidden');
+                if (colaIsVisible(n)) n.addClass('cola-hidden');
             });
             colaCy.edges().forEach(function(e) {
-                if (parseFloat(e.source().style('opacity')) > 0.1 &&
-                    parseFloat(e.target().style('opacity')) > 0.1) {
+                if (colaIsVisible(e.source()) && colaIsVisible(e.target())) {
                     e.addClass('cola-hidden');
                 }
             });
 
+            // Angeklickter Node
             node.removeClass('cola-hidden').addClass('cola-focused');
+
+            // 1. Ring
             var firstEdges = node.connectedEdges().filter(function(e) {
-                return parseFloat(e.source().style('opacity')) > 0.1 &&
-                       parseFloat(e.target().style('opacity')) > 0.1;
+                return colaIsVisible(e.source()) && colaIsVisible(e.target());
             });
-            var firstN = firstEdges.connectedNodes().not(node).filter(function(n) {
-                return parseFloat(n.style('opacity')) > 0.1;
-            });
+            var firstN = firstEdges.connectedNodes().not(node).filter(colaIsVisible);
             firstN.removeClass('cola-hidden').addClass('cola-focused');
             firstEdges.removeClass('cola-hidden').addClass('cola-focused');
 
+            // 2. Ring
             var secondEdges = firstN.connectedEdges().not(firstEdges).filter(function(e) {
-                return parseFloat(e.source().style('opacity')) > 0.1 &&
-                       parseFloat(e.target().style('opacity')) > 0.1;
+                return colaIsVisible(e.source()) && colaIsVisible(e.target());
             });
-            var secondN = secondEdges.connectedNodes().not(node).not(firstN).filter(function(n) {
-                return parseFloat(n.style('opacity')) > 0.1;
-            });
+            var secondN = secondEdges.connectedNodes().not(node).not(firstN).filter(colaIsVisible);
             secondN.removeClass('cola-hidden').addClass('cola-faded');
             secondEdges.removeClass('cola-hidden').addClass('cola-faded');
         });
