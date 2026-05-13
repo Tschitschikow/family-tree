@@ -3802,9 +3802,9 @@ window.addEventListener('load', function() {
         var colaViewEl = document.getElementById('cola-view');
         if (view === 'network') {
             colaViewEl.classList.add('active');
-            // Info-panel der Zeitleiste verstecken
             document.getElementById('info-panel').style.display = 'none';
             if (!colaInited) { initColaCy(); colaInited = true; }
+            else if (colaLayout) { restartColaLayout(); }
         } else {
             colaViewEl.classList.remove('active');
             if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
@@ -4006,6 +4006,7 @@ window.addEventListener('load', function() {
         if (colaCy) {
             colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
             applyColaFamilyFilter();
+            restartColaLayout();
         }
         document.getElementById('cola-search').value = '';
         document.getElementById('cola-hint').style.display = '';
@@ -4126,7 +4127,8 @@ window.addEventListener('load', function() {
             randomize: true, fit: true,
         }).run();
 
-        setTimeout(function() {
+        function startColaLayout() {
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
             colaLayout = colaCy.layout({
                 name: 'cola', animate: true, infinite: true,
                 fit: false, padding: 50, nodeSpacing: 18,
@@ -4135,7 +4137,14 @@ window.addEventListener('load', function() {
                 maxSimulationTime: 9999999,
             });
             colaLayout.run();
-        }, 200);
+        }
+
+        function restartColaLayout() {
+            // Kurze Pause damit Klassen-Änderungen durch sind
+            setTimeout(startColaLayout, 80);
+        }
+
+        setTimeout(startColaLayout, 200);
 
         // ── Familiennamen-Filter für Cola ────────────────────
         var colaActiveFamilies = new Set();
@@ -4267,6 +4276,9 @@ window.addEventListener('load', function() {
                 }
             });
 
+            // Layout kurz pausieren während Highlight gesetzt wird
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+
             // Angeklickter Node: immer sichtbar
             node.removeClass('cola-hidden').addClass('cola-focused');
 
@@ -4293,6 +4305,8 @@ window.addEventListener('load', function() {
                 applyColaFamilyFilter();
                 document.getElementById('cola-hint').style.display = '';
                 document.getElementById('cola-info-content').innerHTML = '';
+                // Physics neu starten falls eingefroren
+                restartColaLayout();
             }
         });
     }
