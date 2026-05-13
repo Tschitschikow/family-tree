@@ -1336,9 +1336,7 @@ window.addEventListener('load', function() {
                 var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
                 return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
             });
-            var relContainer = document.getElementById('info-reltext');
-            relContainer.innerHTML = relLines.join('');
-            console.log('myRels:', myRels.length, 'relLines:', relLines.length, 'numId:', numId);
+            document.getElementById('info-reltext').innerHTML = relLines.join('');
 
             document.getElementById('info-panel').style.display    = 'block';
 
@@ -3860,9 +3858,26 @@ window.addEventListener('load', function() {
     }
 
     function showRegCard(p) {
-        var relIds = allRels
+        var myRels = allRels
             .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
-            .map(function(r){ return r.id; }).sort(function(a,b){return a-b;});
+            .sort(function(a,b){return a.id-b.id;});
+        var relIds = myRels.map(function(r){ return r.id; });
+        var personMap = {};
+        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
+        var relTypeDE = {
+            'hasMother':'hat Mutter','hasFather':'hat Vater',
+            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+        };
+        var relLines = myRels.map(function(r) {
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+        }).join('');
         document.getElementById('reg-card-hint').style.display = 'none';
         document.getElementById('reg-card-content').innerHTML =
             '<div class="rc-row"><span class="rc-lbl">Name</span>' +
@@ -3881,9 +3896,11 @@ window.addEventListener('load', function() {
             '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
             '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
             '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
-            '<div class="rc-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
             '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
-            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>';
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
+            relLines;
     }
 
     // Sortieren per Spalten-Klick
