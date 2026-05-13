@@ -1280,45 +1280,45 @@ window.addEventListener('load', function() {
                     }
                 },
                 { selector: 'edge[type = "hasMother"]', style: {
-                    'line-color': '#333', 'target-arrow-color': '#333', 'color': '#555', 'width': 1.2,
+                    'line-color': '#666', 'target-arrow-color': '#666', 'color': '#666', 'width': 0.6,
                     'line-style': 'solid',
                 }},
                 { selector: 'edge[type = "hasFather"]', style: {
-                    'line-color': '#333', 'target-arrow-color': '#333', 'color': '#555', 'width': 1.2,
+                    'line-color': '#666', 'target-arrow-color': '#666', 'color': '#666', 'width': 0.6,
                     'line-style': 'solid',
                 }},
                 {
                     selector: 'edge[type = "hasWife"]',
                     style: {
-                        'line-color': '#222', 'target-arrow-shape': 'none',
-                        'line-style': 'solid', 'width': 3, 'color': '#444',
+                        'line-color': '#555', 'target-arrow-shape': 'none',
+                        'line-style': 'solid', 'width': 1.5, 'color': '#555',
                     }
                 },
                 {
                     selector: 'edge[type = "hasExWife"]',
                     style: {
-                        'line-color': '#999', 'target-arrow-shape': 'none',
+                        'line-color': '#aaa', 'target-arrow-shape': 'none',
                         'line-style': 'dashed', 'line-dash-pattern': [5, 4],
-                        'width': 1.2, 'color': '#999',
+                        'width': 0.6, 'color': '#aaa',
                     }
                 },
                 {
                     selector: 'edge[type = "hasExHusband"]',
                     style: {
-                        'line-color': '#999', 'target-arrow-shape': 'none',
+                        'line-color': '#aaa', 'target-arrow-shape': 'none',
                         'line-style': 'dashed', 'line-dash-pattern': [5, 4],
-                        'width': 1.2, 'color': '#999',
+                        'width': 0.6, 'color': '#aaa',
                     }
                 },
                 {
                     selector: 'edge[type = "sibling"]',
                     style: {
-                        'line-color': '#888',
+                        'line-color': '#bbb',
                         'source-arrow-shape': 'none',
                         'target-arrow-shape': 'none',
                         'line-style': 'dashed', 'line-dash-pattern': [4, 4],
-                        'width': 1,
-                        'color': '#888',
+                        'width': 0.5,
+                        'color': '#bbb',
                         'curve-style': 'bezier',
                         'font-size': '7px',
                         'font-family': 'Helvetica Neue, Arial, sans-serif',
@@ -1424,24 +1424,30 @@ window.addEventListener('load', function() {
                 var s = e.source().id(), t = e.target().id();
                 var sOp = parseFloat(e.source().style('opacity'));
                 var tOp = parseFloat(e.target().style('opacity'));
-                if (sOp <= 0.1 || tOp <= 0.1) return;
-                var bothFirst  = firstRing.has(s)  && firstRing.has(t);
-                var eitherSec  = secondRing.has(s) || secondRing.has(t);
-                if (bothFirst)       { e.removeClass('faded'); e.style('opacity', 1); }
-                else if (eitherSec)  { e.removeClass('faded'); e.style('opacity', 0.2); }
-                else                 { e.addClass('faded'); }
+                if (sOp <= 0.1 || tOp <= 0.1) {
+                    e.style('opacity', 0);  // Familienfilter: unsichtbar
+                    return;
+                }
+                var bothFirst = firstRing.has(s)  && firstRing.has(t);
+                var eitherSec = secondRing.has(s) || secondRing.has(t);
+                if (bothFirst)      { e.removeClass('faded'); e.style('opacity', 1); }
+                else if (eitherSec) { e.removeClass('faded'); e.style('opacity', 0.15); }
+                else                { e.style('opacity', 0.04); }  // nicht relevant: fast unsichtbar
             });
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
                 cy.elements().removeClass('faded');
-                // Familien-Filter wiederherstellen
+                cy.edges().style('opacity', '');  // opacity zurücksetzen
+                cy.nodes().style('opacity', '');
                 applyFamilyFilter();
                 document.getElementById('info-panel').style.display = 'none';
             }
         });
         document.getElementById('info-close').addEventListener('click', function() {
             cy.elements().removeClass('faded');
+            cy.edges().style('opacity', '');
+            cy.nodes().style('opacity', '');
             applyFamilyFilter();
             document.getElementById('info-panel').style.display = 'none';
         });
