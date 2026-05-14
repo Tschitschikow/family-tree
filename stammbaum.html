@@ -2527,9 +2527,9 @@ window.addEventListener('load', function() {
     function showTreeStep(n) {
         treeStep = n;
         for (var i = 1; i <= 4; i++) {
-            document.getElementById('tree-step-' + i).classList.toggle('active', i === n);
+            var el = document.getElementById('tree-step-' + i);
+            if (el) el.classList.toggle('active', i === n);
         }
-        document.getElementById('tree-step-indicator').textContent = 'Schritt ' + n + ' von 4';
     }
 
     // Anchor-Suche
@@ -2577,15 +2577,7 @@ window.addEventListener('load', function() {
     initGenBtns('tree-down-btns', function(v) { treeGenDown = v; });
 
     // Schritt-Navigation
-    document.getElementById('tree-step1-next').addEventListener('click', function() {
-        if (!treeAnchorId) { alert('Bitte eine Person wählen.'); return; }
-        showTreeStep(2);
-    });
-    document.getElementById('tree-step2-back').addEventListener('click', function() { showTreeStep(1); });
-    document.getElementById('tree-step2-next').addEventListener('click', function() { showTreeStep(3); });
-    document.getElementById('tree-step3-back').addEventListener('click', function() { showTreeStep(2); });
-    document.getElementById('tree-step3-next').addEventListener('click', function() { showTreeStep(4); });
-    document.getElementById('tree-step4-back').addEventListener('click', function() { showTreeStep(3); });
+    // Schritt-Navigation wird durch neue SVG-Logik übernommen
 
     // Overlay öffnen/schließen
     function openTreeOverlay() {
