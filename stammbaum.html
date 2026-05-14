@@ -2533,23 +2533,7 @@ window.addEventListener('load', function() {
     }
 
     // Anchor-Suche
-    function fillTreeAnchor(filter) {
-        var sel = document.getElementById('tree-anchor-select');
-        sel.innerHTML = '';
-        var sorted = allPersons.slice().sort(function(a, b) {
-            return a.display_name.localeCompare(b.display_name);
-        });
-        var q = (filter || '').trim().toLowerCase();
-        sorted.forEach(function(p) {
-            if (q && p.display_name.toLowerCase().indexOf(q) < 0 &&
-                     (p.given_name || '').toLowerCase().indexOf(q) < 0) return;
-            var opt = document.createElement('option');
-            opt.value = p.id;
-            var year = p.birth_date ? p.birth_date.substring(0, 4) : '?';
-            opt.textContent = p.display_name + ' (*' + year + ')';
-            sel.appendChild(opt);
-        });
-    }
+    /* fillTreeAnchor: zweite Definition aktiv */
 
     document.getElementById('tree-anchor-search').addEventListener('input', function() {
         fillTreeAnchor(this.value);
@@ -2579,20 +2563,7 @@ window.addEventListener('load', function() {
     // Schritt-Navigation
     // Schritt-Navigation wird durch neue SVG-Logik übernommen
 
-    // Overlay öffnen/schließen
-    function openTreeOverlay() {
-        document.getElementById('tree-overlay').classList.add('active');
-        document.getElementById('tree-export-btn').style.display = 'none';
-        showTreeStep(1);
-        fillTreeAnchor('');
-        treeAnchorId = null;
-        document.getElementById('tree-anchor-name').textContent = '';
-        document.getElementById('tree-anchor-search').value = '';
-    }
-    function closeTreeOverlay() {
-        document.getElementById('tree-overlay').classList.remove('active');
-        if (treeCy) { treeCy.destroy(); treeCy = null; }
-    }
+    // openTreeOverlay: durch neue SVG-Version weiter unten ersetzt
 
     document.getElementById('tree-close-btn').addEventListener('click', closeTreeOverlay);
 
