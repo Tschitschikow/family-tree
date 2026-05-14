@@ -412,9 +412,11 @@
             overflow: hidden;
             background: #f0f0f0;
         }
-        #tree-cy {
-            position: absolute;
-            inset: 0;
+        #tree-cy { position: absolute; inset: 0; }
+        #tree-svg {
+            width: 100%; height: 100%;
+            background: #fafafa;
+            cursor: default;
         }
         #tree-export-btn {
             position: absolute;
@@ -958,77 +960,48 @@
     <div id="info-reltext"></div>
 </div>
 
-<!-- ── Stammbaum-Vollbild-Overlay ── -->
+<!-- ── Stammbaum SVG-Ansicht ── -->
 <div id="tree-overlay">
-    <div id="tree-setup" style="position:relative;">
+    <!-- Linkes Panel: Schritt-Menü -->
+    <div id="tree-setup">
         <button id="tree-close-btn" title="Zurück zur Zeitleiste" style="font-size:0.85em; padding:0.2em 0.6em; background:#f0f2f5; border:1px solid #ccd; border-radius:4px; cursor:pointer; color:#445;">← Zurück</button>
-        <h3>🌳 Stammbaum-Ansicht</h3>
-        <div id="tree-step-indicator">Schritt 1 von 4</div>
+        <h3>🌳 Stammbaum</h3>
 
-        <!-- Schritt 1: Ankerperson -->
+        <!-- Schritt 1: Startperson -->
         <div class="tree-step active" id="tree-step-1">
-            <label>1. Ankerperson wählen</label>
-            <p>Die gewählte Person wird zur Mitte des Stammbaums.</p>
-            <input type="text" id="tree-anchor-search" placeholder="Name suchen…" autocomplete="off" />
-            <select id="tree-anchor-select" size="8" style="height:180px;"></select>
-            <div id="tree-anchor-name"></div>
+            <label>Startperson wählen</label>
+            <p>Person erscheint in der Mitte. Ehepartner werden automatisch daneben platziert.</p>
+            <input type="text" id="tree-anchor-search" placeholder="Name suchen…" autocomplete="off"/>
+            <select id="tree-anchor-select" size="10" style="height:200px;"></select>
+            <div id="tree-anchor-name" style="font-size:0.85em;color:#5a3e2b;font-weight:bold;min-height:1.2em;"></div>
             <div class="tree-btn-row">
-                <button class="tree-btn-primary" id="tree-step1-next">Weiter →</button>
+                <button class="tree-btn-primary" id="tree-step1-next">Anzeigen →</button>
             </div>
         </div>
 
-        <!-- Schritt 2: Vorfahren-Generationen -->
-        <div class="tree-step" id="tree-step-2">
-            <label>2. Vorfahren-Generationen</label>
-            <p>Wie viele Generationen aufwärts sollen angezeigt werden?</p>
-            <div class="tree-gen-btns" id="tree-up-btns">
-                <button class="tree-gen-btn" data-val="0">0</button>
-                <button class="tree-gen-btn selected" data-val="1">1</button>
-                <button class="tree-gen-btn" data-val="2">2</button>
-                <button class="tree-gen-btn" data-val="3">3</button>
-                <button class="tree-gen-btn" data-val="4">4</button>
-                <button class="tree-gen-btn" data-val="5">5</button>
-            </div>
-            <div class="tree-btn-row">
-                <button class="tree-btn-secondary" id="tree-step2-back">← Zurück</button>
-                <button class="tree-btn-primary"   id="tree-step2-next">Weiter →</button>
-            </div>
-        </div>
-
-        <!-- Schritt 3: Nachkommen-Generationen -->
-        <div class="tree-step" id="tree-step-3">
-            <label>3. Nachkommen-Generationen</label>
-            <p>Wie viele Generationen abwärts sollen angezeigt werden?</p>
-            <div class="tree-gen-btns" id="tree-down-btns">
-                <button class="tree-gen-btn" data-val="0">0</button>
-                <button class="tree-gen-btn selected" data-val="1">1</button>
-                <button class="tree-gen-btn" data-val="2">2</button>
-                <button class="tree-gen-btn" data-val="3">3</button>
-                <button class="tree-gen-btn" data-val="4">4</button>
-                <button class="tree-gen-btn" data-val="5">5</button>
-            </div>
-            <div class="tree-btn-row">
-                <button class="tree-btn-secondary" id="tree-step3-back">← Zurück</button>
-                <button class="tree-btn-primary"   id="tree-step3-next">Weiter →</button>
-            </div>
-        </div>
-
-        <!-- Schritt 4: Geschwister -->
-        <div class="tree-step" id="tree-step-4">
-            <label>4. Geschwister anzeigen?</label>
-            <p>Geschwister der Ankerperson und aller Vorfahren werden mit angezeigt.</p>
-            <label class="tree-check-row">
-                <input type="checkbox" id="tree-siblings"> Geschwister einblenden
-            </label>
-            <div class="tree-btn-row">
-                <button class="tree-btn-secondary" id="tree-step4-back">← Zurück</button>
-                <button class="tree-btn-primary"   id="tree-draw-btn">🌳 Zeichnen</button>
+        <!-- Kontextmenü nach Klick auf Person -->
+        <div class="tree-step" id="tree-ctx-menu">
+            <label id="tree-ctx-name" style="font-size:0.9em;color:#5a3e2b;"></label>
+            <p id="tree-ctx-info" style="font-size:0.78em;color:#888;"></p>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:0.4em;">
+                <button class="tree-btn-primary" id="tree-ctx-up">↑ Vorfahren anzeigen (Ebene +1)</button>
+                <button class="tree-btn-primary" id="tree-ctx-down">↓ Nachkommen anzeigen (Ebene −1)</button>
+                <button class="tree-btn-secondary" id="tree-ctx-close">Schließen</button>
             </div>
         </div>
     </div>
+
+    <!-- Rechts: SVG-Zeichenfläche -->
     <div id="tree-canvas">
-        <div id="tree-cy"></div>
-        <button id="tree-export-btn">💾 PNG exportieren</button>
+        <svg id="tree-svg" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+                    <path d="M0,0 L6,3 L0,6 Z" fill="#888"/>
+                </marker>
+            </defs>
+            <g id="tree-g"></g>
+        </svg>
+        <button id="tree-export-btn" style="display:none;">💾 PNG exportieren</button>
     </div>
 </div>
 
@@ -2632,596 +2605,408 @@ window.addEventListener('load', function() {
     document.getElementById('tree-close-btn').addEventListener('click', closeTreeOverlay);
 
     // ── Stammbaum zeichnen ────────────────────────────────────
-    document.getElementById('tree-draw-btn').addEventListener('click', function() {
-        if (!treeAnchorId) { alert('Bitte Ankerperson wählen.'); return; }
-        var showSiblings = document.getElementById('tree-siblings').checked;
-        drawTreeOverlay(treeAnchorId, treeGenUp, treeGenDown, showSiblings);
-    });
+    // ════════════════════════════════════════════════════
+    // ── SVG Stammbaum ───────────────────────────────────
+    // ════════════════════════════════════════════════════
 
-    function drawTreeOverlay(anchorId, genUp, genDown, showSiblings) {
+    // Konstanten
+    var TW = 130, TH = 52;          // Node-Breite/-Höhe
+    var SPOUSE_GAP = 28;            // Abstand zwischen Ehepartnern
+    var LEVEL_H = 130;              // Höhe pro Ebene
+    var svgNS = 'http://www.w3.org/2000/svg';
 
-        // Hilfsmaps aus allRels
-        var parentsOf  = {};   // childId → [parentId]
-        var childrenOf = {};   // parentId → [childId]
-        var spousesOf  = {};   // personId → [spouseId]
-        var exSpousesOf = {};  // personId → [exSpouseId]
+    // State
+    var treeNodes = {};             // id → {x,y,id,label,sex,famColor,spouseIds,el}
+    var treeEdges = [];             // [{from,to,type,el}]
+    var treeAnchorSvgId = null;
+    var svgPan = {x:0, y:0, scale:1};
+    var svgDrag = null;
 
-        allRels.forEach(function(r) {
-            var t = r.relationship_type;
-            if (t === 'hasMother' || t === 'hasFather') {
-                if (!parentsOf[r.person_id])             parentsOf[r.person_id]  = [];
-                if (!childrenOf[r.related_person_id])    childrenOf[r.related_person_id] = [];
-                parentsOf[r.person_id].push(r.related_person_id);
-                childrenOf[r.related_person_id].push(r.person_id);
-            }
-            if (t === 'hasWife' || t === 'hasHusband') {
-                if (!spousesOf[r.person_id]) spousesOf[r.person_id] = [];
-                spousesOf[r.person_id].push(r.related_person_id);
-            }
-            if (t === 'hasExWife' || t === 'hasExHusband') {
-                if (!exSpousesOf[r.person_id]) exSpousesOf[r.person_id] = [];
-                exSpousesOf[r.person_id].push(r.related_person_id);
-            }
+    function getSvg()  { return document.getElementById('tree-svg'); }
+    function getGroup(){ return document.getElementById('tree-g'); }
+
+    // ── Hilfsfunktionen ──────────────────────────────────
+    function personById(id) {
+        return allPersons.find(function(p){ return p.id === id; });
+    }
+    function spousesOf(id) {
+        var ids = [];
+        allRels.forEach(function(r){
+            if ((r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband') &&
+                r.person_id === id) ids.push(r.related_person_id);
         });
-
-        // Alle einzuschließenden Personen + ihr Level bestimmen
-        var included    = new Set();  // IDs die angezeigt werden
-        var mainLine    = new Set();  // direkte Vorfahren/Nachkommen des Ankers
-        var depthOf     = {};         // id → noch verbleibende Aufwärts-Tiefe
-
-        // walkUp: verfolgt Vorfahren-Kette aufwärts
-        // Wichtig: eine Person kann von mehreren Wegen aus gefunden werden
-        // → immer mit dem GRÖSSTEN depth weiterverfolgen (nicht früh abbrechen)
-        function walkUp(id, depth) {
-            // Erst hinzufügen
-            included.add(id);
-            // Ehepartner immer auf gleicher Ebene mitführen
-            (spousesOf[id]   || []).forEach(function(s) { included.add(s); });
-            (exSpousesOf[id] || []).forEach(function(s) { included.add(s); });
-            // Hauptlinie = Personen die direkt vom Anker aus erreicht werden
-            mainLine.add(id);
-            (spousesOf[id]   || []).forEach(function(s) { mainLine.add(s); });
-
-            // Nur aufwärts gehen wenn depth größer als bisher gesehen
-            var prev = depthOf[id];
-            if (prev !== undefined && prev >= depth) return;
-            depthOf[id] = depth;
-
-            if (depth > 0) {
-                // Eltern beider Ehepartner verfolgen
-                var allToTrack = [id];
-                (spousesOf[id]   || []).forEach(function(s) { allToTrack.push(s); });
-                (exSpousesOf[id] || []).forEach(function(s) { allToTrack.push(s); });
-
-                allToTrack.forEach(function(pid_person) {
-                    (parentsOf[pid_person] || []).forEach(function(pid) {
-                        walkUp(pid, depth - 1);
-                    });
-                });
-            }
-
-            // Geschwister: alle Kinder der Eltern auf gleicher Ebene
-            if (showSiblings) {
-                var allToSib = [id];
-                (spousesOf[id]   || []).forEach(function(s) { allToSib.push(s); });
-                (exSpousesOf[id] || []).forEach(function(s) { allToSib.push(s); });
-
-                allToSib.forEach(function(cur) {
-                    (parentsOf[cur] || []).forEach(function(pid) {
-                        (childrenOf[pid] || []).forEach(function(sib) {
-                            if (!included.has(sib)) {
-                                included.add(sib);
-                                (spousesOf[sib]   || []).forEach(function(s) { included.add(s); });
-                                (exSpousesOf[sib] || []).forEach(function(s) { included.add(s); });
-                            }
-                        });
-                    });
-                });
-            }
-        }
-
-        function walkDown(id, depth) {
-            if (depth < 0) return;
-            included.add(id);
-            mainLine.add(id);
-            (spousesOf[id]  || []).forEach(function(s) { included.add(s); mainLine.add(s); });
-            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
-            if (depth > 0) {
-                (childrenOf[id] || []).forEach(function(cid) { walkDown(cid, depth - 1); });
-            }
-        }
-
-        // Geschwister-Kinder: Kinder und Kindeskinder von Ankerperson-Geschwistern
-        function walkSiblingDown(id, depth) {
-            if (depth < 0) return;
-            included.add(id);
-            (spousesOf[id]  || []).forEach(function(s) { included.add(s); });
-            (exSpousesOf[id]|| []).forEach(function(s) { included.add(s); });
-            if (depth > 0) {
-                (childrenOf[id] || []).forEach(function(cid) { walkSiblingDown(cid, depth - 1); });
-            }
-        }
-
-        walkUp(anchorId, genUp);
-        walkDown(anchorId, genDown);
-
-        // Geschwister und deren Kinder/Kindeskinder einschließen
-        if (showSiblings && genDown > 0) {
-            // Geschwister der Ankerperson: Kinder derselben Eltern
-            (parentsOf[anchorId] || []).forEach(function(pid) {
-                (childrenOf[pid] || []).forEach(function(sib) {
-                    if (sib !== anchorId && included.has(sib)) {
-                        // Kinder der Geschwister bis genDown-1 Ebenen
-                        walkSiblingDown(sib, genDown - 1);
-                    }
-                });
-            });
-        }
-
-        var personMap = {};
-        allPersons.forEach(function(p) { personMap[p.id] = p; });
-        var persons = Array.from(included).map(function(id) { return personMap[id]; }).filter(Boolean);
-
-        // Level-Zuweisung: Anker = genUp
-        var levelOf = {};
-        levelOf[anchorId] = genUp;
-
-        // Abwärts
-        function setDownLevel(id, lv) {
-            levelOf[id] = lv;
-            (spousesOf[id]  || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
-            (exSpousesOf[id]|| []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
-            (childrenOf[id] || []).forEach(function(cid) {
-                if (levelOf[cid] === undefined || levelOf[cid] < lv + 1) {
-                    setDownLevel(cid, lv + 1);
-                }
-            });
-        }
-        setDownLevel(anchorId, genUp);
-
-        // Aufwärts: Level für alle Vorfahren setzen
-        // Beide Ehepartner werden verfolgt (nicht nur einer)
-        var upVisited = {};
-        function setUpLevel(id, lv) {
-            if (upVisited[id] !== undefined && upVisited[id] <= lv) return;
-            upVisited[id] = lv;
-            if (levelOf[id] === undefined || levelOf[id] > lv) levelOf[id] = lv;
-
-            // Ehepartner auf gleicher Ebene
-            var partners = (spousesOf[id] || []).concat(exSpousesOf[id] || []);
-            partners.forEach(function(s) {
-                if (levelOf[s] === undefined || levelOf[s] > lv) levelOf[s] = lv;
-            });
-
-            if (lv > 0) {
-                // Eltern DIESER Person aufwärts
-                (parentsOf[id] || []).forEach(function(pid) { setUpLevel(pid, lv - 1); });
-                // Eltern der Ehepartner ebenfalls aufwärts
-                partners.forEach(function(s) {
-                    (parentsOf[s] || []).forEach(function(pid) { setUpLevel(pid, lv - 1); });
-                });
-            }
-        }
-        setUpLevel(anchorId, genUp);
-
-        // Geschwister-Level: gleich wie Ankerperson auf dieser Ebene
-        // Alle included Personen ohne Level → Level über Eltern ableiten
-        persons.forEach(function(p) {
-            if (levelOf[p.id] === undefined) {
-                (parentsOf[p.id] || []).forEach(function(pid) {
-                    var parentLv = levelOf[pid];
-                    if (parentLv !== undefined) {
-                        var sibLv = parentLv + 1;
-                        if (levelOf[p.id] === undefined || levelOf[p.id] > sibLv) {
-                            levelOf[p.id] = sibLv;
-                        }
-                    }
-                });
-            }
-        });
-        // Ehepartner von Geschwistern auf gleiche Ebene
-        persons.forEach(function(p) {
-            if (levelOf[p.id] !== undefined) {
-                var lv = levelOf[p.id];
-                (spousesOf[p.id]   || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
-                (exSpousesOf[p.id] || []).forEach(function(s) { if (levelOf[s] === undefined) levelOf[s] = lv; });
-            }
-        });
-
-        // Ehe-Knoten aufbauen
-        var marriageMap = {};  // "min_max" → {id, p1, p2, ex}
-        allRels.forEach(function(r) {
-            if (r.relationship_type !== 'hasWife' && r.relationship_type !== 'hasExWife') return;
-            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
-            var key = Math.min(r.person_id, r.related_person_id) + '_' +
-                      Math.max(r.person_id, r.related_person_id);
-            if (!marriageMap[key]) {
-                marriageMap[key] = {
-                    id: 'M_' + key,
-                    p1: r.person_id,
-                    p2: r.related_person_id,
-                    ex: r.relationship_type === 'hasExWife',
-                };
-            }
-        });
-
-        // allSpousesOf[personId] = [{mId, partnerId, ex}, ...] sortiert: aktiv zuerst
-        var allSpousesOf = {};
-        Object.values(marriageMap).forEach(function(m) {
-            var lv = levelOf[m.p1] !== undefined ? levelOf[m.p1] : levelOf[m.p2];
-            levelOf[m.id] = lv;
-            [m.p1, m.p2].forEach(function(pid) {
-                var otherId = (pid === m.p1) ? m.p2 : m.p1;
-                if (!allSpousesOf[pid]) allSpousesOf[pid] = [];
-                allSpousesOf[pid].push({ mId: m.id, partnerId: otherId, ex: m.ex });
-            });
-        });
-        // Sortieren: aktive Ehe (ex=false) zuerst, dann Ex-Ehen
-        Object.keys(allSpousesOf).forEach(function(pid) {
-            allSpousesOf[pid].sort(function(a, b) { return (a.ex ? 1 : 0) - (b.ex ? 1 : 0); });
-        });
-        // Rückwärts-Kompatibilität: spouseOf = erstes (aktives) Ehepaket
-        var spouseOf = {};
-        Object.keys(allSpousesOf).forEach(function(pid) {
-            spouseOf[parseInt(pid)] = allSpousesOf[pid][0].mId;
-        });
-
-        // Eltern-Kind-Kanten (von Ehe-Knoten oder direkt)
-        var parentSrcOf = {};   // childId → sourceId (Ehe-Knoten oder Person)
-        var childSrcMap = {};   // srcId → [childId]
-        allRels.forEach(function(r) {
-            if (r.relationship_type !== 'hasMother' && r.relationship_type !== 'hasFather') return;
-            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
-            var parentId = r.related_person_id, childId = r.person_id;
-            var mId = spouseOf[parentId];
-            var srcId = mId || parentId;
-            if (!parentSrcOf[childId] || mId) parentSrcOf[childId] = srcId;
-            if (!childSrcMap[srcId]) childSrcMap[srcId] = [];
-            if (childSrcMap[srcId].indexOf(childId) < 0) childSrcMap[srcId].push(childId);
-        });
-
-        // ── Cytoscape-Elemente ────────────────────────────────
-        var elements = [];
-
-        persons.forEach(function(p) {
-            var year = p.birth_date ? p.birth_date.substring(0, 4) : '';
-            var dyear = p.death_date ? p.death_date.substring(0, 4) : '';
-            // Vollständiger Name: Vorname + Familienname aus display_name
-            var nameParts = (p.display_name || '').split(' ');
-            // display_name ist z.B. "BAHRS Hannes" → "Hannes Bahrs"
-            var fn = nameParts[0] ? nameParts[0].charAt(0) + nameParts[0].slice(1).toLowerCase() : '';
-            var gn = nameParts.slice(1).join(' ');
-            var label = gn ? gn + '\n' + fn : fn;
-            if (p.maiden_name) label += '\ngeb. ' + p.maiden_name;
-            if (year)  label += '\n* ' + year;
-            if (dyear) label += '  \u2020 ' + dyear;
-            elements.push({ group: 'nodes', data: {
-                id: String(p.id),
-                label: label,
-                sex: p.sex,
-                isAnchor: p.id === anchorId,
-                famColor: getFamilyColor(p.family_name),
-                nodeType: 'person',
-            }});
-        });
-
-        Object.values(marriageMap).forEach(function(m) {
-            elements.push({ group: 'nodes', data: {
-                id: m.id, nodeType: 'marriage', ex: m.ex, label: '',
-            }});
-            ['p1', 'p2'].forEach(function(k) {
-                elements.push({ group: 'edges', data: {
-                    id: 'me_' + m.id + '_' + k,
-                    source: String(m[k]), target: m.id,
-                    edgeType: m.ex ? 'ex' : 'married',
-                }});
-            });
-        });
-
-        // Eltern → Kind Kanten (vom Ehe-Knoten oder direkt)
-        var drawnEdges = new Set();
-        allRels.forEach(function(r) {
-            if (r.relationship_type !== 'hasMother' && r.relationship_type !== 'hasFather') return;
-            if (!included.has(r.person_id) || !included.has(r.related_person_id)) return;
-            var parentId = r.related_person_id, childId = r.person_id;
-            var srcId = parentSrcOf[childId] || String(parentId);
-            var eid = 'pc_' + srcId + '_' + childId;
-            if (drawnEdges.has(eid)) return;
-            drawnEdges.add(eid);
-            // Hauptlinie: Kind UND Elternteil sind in mainLine
-            var isMain = mainLine.has(r.person_id) && mainLine.has(r.related_person_id);
-            elements.push({ group: 'edges', data: {
-                id: eid, source: String(srcId), target: String(childId),
-                edgeType: isMain ? 'parent-main' : 'parent-side',
-            }});
-        });
-
-        // ── Layout ──────────────────────────────────────────────
-        var NODE_W = 115, NODE_H = 50, H_GAP = 24, SP_GAP = 32, V_GAP = 120, PAD = 80;
-
-        // Hauptperson pro Ehe-Gruppe: wer hat Kinder oder kommt zuerst?
-        // primary = Hauptperson (trägt den Subbaum), secondary = alle Ehe-Partner
-        var primary   = new Set();
-        var secondary = new Set();  // alle Partner die durch jemanden platziert werden
-        persons.forEach(function(p) {
-            var sid = String(p.id);
-            if (secondary.has(sid)) return;
-            var spouses = allSpousesOf[p.id] || [];
-            if (spouses.length === 0) { primary.add(sid); return; }
-            // Wenn keiner der Partner schon primary ist → diese Person wird primary
-            var otherAlreadyPrimary = spouses.some(function(s) {
-                return primary.has(String(s.partnerId));
-            });
-            if (!otherAlreadyPrimary) {
-                primary.add(sid);
-                spouses.forEach(function(s) { secondary.add(String(s.partnerId)); });
-            } else {
-                secondary.add(sid);
-            }
-        });
-
-        // Kinder die vom primären Pfad kommen
-        function realChildrenPrimary(srcId) {
-            return (childSrcMap[srcId] || []).filter(function(c) { return primary.has(String(c)); });
-        }
-
-        // Breite eines Ehe-Blocks: Hauptperson + alle Partner + Ehe-Knoten
-        function coupleBlockW(pid) {
-            var spouses = allSpousesOf[pid] || [];
-            // Hauptperson + N Partner + N Ehe-Knoten-Gaps
-            return NODE_W + spouses.length * (SP_GAP + NODE_W);
-        }
-
-        // Gesamtbreite des Teilbaums unter einer Hauptperson
-        var wCache = {};
-        function subtreeW(id) {
-            var sid = String(id);
-            if (wCache[sid] !== undefined) return wCache[sid];
-            // Alle Ehe-Knoten dieser Person als mögliche Kinder-Quellen
-            var spouses  = allSpousesOf[id] || [];
-            var allSrcs  = spouses.map(function(s) { return s.mId; });
-            allSrcs.unshift(sid);  // direkte Kinder zuerst
-            var kids = [];
-            allSrcs.forEach(function(src) {
-                realChildrenPrimary(src).forEach(function(c) {
-                    if (kids.indexOf(c) < 0) kids.push(c);
-                });
-            });
-            var ownW = coupleBlockW(id);
-            var w = kids.length === 0 ? ownW :
-                Math.max(ownW, kids.reduce(function(s, c) { return s + subtreeW(c); }, 0)
-                    + Math.max(0, kids.length - 1) * H_GAP);
-            wCache[sid] = w;
-            return w;
-        }
-
-        // Y für ein Level
-        function yForLv(lv) {
-            return PAD + lv * (NODE_H + V_GAP) + NODE_H / 2;
-        }
-
-        var posMap = {};
-
-        // Platzierung: Hauptperson zentriert auf cx, Partner rechts daneben gestaffelt
-        // aktive Ehe: links vom Ehe-Knoten / Ex-Ehen: weiter rechts
-        function placeNode(id, cx) {
-            var sid = String(id);
-            if (posMap[sid]) return;
-            var lv = levelOf[id] !== undefined ? levelOf[id] : genUp;
-            var y  = yForLv(lv);
-            var spouses = allSpousesOf[id] || [];
-
-            // Hauptperson links
-            posMap[sid] = { x: cx, y: y };
-
-            // Partner rechts staffeln: aktive Ehe → SP_GAP + NODE_W/2 rechts vom Ehe-Knoten
-            var xRight = cx + NODE_W / 2;
-            spouses.forEach(function(s) {
-                // Ehe-Knoten
-                var mxKnoten = xRight + SP_GAP / 2;
-                posMap[s.mId] = { x: mxKnoten, y: y };
-                // Partner rechts vom Ehe-Knoten
-                var partnerX = mxKnoten + SP_GAP / 2 + NODE_W / 2;
-                posMap[String(s.partnerId)] = { x: partnerX, y: y };
-                xRight = partnerX + NODE_W / 2;
-            });
-
-            // Kinder: alle unter den Ehe-Knoten + direkt
-            var allSrcs = spouses.map(function(s) { return s.mId; });
-            allSrcs.unshift(sid);
-            var kids = [];
-            allSrcs.forEach(function(src) {
-                realChildrenPrimary(src).forEach(function(c) {
-                    if (kids.indexOf(c) < 0) kids.push(c);
-                });
-            });
-            if (kids.length === 0) return;
-
-            var totalW = kids.reduce(function(s, c) { return s + subtreeW(c); }, 0)
-                         + Math.max(0, kids.length - 1) * H_GAP;
-            var x = cx - totalW / 2;
-            kids.forEach(function(cid) {
-                var cw = subtreeW(cid);
-                placeNode(cid, x + cw / 2);
-                x += cw + H_GAP;
-            });
-        }
-
-        // Wurzeln auf minLv
-        var allLvs = persons.map(function(p) { return levelOf[p.id] !== undefined ? levelOf[p.id] : genUp; });
-        var minLv = Math.min.apply(null, allLvs);
-        var roots = persons.filter(function(p) {
-            return primary.has(String(p.id)) && levelOf[p.id] === minLv;
-        }).map(function(p) { return p.id; });
-        if (roots.length === 0) roots = [anchorId];
-
-        // Roots nebeneinander zentriert
-        var totalRW = roots.reduce(function(s, r) { return s + subtreeW(r); }, 0)
-                      + Math.max(0, roots.length - 1) * H_GAP * 2;
-        var rx = PAD + totalRW / 2;
-        roots.forEach(function(r) {
-            placeNode(r, rx);
-            rx += subtreeW(r) + H_GAP * 2;
-        });
-
-        // Fallback: noch nicht platzierte Personen
-        persons.forEach(function(p) {
-            var sid = String(p.id);
-            if (!posMap[sid]) {
-                var lv = levelOf[p.id] !== undefined ? levelOf[p.id] : genUp;
-                posMap[sid] = { x: PAD, y: yForLv(lv) };
-            }
-        });
-        Object.values(marriageMap).forEach(function(m) {
-            if (!posMap[m.id]) {
-                var a = posMap[String(m.p1)], b = posMap[String(m.p2)];
-                var lv = levelOf[m.id] !== undefined ? levelOf[m.id] : genUp;
-                posMap[m.id] = {
-                    x: (a && b) ? (a.x + b.x) / 2 : (a ? a.x + SP_GAP : PAD),
-                    y: yForLv(lv)
-                };
-            }
-        });
-
-        // (kein separater Überlappungs-Pass – Layout-Algorithmus hält Abstände bereits ein)
-
-        // ── Cytoscape im Overlay aufbauen ─────────────────────
-        if (treeCy) { treeCy.destroy(); treeCy = null; }
-
-        treeCy = cytoscape({
-            container: document.getElementById('tree-cy'),
-            elements: elements,
-            style: [
-                // Personen: weiß, männlich = Rechteck, weiblich = Ellipse
-                { selector: 'node[nodeType="person"]', style: {
-                    'background-color': '#ffffff',
-                    label: 'data(label)', 'font-size': '8px',
-                    'text-valign': 'center', 'text-halign': 'center',
-                    'text-wrap': 'wrap', 'text-max-width': '110px',
-                    'border-width': '1.5px', 'border-color': '#aaaaaa', color: '#222',
-                    width: NODE_W, height: NODE_H,
-                }},
-                { selector: 'node[nodeType="person"][sex="m"]', style: {
-                    shape: 'rectangle',
-                }},
-                { selector: 'node[nodeType="person"][sex="f"]', style: {
-                    shape: 'ellipse',
-                }},
-                { selector: 'node[?isAnchor]', style: {
-                    'border-width': '3px', 'border-color': '#e8c84a',
-                    'background-color': '#fffae8',
-                }},
-                // Ehe-Knoten: goldener Punkt
-                { selector: 'node[nodeType="marriage"]', style: {
-                    shape: 'ellipse', width: 10, height: 10,
-                    'background-color': '#e8c84a', label: '', 'border-width': 0,
-                }},
-                { selector: 'node[nodeType="marriage"][?ex]', style: {
-                    'background-color': '#aaa',
-                }},
-                // Ehe-Kanten: kurze goldene Linie (Ehepaar mit Abstand)
-                { selector: 'edge[edgeType="married"]', style: {
-                    'line-color': '#e8c84a', width: 3,
-                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                    'line-style': 'solid', 'curve-style': 'straight',
-                }},
-                { selector: 'edge[edgeType="ex"]', style: {
-                    'line-color': '#bbb', width: 1.5,
-                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                    'line-style': 'dashed', 'curve-style': 'straight',
-                }},
-                // Hauptlinie (direkte Vorfahren/Nachkommen): dick, dunkel
-                { selector: 'edge[edgeType="parent-main"]', style: {
-                    'line-color': '#333', width: 2.5,
-                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                    'curve-style': 'taxi', 'taxi-direction': 'downward',
-                }},
-                // Seitenlinie (Geschwister, Nichten/Neffen): dünn, grau
-                { selector: 'edge[edgeType="parent-side"]', style: {
-                    'line-color': '#aaa', width: 1,
-                    'target-arrow-shape': 'none', 'source-arrow-shape': 'none',
-                    'curve-style': 'taxi', 'taxi-direction': 'downward',
-                }},
-            ],
-            layout: { name: 'preset' },
-            userZoomingEnabled: true,
-            userPanningEnabled: true,
-        });
-
-        treeCy.nodes().forEach(function(n) {
-            var p = posMap[n.id()];
-            if (p) n.position({ x: p.x, y: p.y });
-        });
-
-        treeCy.fit(PAD);
-
-        // ── Drag: horizontal sperren + Ehe-Gruppe als Einheit ──
-        var _dragGroup   = null;  // [{node, offsetX}] – alle Nodes der Gruppe
-        var _dragLockedY = null;
-
-        treeCy.on('grabon', 'node', function(e) {
-            var grabbed = e.target;
-            var grabbedId = grabbed.id();
-            _dragLockedY = grabbed.position('y');
-
-            // Gruppe: gegriffener Node + alle Ehe-Partner + Ehe-Knoten
-            var groupIds = new Set([grabbedId]);
-
-            function addSpouseGroup(node) {
-                node.connectedEdges('[edgeType="married"],[edgeType="ex"]').forEach(function(edge) {
-                    var other = edge.source().id() === node.id() ? edge.target() : edge.source();
-                    if (!groupIds.has(other.id())) {
-                        groupIds.add(other.id());
-                        addSpouseGroup(other);  // rekursiv für Ketten
-                    }
-                });
-            }
-            addSpouseGroup(grabbed);
-
-            var grabX = grabbed.position('x');
-            _dragGroup = [];
-            groupIds.forEach(function(nid) {
-                // Cytoscape-Selektor: ID mit Sonderzeichen escapen
-                var safeId = nid.replace(/([^a-zA-Z0-9_-])/g, '\\$1');
-                var n = treeCy.$('#' + safeId);
-                if (n.length > 0 && n.id() !== grabbedId) {
-                    // Nur Nicht-gegriffene in Gruppe – gegriffener bewegt sich selbst
-                    _dragGroup.push({ node: n, offsetX: n.position('x') - grabX });
-                }
-            });
-        });
-
-        treeCy.on('drag', 'node', function(e) {
-            if (!_dragGroup || _dragGroup.length === 0) {
-                // Nur Y sperren
-                if (_dragLockedY !== null) e.target.position('y', _dragLockedY);
-                return;
-            }
-            var newX = e.target.position('x');
-            // Y des gegriffenen sperren
-            e.target.position('y', _dragLockedY);
-            // Mitglieder der Gruppe relativ mitbewegen
-            _dragGroup.forEach(function(item) {
-                item.node.position({
-                    x: newX + item.offsetX,
-                    y: _dragLockedY
-                });
-            });
-        });
-
-        treeCy.on('free', 'node', function() {
-            _dragGroup   = null;
-            _dragLockedY = null;
-        });
-
-        document.getElementById('tree-export-btn').style.display = 'block';
-
-        // Panel schließen → Zeichnung bleibt sichtbar
-        showTreeStep(4);
-        // Statt Panel weg → weiter sichtbar lassen, User kann erneut zeichnen
+        return ids;
+    }
+    function nodeLabel(p) {
+        if (!p) return '?';
+        var fn = p.family_name ? p.family_name.charAt(0)+p.family_name.slice(1).toLowerCase() : '';
+        var gn = p.given_name || '';
+        var yr = p.birth_date ? p.birth_date.substring(0,4) : '';
+        var dy = p.death_date ? p.death_date.substring(0,4) : '';
+        var line1 = gn || fn;
+        var line2 = gn ? fn : '';
+        var line3 = yr ? ('*'+yr + (dy?' †'+dy:'')) : '';
+        return [line1, line2, line3].filter(Boolean);
     }
 
-    // PNG-Export
+    // ── SVG-Element erzeugen ─────────────────────────────
+    function makeSvgNode(p, x, y, isAnchor) {
+        var g = document.createElementNS(svgNS, 'g');
+        g.setAttribute('class','tree-node');
+        g.setAttribute('data-id', p.id);
+        g.style.cursor = 'pointer';
+
+        var shape;
+        if (p.sex === 'f') {
+            shape = document.createElementNS(svgNS, 'ellipse');
+            shape.setAttribute('rx', TW/2);
+            shape.setAttribute('ry', TH/2);
+            shape.setAttribute('cx', 0);
+            shape.setAttribute('cy', 0);
+        } else {
+            shape = document.createElementNS(svgNS, 'rect');
+            shape.setAttribute('x', -TW/2);
+            shape.setAttribute('y', -TH/2);
+            shape.setAttribute('width', TW);
+            shape.setAttribute('height', TH);
+            shape.setAttribute('rx', 7);
+        }
+        shape.setAttribute('fill', '#fff');
+        shape.setAttribute('stroke', getFamilyColor(p.family_name));
+        shape.setAttribute('stroke-width', isAnchor ? 3.5 : 2);
+        g.appendChild(shape);
+
+        var lines = nodeLabel(p);
+        var lineH = 13;
+        var totalH = lines.length * lineH;
+        var startY = -(totalH/2) + lineH/2;
+        lines.forEach(function(line, i) {
+            var txt = document.createElementNS(svgNS, 'text');
+            txt.setAttribute('x', 0);
+            txt.setAttribute('y', startY + i*lineH);
+            txt.setAttribute('text-anchor', 'middle');
+            txt.setAttribute('dominant-baseline', 'middle');
+            txt.setAttribute('font-family', 'Helvetica Neue, Arial, sans-serif');
+            txt.setAttribute('font-size', i===0 ? '9' : '7.5');
+            txt.setAttribute('fill', i===0 ? '#222' : '#666');
+            if (i===0) txt.setAttribute('font-weight','600');
+            txt.textContent = line;
+            g.appendChild(txt);
+        });
+
+        g.setAttribute('transform','translate('+x+','+y+')');
+        g.addEventListener('click', function(e){
+            e.stopPropagation();
+            openCtxMenu(p.id);
+        });
+
+        getGroup().appendChild(g);
+        treeNodes[p.id] = { id:p.id, x:x, y:y, el:g, p:p };
+        return g;
+    }
+
+    function makeSvgEdge(x1,y1,x2,y2,type) {
+        var line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+        line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+        if (type === 'spouse') {
+            line.setAttribute('stroke','#c8a020');
+            line.setAttribute('stroke-width','2');
+        } else if (type === 'parent') {
+            line.setAttribute('stroke','#666');
+            line.setAttribute('stroke-width','1.2');
+        } else {
+            line.setAttribute('stroke','#aaa');
+            line.setAttribute('stroke-width','1');
+        }
+        // Kante vor Nodes einfügen (Nodes obendrüber)
+        var g = getGroup();
+        g.insertBefore(line, g.firstChild);
+        return line;
+    }
+
+    // Ehe-Verbindungspunkt (goldener Punkt zwischen Ehepartnern)
+    function makeSpouseConnector(p1id, p2id) {
+        var n1 = treeNodes[p1id], n2 = treeNodes[p2id];
+        if (!n1 || !n2) return;
+        var mx = (n1.x + n2.x) / 2;
+        var my = n1.y;
+        makeSvgEdge(n1.x, n1.y, n2.x, n2.y, 'spouse');
+        // goldener Punkt
+        var dot = document.createElementNS(svgNS, 'circle');
+        dot.setAttribute('cx', mx);
+        dot.setAttribute('cy', my);
+        dot.setAttribute('r', 5);
+        dot.setAttribute('fill', '#e8c84a');
+        dot.setAttribute('stroke', '#fff');
+        dot.setAttribute('stroke-width', '1.5');
+        getGroup().appendChild(dot);
+    }
+
+    // ── SVG Pan & Zoom ───────────────────────────────────
+    function updateTransform() {
+        getGroup().setAttribute('transform',
+            'translate('+svgPan.x+','+svgPan.y+') scale('+svgPan.scale+')');
+    }
+
+    function initSvgInteraction() {
+        var svg = getSvg();
+        var dragging = false, startX, startY, startPX, startPY;
+        svg.addEventListener('mousedown', function(e) {
+            if (e.target.closest('.tree-node')) return;
+            dragging = true;
+            startX = e.clientX; startY = e.clientY;
+            startPX = svgPan.x; startPY = svgPan.y;
+            svg.style.cursor = 'grabbing';
+        });
+        window.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            svgPan.x = startPX + (e.clientX - startX);
+            svgPan.y = startPY + (e.clientY - startY);
+            updateTransform();
+        });
+        window.addEventListener('mouseup', function() {
+            dragging = false;
+            getSvg().style.cursor = 'default';
+        });
+        svg.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            var factor = e.deltaY < 0 ? 1.1 : 0.9;
+            var rect = svg.getBoundingClientRect();
+            var mx = e.clientX - rect.left;
+            var my = e.clientY - rect.top;
+            svgPan.x = mx - (mx - svgPan.x) * factor;
+            svgPan.y = my - (my - svgPan.y) * factor;
+            svgPan.scale *= factor;
+            updateTransform();
+        }, {passive:false});
+    }
+
+    // ── Startperson platzieren ───────────────────────────
+    function placeFamilyUnit(anchorId, centerX, centerY) {
+        var anchor = personById(anchorId);
+        if (!anchor) return;
+
+        var spouseIds = spousesOf(anchorId);
+        var total = 1 + spouseIds.length;
+        var unitW = total * TW + (total-1) * SPOUSE_GAP;
+        var startX = centerX - unitW/2 + TW/2;
+
+        makeSvgNode(anchor, startX, centerY, true);
+
+        var curX = startX + TW + SPOUSE_GAP;
+        spouseIds.forEach(function(sid) {
+            var sp = personById(sid);
+            if (!sp) return;
+            makeSvgNode(sp, curX, centerY, false);
+            makeSpouseConnector(anchorId, sid);
+            curX += TW + SPOUSE_GAP;
+        });
+
+        treeAnchorSvgId = anchorId;
+        document.getElementById('tree-export-btn').style.display = 'block';
+    }
+
+    function svgCenter() {
+        var svg = getSvg();
+        var r = svg.getBoundingClientRect();
+        // In SVG-Koordinaten umrechnen
+        var cx = (r.width/2  - svgPan.x) / svgPan.scale;
+        var cy = (r.height/2 - svgPan.y) / svgPan.scale;
+        return {x: cx, y: cy};
+    }
+
+    // ── Kontextmenü ──────────────────────────────────────
+    function openCtxMenu(personId) {
+        var p = personById(personId);
+        if (!p) return;
+
+        document.getElementById('tree-ctx-name').textContent = p.display_name;
+        var yr = p.birth_date ? '*'+p.birth_date.substring(0,4) : '';
+        var dy = p.death_date ? ' †'+p.death_date.substring(0,4) : '';
+        document.getElementById('tree-ctx-info').textContent = yr + dy + (p.profession ? '  '+p.profession : '');
+
+        // Buttons aktivieren
+        document.getElementById('tree-ctx-up').onclick = function() {
+            expandUp(personId);
+            closeCtxMenu();
+        };
+        document.getElementById('tree-ctx-down').onclick = function() {
+            expandDown(personId);
+            closeCtxMenu();
+        };
+
+        // Schritt-1 ausblenden, Kontextmenü einblenden
+        document.getElementById('tree-step-1').classList.remove('active');
+        document.getElementById('tree-ctx-menu').classList.add('active');
+    }
+
+    function closeCtxMenu() {
+        document.getElementById('tree-ctx-menu').classList.remove('active');
+    }
+
+    document.getElementById('tree-ctx-close').addEventListener('click', closeCtxMenu);
+
+    // ── Vorfahren aufklappen ─────────────────────────────
+    function expandUp(childId) {
+        var childNode = treeNodes[childId];
+        if (!childNode) return;
+
+        var parentIds = [];
+        allRels.forEach(function(r) {
+            if ((r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') &&
+                r.person_id === childId) {
+                parentIds.push(r.related_person_id);
+            }
+        });
+        if (parentIds.length === 0) {
+            alert('Keine Eltern bekannt.'); return;
+        }
+
+        var targetY = childNode.y - LEVEL_H;
+        // Paare gruppieren
+        var pairs = groupIntoPairs(parentIds);
+        var totalUnitsW = pairs.reduce(function(s,pair){
+            return s + pair.length * TW + (pair.length-1)*SPOUSE_GAP;
+        }, 0) + Math.max(0, pairs.length-1) * (TW + SPOUSE_GAP);
+        var startX = childNode.x - totalUnitsW/2;
+
+        var connectionPoints = []; // x-Koordinaten der Eltern-Knoten
+
+        pairs.forEach(function(pair) {
+            var unitW = pair.length * TW + (pair.length-1)*SPOUSE_GAP;
+            var cx = startX + unitW/2;
+            startX += unitW + TW + SPOUSE_GAP;
+
+            pair.forEach(function(pid, i) {
+                if (treeNodes[pid]) return;
+                var px = cx - (pair.length===2 ? (TW/2+SPOUSE_GAP/2) : 0) + i*(TW+SPOUSE_GAP);
+                var p = personById(pid);
+                if (p) {
+                    makeSvgNode(p, px, targetY, false);
+                    connectionPoints.push(px);
+                }
+            });
+            if (pair.length === 2 && !treeNodes[pair[0]] && !treeNodes[pair[1]]) {
+                makeSpouseConnector(pair[0], pair[1]);
+            }
+        });
+
+        // Linien von Eltern zum Kind
+        var midChildX = childNode.x;
+        connectionPoints.forEach(function(px) {
+            makeSvgEdge(px, targetY + TH/2, midChildX, childNode.y - TH/2, 'parent');
+        });
+    }
+
+    // ── Nachkommen aufklappen ────────────────────────────
+    function expandDown(parentId) {
+        var parentNode = treeNodes[parentId];
+        if (!parentNode) return;
+
+        var childIds = [];
+        allRels.forEach(function(r) {
+            if ((r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') &&
+                r.related_person_id === parentId) {
+                childIds.push(r.person_id);
+            }
+        });
+        if (childIds.length === 0) {
+            alert('Keine Kinder bekannt.'); return;
+        }
+
+        var targetY = parentNode.y + LEVEL_H;
+        var totalW = childIds.length * TW + (childIds.length-1) * SPOUSE_GAP;
+        var startX = parentNode.x - totalW/2 + TW/2;
+
+        childIds.forEach(function(cid) {
+            if (treeNodes[cid]) return;
+            var p = personById(cid);
+            if (p) {
+                makeSvgNode(p, startX, targetY, false);
+                makeSvgEdge(parentNode.x, parentNode.y + TH/2, startX, targetY - TH/2, 'parent');
+                startX += TW + SPOUSE_GAP;
+            }
+        });
+    }
+
+    // Hilfsfunktion: Eltern in Paare gruppieren
+    function groupIntoPairs(ids) {
+        var used = new Set();
+        var pairs = [];
+        ids.forEach(function(id) {
+            if (used.has(id)) return;
+            var spIds = spousesOf(id).filter(function(s){ return ids.indexOf(s) >= 0; });
+            if (spIds.length > 0) {
+                pairs.push([id, spIds[0]]);
+                used.add(id); used.add(spIds[0]);
+            } else {
+                pairs.push([id]);
+                used.add(id);
+            }
+        });
+        return pairs;
+    }
+
+    // ── Step-Navigation ──────────────────────────────────
+    document.getElementById('tree-step1-next').addEventListener('click', function() {
+        if (!treeAnchorId) { alert('Bitte eine Person wählen.'); return; }
+        // Graph leeren
+        getGroup().innerHTML = '';
+        treeNodes = {}; treeEdges = [];
+        // SVG zentrieren
+        var svg = getSvg();
+        var r = svg.getBoundingClientRect();
+        svgPan = { x: r.width/2, y: r.height/2, scale: 1 };
+        updateTransform();
+        // Startperson platzieren (im Koordinatenursprung)
+        placeFamilyUnit(treeAnchorId, 0, 0);
+        initSvgInteraction();
+    });
+
+    document.getElementById('tree-close-btn').addEventListener('click', function() {
+        switchView('timeline');
+    });
+
+    // Anchor-Suche (aus bestehendem Code)
+    function fillTreeAnchor(filter) {
+        var sel = document.getElementById('tree-anchor-select');
+        sel.innerHTML = '';
+        var sorted = allPersons.slice().sort(function(a,b){
+            return a.display_name.localeCompare(b.display_name);
+        });
+        var q = (filter||'').trim().toLowerCase();
+        sorted.forEach(function(p) {
+            if (q && p.display_name.toLowerCase().indexOf(q) < 0 &&
+                     (p.given_name||'').toLowerCase().indexOf(q) < 0) return;
+            var opt = document.createElement('option');
+            opt.value = p.id;
+            var year = p.birth_date ? p.birth_date.substring(0,4) : '?';
+            opt.textContent = p.display_name + ' (*'+year+')';
+            sel.appendChild(opt);
+        });
+    }
+    document.getElementById('tree-anchor-search').addEventListener('input', function(){
+        fillTreeAnchor(this.value);
+    });
+    document.getElementById('tree-anchor-select').addEventListener('change', function(){
+        treeAnchorId = parseInt(this.value);
+        var p = allPersons.find(function(x){ return x.id === treeAnchorId; });
+        document.getElementById('tree-anchor-name').textContent = p ? p.display_name : '';
+    });
+
+    // openTreeOverlay bleibt nutzbar
+    function openTreeOverlay() {
+        document.getElementById('tree-overlay').classList.add('active');
+        document.getElementById('tree-step-1').classList.add('active');
+        document.getElementById('tree-ctx-menu').classList.remove('active');
+        fillTreeAnchor('');
+        treeAnchorId = null;
+        document.getElementById('tree-anchor-name').textContent = '';
+        document.getElementById('tree-anchor-search').value = '';
+    }
+
+        // PNG-Export
     document.getElementById('tree-export-btn').addEventListener('click', function() {
         if (!treeCy) return;
         var png = treeCy.png({ full: true, scale: 2, bg: '#f0f0f0' });
