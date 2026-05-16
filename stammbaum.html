@@ -627,8 +627,9 @@
         /* ── Register / Tabellen-Ansicht ── */
         #register-view {
             display: none; position: fixed; inset: 0;
-            background: #f8f9fa; z-index: 200; flex-direction: column;
+            background: #f8f9fa; z-index: 500; flex-direction: column;
         }
+        #register-view.active { display: flex; }
         #register-view.active { display: flex; }
         #register-header {
             background: #fff; border-bottom: 1px solid #dde;
@@ -1005,41 +1006,6 @@
     </div>
 </div>
 
-<!-- ── Register / Tabellen-Ansicht ── -->
-<div id="register-view" style="display:none; position:fixed; inset:0; z-index:500; background:#f8f9fa; flex-direction:column;">
-    <div style="background:#fff; border-bottom:1px solid #dde; padding:0.5em 1.2em; display:flex; align-items:center; gap:0.8em; flex-shrink:0; box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <h2 style="font-size:0.92em; font-weight:600; color:#334; margin:0; font-family:'Helvetica Neue',Arial,sans-serif;">📋 Register</h2>
-        <input type="text" id="reg-search" placeholder="Name, Beruf, Ort suchen…" style="padding:0.3em 0.7em; border:1px solid #ccd; border-radius:5px; font-size:0.82em; width:200px; font-family:inherit; color:#334;">
-        <button id="reg-clear" style="padding:0.3em 0.8em; background:#fff; border:1px solid #ccd; border-radius:5px; cursor:pointer; font-size:0.8em; font-family:inherit; color:#445;">✕ Leeren</button>
-        <button onclick="switchView('timeline')" style="padding:0.3em 0.8em; background:#fff; border:1px solid #ccd; border-radius:5px; cursor:pointer; font-size:0.8em; font-family:inherit; color:#445;">← Zurück</button>
-        <span id="reg-count" style="font-size:0.78em; color:#99a; margin-left:auto;"></span>
-    </div>
-    <div style="flex:1; display:flex; overflow:hidden;">
-        <div style="flex:1; overflow:auto; padding:0.8em;">
-            <table id="reg-table" style="width:100%; border-collapse:collapse; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.82em; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,0.07); border-radius:6px; overflow:hidden;">
-                <thead>
-                    <tr>
-                        <th data-col="display_name" style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Name <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="maiden_name"  style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Mädchenname <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="sex"          style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Geschl. <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="birth_date"   style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Geboren <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="death_date"   style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Gestorben <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="birth_place"  style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Geburtsort <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="death_place"  style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Sterbeort <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                        <th data-col="profession"   style="background:#f0f2f5; color:#334; font-weight:600; padding:0.55em 0.8em; text-align:left; border-bottom:2px solid #dde; cursor:pointer; white-space:nowrap; user-select:none;">Beruf <span class="sort-arrow" style="color:#aab; margin-left:3px; font-size:0.85em;">↕</span></th>
-                    </tr>
-                </thead>
-                <tbody id="reg-tbody"></tbody>
-            </table>
-        </div>
-        <div id="reg-card" style="width:260px; flex-shrink:0; background:#fff; border-left:1px solid #dde; padding:1em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.82em; color:#445;">
-            <h3 style="font-size:0.92em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em;">Details</h3>
-            <p id="reg-card-hint" style="color:#bbc; font-style:italic; font-size:0.82em;">Zeile anklicken.</p>
-            <div id="reg-card-content"></div>
-        </div>
-    </div>
-</div>
-
 <!-- ── Cola Netzwerk-Ansicht ── -->
 <div id="cola-view">
     <div id="cola-header">
@@ -1212,20 +1178,6 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // ── Ansichts-Dropdown (sofort aktiv) ─────────────────
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() {
-            if (typeof switchView === 'function') switchView(el.dataset.view);
-        });
-    });
-
     function loadData() {
         Promise.all([
             client.from('persons').select('*'),
@@ -1245,6 +1197,7 @@ window.addEventListener('load', function() {
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
         populateYearSelects(allPersons);
+        if (currentView === 'register') renderRegister();
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
@@ -3572,6 +3525,15 @@ window.addEventListener('load', function() {
     // ════════════════════════════════════════════════════
     var currentView = 'timeline';
 
+    // Dropdown öffnen/schließen
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
+
     function switchView(view) {
         currentView = view;
         // Dropdown-Items markieren
@@ -3608,9 +3570,11 @@ window.addEventListener('load', function() {
         // Register
         var regEl = document.getElementById('register-view');
         if (view === 'register') {
+            regEl.classList.add('active');
             regEl.style.display = 'flex';
             if (typeof renderRegister === 'function') renderRegister();
         } else {
+            regEl.classList.remove('active');
             regEl.style.display = 'none';
         }
 
@@ -3620,10 +3584,12 @@ window.addEventListener('load', function() {
         }
     }
 
-
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() { switchView(el.dataset.view); });
+    });
 
     // ── Register-Logik ─────────────────────────────────
-
+    var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
 
     function formatDateShort(d, estimated) {
         if (!d) return '';
@@ -3636,127 +3602,133 @@ window.addEventListener('load', function() {
         return d.split('T')[0];  // yyyy-mm-dd
     }
 
-
-
-
-
-
-
-    // ── Register-Logik ───────────────────────────────────
-    var regSortCol = 'display_name', regSortAsc = true, regFilter = '';
-
     function renderRegister() {
-        if (!allPersons || allPersons.length === 0) return;
+        if (!allPersons || allPersons.length === 0) { return; }
         var q = regFilter.toLowerCase();
         var rows = allPersons.filter(function(p) {
             if (!q) return true;
-            return (p.display_name || '').toLowerCase().includes(q) ||
-                   (p.maiden_name  || '').toLowerCase().includes(q) ||
-                   (p.profession   || '').toLowerCase().includes(q) ||
-                   (p.birth_place  || '').toLowerCase().includes(q) ||
-                   (p.death_place  || '').toLowerCase().includes(q);
+            return (p.display_name   || '').toLowerCase().includes(q) ||
+                   (p.profession     || '').toLowerCase().includes(q) ||
+                   (p.birth_place    || '').toLowerCase().includes(q) ||
+                   (p.death_place    || '').toLowerCase().includes(q) ||
+                   (p.maiden_name    || '').toLowerCase().includes(q);
         });
+
+        // Sortieren
         rows.sort(function(a, b) {
             var av = a[regSortCol] || '', bv = b[regSortCol] || '';
             return regSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
         });
+
         document.getElementById('reg-count').textContent = rows.length + ' Personen';
+
         var tbody = document.getElementById('reg-tbody');
         tbody.innerHTML = '';
         rows.forEach(function(p) {
             var tr = document.createElement('tr');
-            tr.style.cursor = 'pointer';
-            var bd = p.birth_date_estimated ? p.birth_date ? p.birth_date.substring(0,4)+' (geschätzt)' : '–'
-                                            : p.birth_date ? p.birth_date.split('T')[0] : '–';
-            var dd = p.death_date_estimated ? p.death_date ? p.death_date.substring(0,4)+' (geschätzt)' : '–'
-                                            : p.death_date ? p.death_date.split('T')[0] : '–';
             tr.innerHTML =
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.display_name||'–') + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.maiden_name||'') + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.sex==='m'?'♂':p.sex==='f'?'♀':'–') + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + bd + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + dd + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.birth_place||'–') + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.death_place||'–') + '</td>' +
-                '<td style="padding:0.45em 0.8em;border-bottom:1px solid #eef;color:#334;">' + (p.profession||'–') + '</td>';
-            tr.addEventListener('mouseover', function(){ tr.style.background='#f5f7fc'; });
-            tr.addEventListener('mouseout',  function(){ tr.style.background=tr._sel?'#eef2ff':''; });
+                '<td>' + (p.display_name || '–') + '</td>' +
+                '<td>' + (p.maiden_name || '') + '</td>' +
+                '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
+                '<td>' + (formatDateShort(p.birth_date, p.birth_date_estimated) || '–') +
+                         '' + '</td>' +
+                '<td>' + (formatDateShort(p.death_date, p.death_date_estimated) || '–') + '' + '</td>' +
+                '<td>' + (p.birth_place || '–') + '</td>' +
+                '<td>' + (p.death_place || '–') + '</td>' +
+                '<td>' + (p.profession || '–') + '</td>';
             tr.addEventListener('click', function() {
-                document.querySelectorAll('#reg-tbody tr').forEach(function(r){ r._sel=false; r.style.background=''; });
-                tr._sel = true; tr.style.background = '#eef2ff';
+                document.querySelectorAll('#reg-tbody tr').forEach(function(r) {
+                    r.classList.remove('reg-selected');
+                });
+                tr.classList.add('reg-selected');
                 showRegCard(p);
             });
             tbody.appendChild(tr);
         });
-        // Sort-Pfeile
-        document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
+
+        // Sort-Pfeile aktualisieren
+        document.querySelectorAll('#reg-table th').forEach(function(th) {
             var arrow = th.querySelector('.sort-arrow');
             if (!arrow) return;
-            if (th.dataset.col === regSortCol) { arrow.textContent = regSortAsc?'↑':'↓'; arrow.style.color='#334'; }
-            else { arrow.textContent = '↕'; arrow.style.color='#aab'; }
+            if (th.dataset.col === regSortCol) {
+                arrow.textContent = regSortAsc ? '↑' : '↓';
+                arrow.style.color = '#334';
+            } else {
+                arrow.textContent = '↕';
+                arrow.style.color = '#aab';
+            }
         });
     }
 
     function showRegCard(p) {
+        var myRels = allRels
+            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+            .sort(function(a,b){ return a.id-b.id; });
+        var relIds = myRels.map(function(r){ return r.id; });
         var personMap = {};
-        allPersons.forEach(function(pr){ personMap[pr.id]=pr; });
+        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
         var relTypeDE = {
             'hasMother':'hat Mutter','hasFather':'hat Vater',
             'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
             'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
         };
-        var myRels = allRels
-            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
-            .sort(function(a,b){ return a.id-b.id; });
-        var relIds = myRels.map(function(r){ return r.id; });
         var relLines = myRels.map(function(r) {
-            var nameA = personMap[r.person_id] ? personMap[r.person_id].display_name : 'ID '+r.person_id;
-            var nameB = personMap[r.related_person_id] ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
-            var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
-            return '<div style="margin:0.28em 0;font-size:0.88em;color:#334;">' + nameA + ' ' + verb + ' ' + nameB + '</div>';
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
         }).join('');
-        var bd = p.birth_date_estimated ? p.birth_date?p.birth_date.substring(0,4)+' (geschätzt)':'–'
-                                        : p.birth_date?p.birth_date.split('T')[0]:'–';
-        var dd = p.death_date_estimated ? p.death_date?p.death_date.substring(0,4)+' (geschätzt)':'–'
-                                        : p.death_date?p.death_date.split('T')[0]:'–';
-        function row(lbl, val) {
-            return '<div style="margin:0.3em 0;"><span style="color:#99a;font-size:0.85em;display:block;">' +
-                   lbl + '</span><span style="color:#223;font-weight:500;">' + val + '</span></div>';
-        }
         document.getElementById('reg-card-hint').style.display = 'none';
         document.getElementById('reg-card-content').innerHTML =
-            row('Name', p.display_name||'–') +
-            row('Geschlecht', p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') +
-            row('Mädchenname', p.maiden_name||'–') +
-            row('Geboren', bd) +
-            row('Geburtsort', p.birth_place||'–') +
-            row('Gestorben', dd) +
-            row('Sterbeort', p.death_place||'–') +
-            row('Beruf', p.profession||'–') +
-            '<div style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
-            '<span style="color:#99a;font-size:0.85em;">Person-ID: ' + p.id + '</span><br>' +
-            '<span style="color:#99a;font-size:0.85em;">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
-            '<div style="margin-top:0.3em;"><span style="color:#99a;font-size:0.85em;">Beziehungen:</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Name</span>' +
+            '<span class="rc-val">' + (p.display_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geschlecht</span>' +
+            '<span class="rc-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Mädchenname</span>' +
+            '<span class="rc-val">' + (p.maiden_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geboren</span>' +
+            '<span class="rc-val">' + formatDateFull(p.birth_date, p.birth_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geburtsort</span>' +
+            '<span class="rc-val">' + (p.birth_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Gestorben</span>' +
+            '<span class="rc-val">' + formatDateFull(p.death_date, p.death_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Sterbeort</span>' +
+            '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
+            '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
             relLines;
     }
 
-    // Sortieren + Suche
+    // Sortieren per Spalten-Klick
     document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
         th.addEventListener('click', function() {
-            if (regSortCol === th.dataset.col) regSortAsc = !regSortAsc;
-            else { regSortCol = th.dataset.col; regSortAsc = true; }
+            if (regSortCol === th.dataset.col) {
+                regSortAsc = !regSortAsc;
+            } else {
+                regSortCol = th.dataset.col;
+                regSortAsc = true;
+            }
             renderRegister();
         });
     });
+
+    // Suchfeld live
     document.getElementById('reg-search').addEventListener('input', function() {
-        regFilter = this.value; renderRegister();
+        regFilter = this.value;
+        renderRegister();
     });
     document.getElementById('reg-clear').addEventListener('click', function() {
-        document.getElementById('reg-search').value = ''; regFilter = ''; renderRegister();
+        document.getElementById('reg-search').value = '';
+        regFilter = '';
+        renderRegister();
     });
-
-    // Nach loadData: Register rendern falls aktiv
-    if (document.getElementById('register-view').style.display === 'flex') renderRegister();
 
     // ════════════════════════════════════════════════════
     // ── Cola Netzwerk-Ansicht ───────────────────────────
