@@ -1177,6 +1177,17 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
+    // ── Ansichten-Steuerung (außerhalb loadData – sofort aktiv) ──
+    var currentView = 'timeline';
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
+
+
     function loadData() {
         Promise.all([
             client.from('persons').select('*'),
@@ -3518,19 +3529,7 @@ window.addEventListener('load', function() {
         a.click();
     });
 
-    // ════════════════════════════════════════════════════
-    // ── Ansichten-Steuerung ────────────────────────────
-    // ════════════════════════════════════════════════════
-    var currentView = 'timeline';
-
-    // Dropdown öffnen/schließen
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
+    // Ansichten-Steuerung: wird außerhalb loadData registriert
 
     function switchView(view) {
         currentView = view;
