@@ -627,7 +627,7 @@
         /* ── Register / Tabellen-Ansicht ── */
         #register-view {
             display: none; position: fixed; inset: 0;
-            background: #f8f9fa; z-index: 200; flex-direction: column;
+            background: #f8f9fa; z-index: 500; flex-direction: column;
         }
         #register-view.active { display: flex; }
         #register-header {
@@ -3572,9 +3572,11 @@ window.addEventListener('load', function() {
         var regEl = document.getElementById('register-view');
         if (view === 'register') {
             regEl.classList.add('active');
+            regEl.style.display = 'flex';
             renderRegister();
         } else {
             regEl.classList.remove('active');
+            regEl.style.display = 'none';
         }
 
         // Karte
