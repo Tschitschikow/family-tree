@@ -1207,6 +1207,8 @@ window.addEventListener('load', function() {
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
         populateYearSelects(allPersons);
+        // Falls Ansicht vor Laden gewählt wurde
+        if (_pendingView) { switchView(_pendingView); _pendingView = null; }
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
@@ -3579,8 +3581,16 @@ window.addEventListener('load', function() {
         }
     }
 
+    // switchView wird nach loadData verfügbar – Wrapper
+    var _pendingView = null;
     document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() { switchView(el.dataset.view); });
+        el.addEventListener('click', function() {
+            if (typeof switchView === 'function') {
+                switchView(el.dataset.view);
+            } else {
+                _pendingView = el.dataset.view;
+            }
+        });
     });
 
     // ── Register-Logik ─────────────────────────────────
