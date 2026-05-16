@@ -1177,7 +1177,7 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // ── Ansichten-Steuerung (außerhalb loadData – sofort aktiv) ──
+    // ── Dropdown sofort aktiv (außerhalb loadData) ───────────────────
     var currentView = 'timeline';
     document.getElementById('view-menu-btn').addEventListener('click', function(e) {
         e.stopPropagation();
@@ -1186,7 +1186,11 @@ window.addEventListener('load', function() {
     document.addEventListener('click', function() {
         document.getElementById('view-dropdown').classList.remove('open');
     });
-
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+            if (typeof switchView === 'function') switchView(el.dataset.view);
+        });
+    });
 
     function loadData() {
         Promise.all([
@@ -1207,8 +1211,6 @@ window.addEventListener('load', function() {
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
         populateYearSelects(allPersons);
-        // Falls Ansicht vor Laden gewählt wurde
-        if (_pendingView) { switchView(_pendingView); _pendingView = null; }
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
@@ -3531,8 +3533,6 @@ window.addEventListener('load', function() {
         a.click();
     });
 
-    // Ansichten-Steuerung: wird außerhalb loadData registriert
-
     function switchView(view) {
         currentView = view;
         // Dropdown-Items markieren
@@ -3581,17 +3581,7 @@ window.addEventListener('load', function() {
         }
     }
 
-    // switchView wird nach loadData verfügbar – Wrapper
-    var _pendingView = null;
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() {
-            if (typeof switchView === 'function') {
-                switchView(el.dataset.view);
-            } else {
-                _pendingView = el.dataset.view;
-            }
-        });
-    });
+
 
     // ── Register-Logik ─────────────────────────────────
     var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
