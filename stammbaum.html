@@ -1211,6 +1211,8 @@ window.addEventListener('load', function() {
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
         populateYearSelects(allPersons);
+        // Falls Register-Ansicht aktiv ist, jetzt befüllen
+        if (currentView === 'register') renderRegister();
             initCy();
             applyFilter(allPersons, allRels);
             fillPathDropdowns();
@@ -3598,6 +3600,7 @@ window.addEventListener('load', function() {
     }
 
     function renderRegister() {
+        if (!allPersons || allPersons.length === 0) return;  // noch nicht geladen
         var q = regFilter.toLowerCase();
         var rows = allPersons.filter(function(p) {
             if (!q) return true;
