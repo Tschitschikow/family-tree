@@ -627,9 +627,8 @@
         /* ── Register / Tabellen-Ansicht ── */
         #register-view {
             display: none; position: fixed; inset: 0;
-            background: #f8f9fa; z-index: 500; flex-direction: column;
+            background: #f8f9fa; z-index: 200; flex-direction: column;
         }
-        #register-view.active { display: flex; }
         #register-view.active { display: flex; }
         #register-header {
             background: #fff; border-bottom: 1px solid #dde;
@@ -1176,6 +1175,20 @@ window.addEventListener('load', function() {
 
     document.getElementById('logout-btn').addEventListener('click', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
+    });
+
+    // ── Dropdown sofort aktiv (außerhalb loadData) ───────
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+            if (typeof switchView === 'function') switchView(el.dataset.view);
+        });
     });
 
     function loadData() {
@@ -3525,15 +3538,6 @@ window.addEventListener('load', function() {
     // ════════════════════════════════════════════════════
     var currentView = 'timeline';
 
-    // Dropdown öffnen/schließen
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
-
     function switchView(view) {
         currentView = view;
         // Dropdown-Items markieren
@@ -3584,9 +3588,7 @@ window.addEventListener('load', function() {
         }
     }
 
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() { switchView(el.dataset.view); });
-    });
+
 
     // ── Register-Logik ─────────────────────────────────
     var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
@@ -3603,7 +3605,7 @@ window.addEventListener('load', function() {
     }
 
     function renderRegister() {
-        if (!allPersons || allPersons.length === 0) { return; }
+        if (!allPersons || allPersons.length === 0) return;
         var q = regFilter.toLowerCase();
         var rows = allPersons.filter(function(p) {
             if (!q) return true;
