@@ -1006,12 +1006,74 @@
     </div>
 </div>
 
+<!-- ── Cola Netzwerk-Ansicht ── -->
+<div id="cola-view">
+    <div id="cola-header">
+        <h2>🕸️ Netzwerk-Ansicht</h2>
+        <input type="text" id="cola-search" placeholder="Name suchen…" autocomplete="off">
+        <button class="cola-hbtn" id="cola-reset-hl">Auswahl zurücksetzen</button>
+        <button class="cola-hbtn" id="cola-refit">🎯 Einpassen</button>
+        <button class="back-to-home" id="cola-close-btn">← Zurück</button>
+    </div>
+    <div id="cola-body">
+        <div id="cola-legend">
+            <h4>Familienname</h4>
+            <div class="cola-legend-ctrl">
+                <button id="cola-fam-all">Alle</button>
+                <button id="cola-fam-none">Keine</button>
+            </div>
+            <div id="cola-fam-list"></div>
+        </div>
+        <div id="cola-cy"></div>
+        <div id="cola-info">
+            <h3>Details</h3>
+            <p id="cola-hint">Knoten anklicken.</p>
+            <div id="cola-info-content"></div>
+        </div>
+    </div>
+</div>
 
+<!-- ── Register / Tabellen-Ansicht ── -->
+<div id="register-view">
+    <div id="register-header">
+        <h2>📋 Register</h2>
+        <input type="text" id="reg-search" placeholder="Name, Beruf, Ort suchen…">
+        <button class="back-to-home" onclick="switchView('timeline')" style="margin-left:0;">← Zurück</button>
+        <button class="reg-btn" id="reg-clear">✕ Leeren</button>
+        <span id="reg-count"></span>
+    </div>
+    <div id="register-body">
+        <div id="reg-table-wrap">
+            <table id="reg-table">
+                <thead>
+                    <tr>
+                        <th data-col="display_name">Name <span class="sort-arrow">↕</span></th>
+                        <th data-col="maiden_name">Mädchenname <span class="sort-arrow">↕</span></th>
+                        <th data-col="sex">Geschl. <span class="sort-arrow">↕</span></th>
+                        <th data-col="birth_date">Geboren <span class="sort-arrow">↕</span></th>
+                        <th data-col="death_date">Gestorben <span class="sort-arrow">↕</span></th>
+                        <th data-col="birth_place">Geburtsort <span class="sort-arrow">↕</span></th>
+                        <th data-col="death_place">Sterbeort <span class="sort-arrow">↕</span></th>
+                        <th data-col="profession">Beruf <span class="sort-arrow">↕</span></th>
+                    </tr>
+                </thead>
+                <tbody id="reg-tbody"></tbody>
+            </table>
+        </div>
+        <div id="reg-card">
+            <h3>Details</h3>
+            <p id="reg-card-hint">Zeile anklicken.</p>
+            <div id="reg-card-content"></div>
+        </div>
+    </div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
+<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
@@ -1092,22 +1154,21 @@ var TL_PADDING  = 100;
 
 window.addEventListener('load', function() {
 
-    // client: aus shared.js
-    let cy         = null;
-    // allPersons, allRels: aus shared.js
+    // client, allPersons, allRels: aus shared.js
+    let cy = null;
     let showParent  = true;
     let showMarried = true;
     let showSiblingsEdges = true;  // globale Edge-Anzeige (nicht Stammbaum-Geschwister)
     var repulsionValue = 40000000;
 
-    // ADMIN_EMAIL: aus config.js
 
-    // Auth + Daten laden via shared.js
-    initAuth(function() {
+    setupLogout();
+    setupViewMenu();
+    initPage(function() {
         loadData();
     });
 
-    // Logout: wird von shared.js gesteuert
+    // Logout: shared.js
 
     function loadData() {
         loadSharedData(function() {
@@ -3436,42 +3497,494 @@ window.addEventListener('load', function() {
         a.click();
     });
 
-    // ════════════════════════════════════════════════════
-    // ── Ansichten-Steuerung ────────────────────────────
-    // ════════════════════════════════════════════════════
-    var currentView = 'timeline';
-
-    // Dropdown: wird von shared.js gesteuert
+    // Ansichten: shared.js
+    var currentView = "timeline";
 
     function switchView(view) {
-        currentView = view;
-        // Markierung im Dropdown
-        document.querySelectorAll('.vd-item').forEach(function(el) {
-            el.classList.toggle('active-view', el.dataset.view === view);
-        });
-        document.getElementById('view-dropdown').classList.remove('open');
-
-        // Andere Ansichten → eigene Seite
         var pages = {
-            'network':   'netzwerk.html',
-            'stammbaum': 'stammbaum.html',
-            'register':  'register.html',
-            'karte':     'karte.html',
+            'network':'netzwerk.html','stammbaum':'stammbaum.html',
+            'register':'register.html','karte':'karte.html',
         };
-        if (pages[view]) {
-            window.location.href = pages[view];
-            return;
-        }
-        // timeline: hier bleiben (Standard)
+        if (pages[view]) { window.location.href = pages[view]; return; }
+        // timeline: bleiben
     }
 
+    // vd-item: shared.js
 
+    // ── Register-Logik ─────────────────────────────────
+    var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
 
+    function formatDateShort(d, estimated) {
+        if (!d) return '';
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        return d.split('T')[0];  // yyyy-mm-dd
+    }
+    function formatDateFull(d, estimated) {
+        if (!d) return '–';
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        return d.split('T')[0];  // yyyy-mm-dd
+    }
+
+    function renderRegister() {
+        var q = regFilter.toLowerCase();
+        var rows = allPersons.filter(function(p) {
+            if (!q) return true;
+            return (p.display_name   || '').toLowerCase().includes(q) ||
+                   (p.profession     || '').toLowerCase().includes(q) ||
+                   (p.birth_place    || '').toLowerCase().includes(q) ||
+                   (p.death_place    || '').toLowerCase().includes(q) ||
+                   (p.maiden_name    || '').toLowerCase().includes(q);
+        });
+
+        // Sortieren
+        rows.sort(function(a, b) {
+            var av = a[regSortCol] || '', bv = b[regSortCol] || '';
+            return regSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+
+        document.getElementById('reg-count').textContent = rows.length + ' Personen';
+
+        var tbody = document.getElementById('reg-tbody');
+        tbody.innerHTML = '';
+        rows.forEach(function(p) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td>' + (p.display_name || '–') + '</td>' +
+                '<td>' + (p.maiden_name || '') + '</td>' +
+                '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
+                '<td>' + (formatDateShort(p.birth_date, p.birth_date_estimated) || '–') +
+                         '' + '</td>' +
+                '<td>' + (formatDateShort(p.death_date, p.death_date_estimated) || '–') + '' + '</td>' +
+                '<td>' + (p.birth_place || '–') + '</td>' +
+                '<td>' + (p.death_place || '–') + '</td>' +
+                '<td>' + (p.profession || '–') + '</td>';
+            tr.addEventListener('click', function() {
+                document.querySelectorAll('#reg-tbody tr').forEach(function(r) {
+                    r.classList.remove('reg-selected');
+                });
+                tr.classList.add('reg-selected');
+                showRegCard(p);
+            });
+            tbody.appendChild(tr);
+        });
+
+        // Sort-Pfeile aktualisieren
+        document.querySelectorAll('#reg-table th').forEach(function(th) {
+            var arrow = th.querySelector('.sort-arrow');
+            if (!arrow) return;
+            if (th.dataset.col === regSortCol) {
+                arrow.textContent = regSortAsc ? '↑' : '↓';
+                arrow.style.color = '#334';
+            } else {
+                arrow.textContent = '↕';
+                arrow.style.color = '#aab';
+            }
+        });
+    }
+
+    function showRegCard(p) {
+        var myRels = allRels
+            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+            .sort(function(a,b){ return a.id-b.id; });
+        var relIds = myRels.map(function(r){ return r.id; });
+        var personMap = {};
+        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
+        var relTypeDE = {
+            'hasMother':'hat Mutter','hasFather':'hat Vater',
+            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+        };
+        var relLines = myRels.map(function(r) {
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+        }).join('');
+        document.getElementById('reg-card-hint').style.display = 'none';
+        document.getElementById('reg-card-content').innerHTML =
+            '<div class="rc-row"><span class="rc-lbl">Name</span>' +
+            '<span class="rc-val">' + (p.display_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geschlecht</span>' +
+            '<span class="rc-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Mädchenname</span>' +
+            '<span class="rc-val">' + (p.maiden_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geboren</span>' +
+            '<span class="rc-val">' + formatDateFull(p.birth_date, p.birth_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geburtsort</span>' +
+            '<span class="rc-val">' + (p.birth_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Gestorben</span>' +
+            '<span class="rc-val">' + formatDateFull(p.death_date, p.death_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Sterbeort</span>' +
+            '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
+            '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
+            relLines;
+    }
+
+    // Sortieren per Spalten-Klick
+    document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            if (regSortCol === th.dataset.col) {
+                regSortAsc = !regSortAsc;
+            } else {
+                regSortCol = th.dataset.col;
+                regSortAsc = true;
+            }
+            renderRegister();
+        });
+    });
+
+    // Suchfeld live
+    document.getElementById('reg-search').addEventListener('input', function() {
+        regFilter = this.value;
+        renderRegister();
+    });
+    document.getElementById('reg-clear').addEventListener('click', function() {
+        document.getElementById('reg-search').value = '';
+        regFilter = '';
+        renderRegister();
+    });
 
     // ════════════════════════════════════════════════════
     // ── Cola Netzwerk-Ansicht ───────────────────────────
     // ════════════════════════════════════════════════════
+    // WebCola als Cytoscape-Extension registrieren
+    if (typeof cytoscapeCola !== 'undefined') {
+        cytoscape.use(cytoscapeCola);
+    }
 
+    var colaCy      = null;
+    var colaLayout  = null;
+    var colaInited  = false;
+
+    function openColaView() {
+        document.getElementById('cola-view').classList.add('active');
+        if (!colaInited) { initColaCy(); colaInited = true; }
+    }
+    function closeColaView() {
+        document.getElementById('cola-view').classList.remove('active');
+        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+    }
+
+    document.getElementById('cola-close-btn').addEventListener('click', closeColaView);
+    document.getElementById('cola-refit').addEventListener('click', function() {
+        if (colaCy) colaCy.fit(60);
+    });
+    document.getElementById('cola-reset-hl').addEventListener('click', function() {
+        if (colaCy) {
+            colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
+            applyColaFamilyFilter();
+            restartColaLayout();
+        }
+        document.getElementById('cola-search').value = '';
+        document.getElementById('cola-hint').style.display = '';
+        document.getElementById('cola-info-content').innerHTML = '';
+    });
+    document.getElementById('cola-search').addEventListener('input', function() {
+        if (!colaCy) return;
+        var q = this.value.trim().toLowerCase();
+        colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+        if (!q) return;
+        colaCy.elements().addClass('cola-faded');
+        colaCy.nodes().forEach(function(n) {
+            var raw = n.data('raw') || {};
+            var name = (raw.display_name || '').toLowerCase();
+            if (name.indexOf(q) >= 0) {
+                n.removeClass('cola-faded').addClass('cola-focused');
+                n.connectedEdges().removeClass('cola-faded').addClass('cola-focused');
+                n.connectedEdges().connectedNodes().removeClass('cola-faded').addClass('cola-focused');
+            }
+        });
+    });
+
+    function initColaCy() {
+        // Nodes aus allPersons
+        var nodes = allPersons.map(function(p) {
+            var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
+            var dyear = p.death_date ? p.death_date.substring(0,4) : '';
+            var fn    = p.family_name
+                ? p.family_name.charAt(0) + p.family_name.slice(1).toLowerCase()
+                : '';
+            var gn    = p.given_name || '';
+            var label = gn + '\n' + fn;
+            if (year) label += '\n*' + year + (dyear ? '  †'+dyear : '');
+            return { group: 'nodes', data: {
+                id:       String(p.id),
+                label:    label,
+                sex:      p.sex,
+                raw:      p,
+                famColor: getFamilyColor(p.family_name),
+            }};
+        });
+
+        // Kanten – normiert, keine Doppelungen
+        var edgeSet = new Set(), edges = [];
+        allRels.forEach(function(r) {
+            var t = r.relationship_type;
+            var src = String(r.person_id), tgt = String(r.related_person_id);
+            var key, etype;
+            if (t === 'hasWife' || t === 'hasHusband') {
+                key   = [Math.min(r.person_id,r.related_person_id),
+                         Math.max(r.person_id,r.related_person_id),'m'].join('_');
+                etype = 'married';
+            } else if (t === 'hasExWife' || t === 'hasExHusband') {
+                key   = [Math.min(r.person_id,r.related_person_id),
+                         Math.max(r.person_id,r.related_person_id),'ex'].join('_');
+                etype = 'exmarried';
+            } else if (t === 'hasMother' || t === 'hasFather') {
+                key   = src + '_' + tgt + '_' + t;
+                etype = 'parent';
+            } else { return; }
+            if (edgeSet.has(key)) return;
+            edgeSet.add(key);
+            edges.push({ group: 'edges', data: {
+                id: key, source: src, target: tgt, type: etype,
+            }});
+        });
+
+        colaCy = cytoscape({
+            container: document.getElementById('cola-cy'),
+            elements:  nodes.concat(edges),
+            userZoomingEnabled: true,
+            userPanningEnabled: true,
+            wheelSensitivity: 0.3,
+            style: [
+                { selector: 'node', style: {
+                    label: 'data(label)',
+                    'text-valign': 'center', 'text-halign': 'center',
+                    'text-wrap': 'wrap', 'text-max-width': '72px',
+                    'font-size': '8px', 'font-family': "'Helvetica Neue',Arial,sans-serif",
+                    color: '#223',
+                    'background-color': '#ffffff',
+                    'border-width': '2.5px', 'border-color': 'data(famColor)',
+                    width: '80px', height: '44px',
+                }},
+                { selector: 'node[sex="m"]', style: { shape: 'round-rectangle',  }},
+                { selector: 'node[sex="f"]', style: { shape: 'ellipse' }},
+                { selector: 'node:selected', style: {
+                    'border-width': '4px', 'border-color': '#334466',
+                    'background-color': '#eef2ff',
+                }},
+                { selector: 'edge', style: {
+                    'curve-style': 'bezier', 'target-arrow-shape': 'none',
+                    width: 1, 'line-color': '#ccc', opacity: 0.8,
+                }},
+                { selector: 'edge[type="parent"]', style: {
+                    'line-color': '#888', width: 1.2, 'line-style': 'solid',
+                    'target-arrow-shape': 'triangle', 'target-arrow-color': '#888',
+                }},
+                { selector: 'edge[type="married"]', style: {
+                    'line-color': '#334', width: 2.5, 'line-style': 'solid',
+                }},
+                { selector: 'edge[type="exmarried"]', style: {
+                    'line-color': '#aaa', width: 1.2,
+                    'line-style': 'dashed', 'line-dash-pattern': [5, 4],
+                }},
+                { selector: '.fam-hidden',   style: { opacity: 0.03 } },
+                { selector: '.cola-hidden',  style: { opacity: 0.03 } },
+                { selector: '.cola-faded',   style: { opacity: 0.15 } },
+                { selector: '.cola-focused', style: { opacity: 1 } },
+            ],
+            layout: { name: 'preset' },
+        });
+
+        // Erst cose für gute Startpositionen, dann cola live
+        colaCy.layout({
+            name: 'cose', animate: false, padding: 60,
+            nodeRepulsion: 480000, idealEdgeLength: 120,
+            randomize: true, fit: true,
+        }).run();
+
+        function startColaLayout() {
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+            colaLayout = colaCy.layout({
+                name: 'cola', animate: true, infinite: true,
+                fit: false, padding: 50, nodeSpacing: 18,
+                edgeLength: 130, avoidOverlap: true,
+                randomize: false, convergenceThreshold: 0.000001,
+                maxSimulationTime: 9999999,
+            });
+            colaLayout.run();
+        }
+
+        function restartColaLayout() {
+            // Kurze Pause damit Klassen-Änderungen durch sind
+            setTimeout(startColaLayout, 80);
+        }
+
+        setTimeout(startColaLayout, 200);
+
+        // ── Familiennamen-Filter für Cola ────────────────────
+        var colaActiveFamilies = new Set();
+        var colaAllFamilies    = [];
+
+        function buildColaLegend() {
+            var famSet = new Set();
+            allPersons.forEach(function(p) {
+                if (p.family_name) famSet.add(p.family_name);
+                if (p.maiden_name) famSet.add(p.maiden_name);
+            });
+            colaAllFamilies = Array.from(famSet).sort();
+            colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+
+            var list = document.getElementById('cola-fam-list');
+            list.innerHTML = '';
+            colaAllFamilies.forEach(function(fn) {
+                var color = getFamilyColor(fn);
+                var label = fn.split(' ').map(function(w) {
+                    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+                }).join(' ');
+                var div = document.createElement('div');
+                div.className = 'cola-fam-item';
+                div.innerHTML =
+                    '<input type="checkbox" checked data-fam="' + fn + '">' +
+                    '<span class="cola-fam-dot" style="background:' + color + ';border:1.5px solid ' + color + ';"></span>' +
+                    '<span>' + label + '</span>';
+                div.querySelector('input').addEventListener('change', function() {
+                    if (this.checked) colaActiveFamilies.add(fn);
+                    else              colaActiveFamilies.delete(fn);
+                    applyColaFamilyFilter();
+                });
+                list.appendChild(div);
+            });
+        }
+
+        function applyColaFamilyFilter() {
+            if (!colaCy) return;
+            colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+            var allActive = colaActiveFamilies.size === colaAllFamilies.length;
+            colaCy.nodes().forEach(function(n) {
+                var raw = n.data('raw') || {};
+                var fn  = raw.family_name || '';
+                var mn  = raw.maiden_name || '';
+                var visible = allActive || colaActiveFamilies.has(fn) || colaActiveFamilies.has(mn);
+                if (visible) n.removeClass('fam-hidden');
+                else          n.addClass('fam-hidden');
+            });
+            colaCy.edges().forEach(function(e) {
+                var sHid = e.source().hasClass('fam-hidden');
+                var tHid = e.target().hasClass('fam-hidden');
+                if (sHid || tHid) e.addClass('fam-hidden');
+                else               e.removeClass('fam-hidden');
+            });
+        }
+
+        document.getElementById('cola-fam-all').addEventListener('click', function() {
+            colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+            document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = true; });
+            applyColaFamilyFilter();
+        });
+        document.getElementById('cola-fam-none').addEventListener('click', function() {
+            colaActiveFamilies.clear();
+            document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = false; });
+            applyColaFamilyFilter();
+        });
+
+        buildColaLegend();
+
+        // Knoten-Klick: Highlight + Info
+        colaCy.on('tap', 'node', function(evt) {
+            var node = evt.target, d = node.data(), p = d.raw || {};
+            var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
+            var dyear = p.death_date ? p.death_date.substring(0,4) : '';
+            var relTypeDE = {
+                'hasMother':'hat Mutter','hasFather':'hat Vater',
+                'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+                'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+            };
+            var personMap = {};
+            allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
+            var myRels = allRels
+                .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+                .sort(function(a,b){ return a.id-b.id; });
+            var relIds = myRels.map(function(r){ return r.id; });
+            var relLines = myRels.map(function(r) {
+                var nameA = personMap[r.person_id]
+                    ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+                var nameB = personMap[r.related_person_id]
+                    ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+                var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+                return '<div class="ci-row"><span class="ci-val" style="font-size:0.85em;">' +
+                       nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+            }).join('');
+            var f = function(v){ return v||'–'; };
+            document.getElementById('cola-hint').style.display = 'none';
+            document.getElementById('cola-info-content').innerHTML =
+                '<div class="ci-row"><span class="ci-lbl">Name</span><br>' +
+                '<span class="ci-val" style="font-size:1.05em;">' + f(p.display_name) + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Geschlecht</span><br>' +
+                '<span class="ci-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Geboren</span><br>' +
+                '<span class="ci-val">' + formatDate(p.birth_date, p.birth_date_estimated) + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Gestorben</span><br>' +
+                '<span class="ci-val">' + formatDate(p.death_date, p.death_date_estimated) + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Geburtsort</span><br>' +
+                '<span class="ci-val">' + f(p.birth_place) + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Sterbeort</span><br>' +
+                '<span class="ci-val">' + f(p.death_place) + '</span></div>' +
+                '<div class="ci-row"><span class="ci-lbl">Beruf</span><br>' +
+                '<span class="ci-val">' + f(p.profession) + '</span></div>' +
+                '<div class="ci-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
+                '<span class="ci-lbl">Person-ID: ' + f(p.id) + '</span><br>' +
+                '<span class="ci-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+                '<div class="ci-row" style="margin-top:0.3em;"><span class="ci-lbl">Beziehungen:</span></div>' +
+                relLines;
+
+            // 1. Ring voll, 2. Ring gedimmt, Rest ausgeblendet
+            // Nur Nodes die der Familienfilter nicht ausgeblendet hat (opacity > 0.04)
+            // Sichtbar = kein fam-hidden (Familienfilter)
+            function colaNotFamHidden(el) { return !el.hasClass('fam-hidden'); }
+
+            // Alle sichtbaren Elemente hidden setzen (für Highlight-Reset)
+            colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
+            colaCy.nodes().not('.fam-hidden').addClass('cola-hidden');
+            colaCy.edges().not('.fam-hidden').forEach(function(e) {
+                if (!e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden')) {
+                    e.addClass('cola-hidden');
+                }
+            });
+
+            // Layout kurz pausieren während Highlight gesetzt wird
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+
+            // Angeklickter Node: immer sichtbar
+            node.removeClass('cola-hidden').addClass('cola-focused');
+
+            // 1. Ring: direkte sichtbare Nachbarn
+            var firstEdges = node.connectedEdges().not('.fam-hidden').filter(function(e) {
+                return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
+            });
+            var firstN = firstEdges.connectedNodes().not(node).not('.fam-hidden');
+            firstN.removeClass('cola-hidden').addClass('cola-focused');
+            firstEdges.removeClass('cola-hidden').addClass('cola-focused');
+
+            // 2. Ring
+            var secondEdges = firstN.connectedEdges().not(firstEdges).not('.fam-hidden').filter(function(e) {
+                return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
+            });
+            var secondN = secondEdges.connectedNodes().not(node).not(firstN).not('.fam-hidden');
+            secondN.removeClass('cola-hidden').addClass('cola-faded');
+            secondEdges.removeClass('cola-hidden').addClass('cola-faded');
+        });
+
+        colaCy.on('tap', function(evt) {
+            if (evt.target === colaCy) {
+                colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
+                applyColaFamilyFilter();
+                document.getElementById('cola-hint').style.display = '';
+                document.getElementById('cola-info-content').innerHTML = '';
+                // Physics neu starten falls eingefroren
+                restartColaLayout();
+            }
+        });
+    }
 
 });
 </script>
