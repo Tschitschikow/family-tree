@@ -1151,6 +1151,7 @@ var TL_MAX_YEAR = 2025;
 var TL_PADDING  = 100;
 
 window.addEventListener('load', function() {
+    var currentView = 'timeline';  // global im load-scope
 
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     let cy         = null;
@@ -3536,7 +3537,7 @@ window.addEventListener('load', function() {
     // ════════════════════════════════════════════════════
     // ── Ansichten-Steuerung ────────────────────────────
     // ════════════════════════════════════════════════════
-    var currentView = 'timeline';
+    // currentView: global definiert
 
     function switchView(view) {
         currentView = view;
