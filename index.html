@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stammbaum – Bahrs Familie</title>
+    <link rel="stylesheet" href="shared.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -1008,6 +1009,7 @@
 
 
 <script src="config.js"></script>
+<script src="shared.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
@@ -1101,36 +1103,15 @@ window.addEventListener('load', function() {
 
     var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
 
-    client.auth.getSession().then(function(result) {
-        if (!result.data.session) { window.location.href = 'login.html'; }
-        else {
-            if (result.data.session.user.email === ADMIN_EMAIL) {
-                document.getElementById('admin-btn').style.display = 'inline-block';
-            }
-            loadData();
-        }
+    // Auth + Daten laden via shared.js
+    initAuth(function() {
+        loadData();
     });
 
-    document.getElementById('logout-btn').addEventListener('click', function() {
-        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
-    });
+    // Logout: wird von shared.js gesteuert
 
     function loadData() {
-        Promise.all([
-            client.from('persons').select('*'),
-            client.from('relationships').select('*'),
-        ]).then(function(results) {
-            if (results[0].error || results[1].error) {
-                document.getElementById('status-bar').textContent = 'Fehler beim Laden.';
-                return;
-            }
-            allPersons = results[0].data.map(function(p) { p.id = Number(p.id); return p; });
-            allRels    = results[1].data.map(function(r) {
-                r.id = Number(r.id);
-                r.person_id = Number(r.person_id);
-                r.related_person_id = Number(r.related_person_id);
-                return r;
-            });
+        loadSharedData(function() {
             document.getElementById('status-bar').style.display = 'none';
             buildLegend(allPersons);
         populateYearSelects(allPersons);
@@ -3461,14 +3442,7 @@ window.addEventListener('load', function() {
     // ════════════════════════════════════════════════════
     var currentView = 'timeline';
 
-    // Dropdown öffnen/schließen
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
+    // Dropdown: wird von shared.js gesteuert
 
     function switchView(view) {
         currentView = view;
@@ -3492,9 +3466,7 @@ window.addEventListener('load', function() {
         // timeline: hier bleiben (Standard)
     }
 
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() { switchView(el.dataset.view); });
-    });
+
 
 
     // ════════════════════════════════════════════════════
