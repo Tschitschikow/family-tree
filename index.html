@@ -1092,16 +1092,15 @@ var TL_PADDING  = 100;
 
 window.addEventListener('load', function() {
 
-    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // client: aus shared.js
     let cy         = null;
-    let allPersons = [];
-    let allRels    = [];
+    // allPersons, allRels: aus shared.js
     let showParent  = true;
     let showMarried = true;
     let showSiblingsEdges = true;  // globale Edge-Anzeige (nicht Stammbaum-Geschwister)
     var repulsionValue = 40000000;
 
-    var ADMIN_EMAIL = 'hannes.bahrs@de.bosch.com';
+    // ADMIN_EMAIL: aus config.js
 
     // Auth + Daten laden via shared.js
     initAuth(function() {
