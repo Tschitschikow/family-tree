@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register – Bahrs Familie</title>
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* ── Register-spezifisches Layout ──────────────────── */
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #register-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ── Toolbar ──────────────────────────────────────── */
+        #register-toolbar {
+            background: #fff;
+            border-bottom: 1px solid #dde;
+            padding: 0.5em 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 0.8em;
+            flex-shrink: 0;
+        }
+        #register-toolbar h2 {
+            font-size: 0.92em;
+            font-weight: 600;
+            color: #334;
+            margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        #reg-search {
+            padding: 0.3em 0.7em;
+            border: 1px solid #ccd;
+            border-radius: 5px;
+            font-size: 0.82em;
+            width: 220px;
+            font-family: inherit;
+            color: #334;
+        }
+        #reg-search:focus { outline: none; border-color: #8899cc; }
+        .reg-btn {
+            padding: 0.3em 0.8em;
+            background: #fff;
+            border: 1px solid #ccd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-family: inherit;
+            color: #445;
+        }
+        .reg-btn:hover { background: #f0f2f5; }
+        #reg-count {
+            font-size: 0.78em;
+            color: #99a;
+            margin-left: auto;
+        }
+
+        /* ── Tabelle ──────────────────────────────────────── */
+        #reg-table-wrap {
+            flex: 1;
+            overflow: auto;
+            padding: 0.8em;
+        }
+        table#reg-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.82em;
+            background: #fff;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        #reg-table th {
+            background: #f0f2f5;
+            color: #334;
+            font-weight: 600;
+            padding: 0.55em 0.8em;
+            text-align: left;
+            border-bottom: 2px solid #dde;
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+        }
+        #reg-table th:hover { background: #e8eaf0; }
+        .sort-arrow { color: #aab; margin-left: 3px; font-size: 0.85em; }
+        #reg-table td {
+            padding: 0.45em 0.8em;
+            border-bottom: 1px solid #eef;
+            color: #334;
+            vertical-align: top;
+        }
+        #reg-table tr:last-child td { border-bottom: none; }
+        #reg-table tr:hover td { background: #f5f7fc; cursor: pointer; }
+        #reg-table tr.reg-selected td { background: #eef2ff; }
+
+        /* ── Karteikarte (rechts) ─────────────────────────── */
+        #reg-card {
+            width: 270px;
+            flex-shrink: 0;
+            background: #fff;
+            border-left: 1px solid #dde;
+            padding: 1em;
+            overflow-y: auto;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.82em;
+            color: #445;
+        }
+        #reg-card h3 {
+            font-size: 0.95em;
+            font-weight: 600;
+            color: #223;
+            margin: 0 0 0.5em;
+            border-bottom: 1px solid #eef;
+            padding-bottom: 0.3em;
+        }
+        .rc-row { margin: 0.3em 0; }
+        .rc-lbl { color: #99a; font-size: 0.85em; display: block; }
+        .rc-val { color: #223; font-weight: 500; }
+        #reg-card-hint {
+            color: #bbc;
+            font-style: italic;
+            font-size: 0.82em;
+        }
+
+        /* ── Ladebalken ──────────────────────────────────── */
+        #loading {
+            text-align: center;
+            padding: 3em;
+            color: #aaa;
+            font-size: 1em;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Header (identisch auf allen Seiten) ─────────────── -->
+<header>
+    <h1>🌳 Bahrs Familienstammbaum</h1>
+    <nav>
+        <a href="admin.html" id="admin-btn">🔐 Admin</a>
+        <div id="view-menu-wrap">
+            <button id="view-menu-btn">Ansicht</button>
+            <div id="view-dropdown">
+                <div class="vd-item" data-view="timeline">
+                    <span class="vd-icon">📅</span> Zeitleiste
+                </div>
+                <div class="vd-item" data-view="network">
+                    <span class="vd-icon">🕸️</span> Dynamisches Netzwerk
+                </div>
+                <div class="vd-item" data-view="stammbaum">
+                    <span class="vd-icon">🌳</span> Klassischer Stammbaum
+                </div>
+                <div class="vd-item active-view" data-view="register">
+                    <span class="vd-icon">📋</span> Register
+                </div>
+                <div class="vd-item" data-view="karte">
+                    <span class="vd-icon">🗺️</span> Karte
+                </div>
+            </div>
+        </div>
+        <button id="logout-btn">Ausloggen</button>
+    </nav>
+</header>
+
+<!-- ── Toolbar ──────────────────────────────────────────── -->
+<div id="register-toolbar">
+    <h2>📋 Register</h2>
+    <input type="text" id="reg-search" placeholder="Name, Beruf, Ort suchen…" autocomplete="off">
+    <button class="reg-btn" id="reg-clear">✕ Leeren</button>
+    <span id="reg-count"></span>
+</div>
+
+<!-- ── Ladebalken ──────────────────────────────────────── -->
+<div id="loading">Lade Daten...</div>
+
+<!-- ── Hauptbereich: Tabelle + Karteikarte ─────────────── -->
+<div id="register-body" style="display:none;">
+    <div id="reg-table-wrap">
+        <table id="reg-table">
+            <thead>
+                <tr>
+                    <th data-col="display_name">Name <span class="sort-arrow">↕</span></th>
+                    <th data-col="maiden_name">Mädchenname <span class="sort-arrow">↕</span></th>
+                    <th data-col="sex">Geschl. <span class="sort-arrow">↕</span></th>
+                    <th data-col="birth_date">Geboren <span class="sort-arrow">↕</span></th>
+                    <th data-col="death_date">Gestorben <span class="sort-arrow">↕</span></th>
+                    <th data-col="birth_place">Geburtsort <span class="sort-arrow">↕</span></th>
+                    <th data-col="death_place">Sterbeort <span class="sort-arrow">↕</span></th>
+                    <th data-col="profession">Beruf <span class="sort-arrow">↕</span></th>
+                </tr>
+            </thead>
+            <tbody id="reg-tbody"></tbody>
+        </table>
+    </div>
+
+    <div id="reg-card">
+        <h3>Details</h3>
+        <p id="reg-card-hint">Zeile anklicken.</p>
+        <div id="reg-card-content"></div>
+    </div>
+</div>
+
+<!-- ── Scripts ──────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+    // ══════════════════════════════════════════════════════
+    // Register – eigene Logik (nur diese Seite)
+    // ══════════════════════════════════════════════════════
+
+    var regSortCol = 'display_name';
+    var regSortAsc = true;
+    var regFilter  = '';
+
+    // ── Tabelle rendern ──────────────────────────────────
+    function renderRegister() {
+        if (!allPersons || allPersons.length === 0) return;
+
+        var q = regFilter.toLowerCase();
+        var rows = allPersons.filter(function(p) {
+            if (!q) return true;
+            return (p.display_name || '').toLowerCase().includes(q) ||
+                   (p.maiden_name  || '').toLowerCase().includes(q) ||
+                   (p.profession   || '').toLowerCase().includes(q) ||
+                   (p.birth_place  || '').toLowerCase().includes(q) ||
+                   (p.death_place  || '').toLowerCase().includes(q);
+        });
+
+        rows.sort(function(a, b) {
+            var av = a[regSortCol] || '', bv = b[regSortCol] || '';
+            return regSortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+        });
+
+        document.getElementById('reg-count').textContent = rows.length + ' Personen';
+        var tbody = document.getElementById('reg-tbody');
+        tbody.innerHTML = '';
+
+        rows.forEach(function(p) {
+            var tr = document.createElement('tr');
+            var bd = formatDateShort(p.birth_date, p.birth_date_estimated) || '–';
+            var dd = formatDateShort(p.death_date, p.death_date_estimated) || '–';
+
+            tr.innerHTML =
+                '<td>' + (p.display_name || '–') + '</td>' +
+                '<td>' + (p.maiden_name  || '')  + '</td>' +
+                '<td>' + (p.sex === 'm' ? '♂' : p.sex === 'f' ? '♀' : '–') + '</td>' +
+                '<td>' + bd + '</td>' +
+                '<td>' + dd + '</td>' +
+                '<td>' + (p.birth_place  || '–') + '</td>' +
+                '<td>' + (p.death_place  || '–') + '</td>' +
+                '<td>' + (p.profession   || '–') + '</td>';
+
+            tr.addEventListener('click', function() {
+                document.querySelectorAll('#reg-tbody tr').forEach(function(r) {
+                    r.classList.remove('reg-selected');
+                });
+                tr.classList.add('reg-selected');
+                showRegCard(p);
+            });
+            tbody.appendChild(tr);
+        });
+
+        // Sort-Pfeile
+        document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
+            var arrow = th.querySelector('.sort-arrow');
+            if (!arrow) return;
+            if (th.dataset.col === regSortCol) {
+                arrow.textContent = regSortAsc ? '↑' : '↓';
+                arrow.style.color = '#334';
+            } else {
+                arrow.textContent = '↕';
+                arrow.style.color = '#aab';
+            }
+        });
+    }
+
+    // ── Karteikarte ──────────────────────────────────────
+    function showRegCard(p) {
+        var personMap = {};
+        allPersons.forEach(function(pr) { personMap[pr.id] = pr; });
+
+        var myRels = allRels
+            .filter(function(r) { return r.person_id === p.id || r.related_person_id === p.id; })
+            .sort(function(a, b) { return a.id - b.id; });
+        var relIds = myRels.map(function(r) { return r.id; });
+
+        var relLines = myRels.map(function(r) {
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID ' + r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID ' + r.related_person_id;
+            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+        }).join('');
+
+        var bd = formatDateFull(p.birth_date, p.birth_date_estimated);
+        var dd = formatDateFull(p.death_date, p.death_date_estimated);
+
+        function row(lbl, val) {
+            return '<div class="rc-row"><span class="rc-lbl">' + lbl +
+                   '</span><span class="rc-val">' + val + '</span></div>';
+        }
+
+        document.getElementById('reg-card-hint').style.display = 'none';
+        document.getElementById('reg-card-content').innerHTML =
+            row('Name',         p.display_name || '–') +
+            row('Geschlecht',   p.sex === 'm' ? 'männlich' : p.sex === 'f' ? 'weiblich' : '–') +
+            row('Mädchenname',  p.maiden_name || '–') +
+            row('Geboren',      bd) +
+            row('Geburtsort',   p.birth_place || '–') +
+            row('Gestorben',    dd) +
+            row('Sterbeort',    p.death_place || '–') +
+            row('Beruf',        p.profession || '–') +
+            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length ? relIds.join(', ') : '–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
+            relLines;
+    }
+
+    // ── Event-Handler ────────────────────────────────────
+    document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
+        th.addEventListener('click', function() {
+            if (regSortCol === th.dataset.col) {
+                regSortAsc = !regSortAsc;
+            } else {
+                regSortCol = th.dataset.col;
+                regSortAsc = true;
+            }
+            renderRegister();
+        });
+    });
+
+    document.getElementById('reg-search').addEventListener('input', function() {
+        regFilter = this.value;
+        renderRegister();
+    });
+
+    document.getElementById('reg-clear').addEventListener('click', function() {
+        document.getElementById('reg-search').value = '';
+        regFilter = '';
+        renderRegister();
+    });
+
+    // ── Init ─────────────────────────────────────────────
+    initAuth(function() {
+        loadSharedData(function() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('register-body').style.display = 'flex';
+            renderRegister();
+        });
+    });
+</script>
+</body>
+</html>
