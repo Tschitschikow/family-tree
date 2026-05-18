@@ -3,42 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netzwerk – Bahrs Familie</title>
-    <link rel="stylesheet" href="shared.css">
+    <title>Dynamisches Netzwerk – Bahrs Familie</title>
     <style>
-        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html, body { height:100%; font-family:Georgia,'Times New Roman',serif; background:#f0f0f0; color:#222; }
+        body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
 
-        /* ── Cola-spezifisch ──────────────────────────────── */
-        #cola-header {
-            background: #fff; border-bottom: 1px solid #dde;
-            padding: 0.5em 1.2em; display: flex; align-items: center;
-            gap: 0.8em; flex-shrink: 0;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
+        /* Header */
+        header { background:#fff; padding:0.7em 2em; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0; }
+        header h1 { font-size:1.1em; font-weight:400; color:#444; }
+        header nav { display:flex; align-items:center; gap:1.2em; }
+        #admin-btn { display:none; color:#666; font-size:0.85em; text-decoration:none; }
+        #logout-btn { background:none; border:1px solid #ddd; color:#888; padding:0.35em 1em; font-size:0.82em; border-radius:5px; cursor:pointer; font-family:inherit; }
+        #logout-btn:hover { background:#f0f0f0; }
+        #view-menu-wrap { position:relative; display:inline-flex; z-index:1000; }
+        #view-menu-btn { display:flex; align-items:center; gap:0.4em; padding:0.32em 0.85em; background:#f0f2f5; border:1px solid #ccd; border-radius:5px; cursor:pointer; color:#334; font-size:0.88em; font-family:inherit; font-weight:500; }
+        #view-menu-btn:hover { background:#e4e8f0; }
+        #view-menu-btn::after { content:' ▾'; font-size:0.8em; }
+        #view-dropdown { display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:10000; min-width:220px; overflow:hidden; }
+        #view-dropdown.open { display:block; }
+        .vd-item { display:flex; align-items:center; gap:0.6em; padding:0.6em 1em; cursor:pointer; font-size:0.88em; color:#334; border-bottom:1px solid #f0f0f0; font-family:inherit; }
+        .vd-item:last-child { border-bottom:none; }
+        .vd-item:hover { background:#f5f7fa; }
+        .vd-item.active-view { background:#eef2ff; color:#223488; font-weight:600; }
+        .vd-icon { font-size:1.1em; width:1.4em; text-align:center; }
+
+        /* Cola-spezifisch */
+        #cola-header { background:#fff; border-bottom:1px solid #dde; padding:0.5em 1.2em; display:flex; align-items:center; gap:0.8em; flex-shrink:0; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
         #cola-header h2 { font-size:0.92em; font-weight:600; color:#334; margin:0; font-family:'Helvetica Neue',Arial,sans-serif; }
-        .cola-hbtn {
-            padding: 0.3em 0.8em; background: #fff; border: 1px solid #ccd;
-            border-radius: 5px; cursor: pointer; font-size: 0.8em;
-            font-family: 'Helvetica Neue',Arial,sans-serif; color: #445;
-        }
-        .cola-hbtn:hover { background: #f0f2f5; }
-        #cola-search {
-            padding: 0.28em 0.7em; border: 1px solid #ccd; border-radius: 5px;
-            font-size: 0.8em; font-family: 'Helvetica Neue',Arial,sans-serif;
-            width: 150px; color: #334;
-        }
+        .cola-hbtn { padding:0.3em 0.8em; background:#fff; border:1px solid #ccd; border-radius:5px; cursor:pointer; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; color:#445; }
+        .cola-hbtn:hover { background:#f0f2f5; }
+        #cola-search { padding:0.28em 0.7em; border:1px solid #ccd; border-radius:5px; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; width:150px; color:#334; }
         #cola-search:focus { outline:none; border-color:#8899cc; }
         #cola-body { flex:1; display:flex; overflow:hidden; }
-        #cola-cy   { flex:1; position:relative; }
-
-        /* ── Legende links ────────────────────────────────── */
-        #cola-legend {
-            width: 160px; min-width: 140px; flex-shrink: 0;
-            background: #fff; border-right: 1px solid #dde;
-            padding: 0.8em 0.7em; overflow-y: auto;
-            font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 0.78em;
-            display: flex; flex-direction: column; gap: 0.3em;
-        }
+        #cola-cy { flex:1; position:relative; }
+        #cola-legend { width:160px; min-width:140px; flex-shrink:0; background:#fff; border-right:1px solid #dde; padding:0.8em 0.7em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.78em; display:flex; flex-direction:column; gap:0.3em; }
         #cola-legend h4 { font-size:0.85em; font-weight:600; color:#334; margin:0 0 0.4em; padding-bottom:0.3em; border-bottom:1px solid #eef; }
         .cola-fam-item { display:flex; align-items:center; gap:0.4em; cursor:pointer; padding:0.15em 0; user-select:none; }
         .cola-fam-item input { width:auto; margin:0; cursor:pointer; accent-color:#888; }
@@ -46,32 +45,17 @@
         .cola-legend-ctrl { display:flex; gap:6px; margin-bottom:0.3em; }
         .cola-legend-ctrl button { flex:1; font-size:0.82em; padding:0.2em 0.3em; background:#f0f2f5; border:1px solid #dde; border-radius:4px; cursor:pointer; font-family:inherit; color:#445; }
         .cola-legend-ctrl button:hover { background:#e4e8f0; }
-
-        /* ── Info-Panel rechts ────────────────────────────── */
-        #cola-info {
-            width: 210px; flex-shrink:0; background:#fff;
-            border-left: 1px solid #dde; padding: 0.9em; overflow-y:auto;
-            font-family: 'Helvetica Neue',Arial,sans-serif; font-size:0.8em; color:#445;
-        }
+        #cola-info { width:210px; flex-shrink:0; background:#fff; border-left:1px solid #dde; padding:0.9em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.8em; color:#445; }
         #cola-info h3 { font-size:0.92em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em; }
         .ci-row { margin:0.28em 0; line-height:1.4; }
         .ci-lbl { color:#99a; font-size:0.86em; }
         .ci-val { color:#334; font-weight:500; }
         #cola-hint { color:#bbc; font-size:0.78em; margin-top:0.4em; font-style:italic; }
-
-        /* ── Highlight-Klassen ────────────────────────────── */
-        .fam-hidden  { opacity: 0.03 !important; }
-        .cola-hidden { opacity: 0.03 !important; }
-        .cola-faded  { opacity: 0.15 !important; }
-        .cola-focused { opacity: 1 !important; }
-
-        /* ── Ladebalken ──────────────────────────────────── */
         #loading { text-align:center; padding:3em; color:#aaa; }
     </style>
 </head>
 <body>
 
-<!-- ── Header ──────────────────────────────────────────── -->
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
     <nav>
@@ -90,7 +74,6 @@
     </nav>
 </header>
 
-<!-- ── Toolbar ──────────────────────────────────────────── -->
 <div id="cola-header">
     <h2>🕸️ Dynamisches Netzwerk</h2>
     <input type="text" id="cola-search" placeholder="Name suchen…" autocomplete="off">
@@ -100,7 +83,6 @@
 
 <div id="loading">Lade Netzwerk...</div>
 
-<!-- ── Hauptbereich ────────────────────────────────────── -->
 <div id="cola-body" style="display:none;">
     <div id="cola-legend">
         <h4>Familienname</h4>
@@ -118,201 +100,426 @@
     </div>
 </div>
 
-<!-- ── Scripts ──────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
 <script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
-<script src="shared.js"></script>
 <script>
-// ══════════════════════════════════════════════════════
-// Netzwerk – eigene Logik
-// ══════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════
+   Dynamisches Netzwerk – komplett eigenständig
+   ══════════════════════════════════════════════════════ */
 
+var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+var allPersons = [], allRels = [];
+
+/* ── Hilfsfunktionen (aus index.html kopiert) ──────── */
+function getFamilyColor(name) {
+    var n = allFamilyNames.length;
+    if (n === 0) return '#cccccc';  // Fallback vor erstem Laden
+
+    // Position dieses Namens in der sortierten Liste
+    var idx = allFamilyNames.indexOf(name);
+    if (idx < 0) {
+        // Name noch nicht in Liste (sollte nicht passieren, aber sicher ist sicher):
+        // Hash-Fallback damit trotzdem eine konsistente Farbe erscheint
+        var hash = 0;
+        for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xfffffff;
+        idx = hash % n;
+    }
+
+    // Hue gleichmäßig über [0, 1) verteilen
+    var hue = idx / n;
+
+    // HLS → RGB (inline, kein externes Lib nötig)
+    // L = 0.88 (hell/pastell), S = 0.70 (satt genug für Unterscheidbarkeit)
+    var h = hue, s = 0.70, l = 0.88;
+    var C = (1 - Math.abs(2 * l - 1)) * s;          // Chroma
+    var X = C * (1 - Math.abs((h * 6) % 2 - 1));    // Zwischenwert
+    var m = l - C / 2;                               // Helligkeitsversatz
+    var r = 0, g = 0, b = 0;
+    if      (h < 1/6) { r=C; g=X; b=0; }
+    else if (h < 2/6) { r=X; g=C; b=0; }
+    else if (h < 3/6) { r=0; g=C; b=X; }
+    else if (h < 4/6) { r=0; g=X; b=C; }
+    else if (h < 5/6) { r=X; g=0; b=C; }
+    else              { r=C; g=0; b=X; }
+
+    // Zu Hex konvertieren
+    function toHex(v) {
+        var hex = Math.round((v + m) * 255).toString(16);
+        return hex.length < 2 ? '0' + hex : hex;
+    }
+    return '#' + toHex(r) + toHex(g) + toHex(b);
+}
+
+    function formatDate(d, estimated) {
+        if (!d) return '';
+        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
+        return d.split('T')[0];  // yyyy-mm-dd
+    }
+
+var relTypeDE = {
+    'hasMother':    'hat Mutter',
+    'hasFather':    'hat Vater',
+    'hasWife':      'hat Ehefrau',
+    'hasHusband':   'hat Ehemann',
+    'hasExWife':    'hat Ex-Ehefrau',
+    'hasExHusband': 'hat Ex-Ehemann',
+};
+
+/* ── Dropdown-Navigation ───────────────────────────── */
+document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('view-dropdown').classList.toggle('open');
+});
+document.addEventListener('click', function() {
+    document.getElementById('view-dropdown').classList.remove('open');
+});
+var viewPages = {'timeline':'index.html','network':'netzwerk.html','stammbaum':'stammbaum.html','register':'register.html','karte':'karte.html'};
+document.querySelectorAll('.vd-item').forEach(function(el) {
+    el.addEventListener('click', function() {
+        var p = viewPages[el.dataset.view];
+        if (p) window.location.href = p;
+    });
+});
+document.getElementById('logout-btn').addEventListener('click', function() {
+    client.auth.signOut().then(function() { window.location.href = 'login.html'; });
+});
+
+/* ── Init ──────────────────────────────────────────── */
+window.addEventListener('load', function() {
+    client.auth.getSession().then(function(result) {
+        if (!result.data.session) { window.location.href = 'login.html'; return; }
+        if (result.data.session.user.email === ADMIN_EMAIL) {
+            var ab = document.getElementById('admin-btn');
+            if (ab) ab.style.display = 'inline-block';
+        }
+        // Daten laden
+        Promise.all([
+            client.from('persons').select('*'),
+            client.from('relationships').select('*'),
+        ]).then(function(results) {
+            if (results[0].error || results[1].error) { console.error('Fehler'); return; }
+            allPersons = results[0].data.map(function(p) { p.id = Number(p.id); return p; });
+            allRels = results[1].data.map(function(r) {
+                r.id = Number(r.id);
+                r.person_id = Number(r.person_id);
+                r.related_person_id = Number(r.related_person_id);
+                return r;
+            });
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('cola-body').style.display = 'flex';
+            initColaCy();
+        });
+    });
+});
+
+/* ── Netzwerk-Code ─────────────────────────────────── */
+if (typeof cytoscapeCola !== 'undefined') cytoscape.use(cytoscapeCola);
+
+// WebCola als Cytoscape-Extension registrieren
 if (typeof cytoscapeCola !== 'undefined') {
     cytoscape.use(cytoscapeCola);
 }
 
-var colaCy = null;
-var colaLayout = null;
+var colaCy      = null;
+var colaLayout  = null;
 
-function startColaLayout() {
-    if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
-    colaLayout = colaCy.layout({
-        name: 'cola', animate: true, infinite: true,
-        fit: false, padding: 50, nodeSpacing: 18,
-        edgeLength: 130, avoidOverlap: true,
-        randomize: false, convergenceThreshold: 0.000001,
-        maxSimulationTime: 9999999,
-    });
-    colaLayout.run();
-}
-function restartColaLayout() {
-    setTimeout(startColaLayout, 80);
-}
+// openColaView/closeColaView: nicht nötig (eigene Seite)
 
-// ── Familienfilter ──────────────────────────────────
-var colaActiveFamilies = new Set();
-var colaAllFamilies = [];
-
-function buildColaLegend() {
-    var famSet = new Set();
-    allPersons.forEach(function(p) {
-        if (p.family_name) famSet.add(p.family_name);
-        if (p.maiden_name) famSet.add(p.maiden_name);
-    });
-    colaAllFamilies = Array.from(famSet).sort();
-    colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
-
-    var list = document.getElementById('cola-fam-list');
-    list.innerHTML = '';
-    colaAllFamilies.forEach(function(fn) {
-        var color = getFamilyColor(fn);
-        var label = fn.split(' ').map(function(w) {
-            return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-        }).join(' ');
-        var div = document.createElement('div');
-        div.className = 'cola-fam-item';
-        div.innerHTML =
-            '<input type="checkbox" checked data-fam="' + fn + '">' +
-            '<span class="cola-fam-dot" style="background:' + color + ';border:1.5px solid ' + color + ';"></span>' +
-            '<span>' + label + '</span>';
-        div.querySelector('input').addEventListener('change', function() {
-            if (this.checked) colaActiveFamilies.add(fn);
-            else colaActiveFamilies.delete(fn);
-            applyColaFamilyFilter();
-        });
-        list.appendChild(div);
-    });
-}
-
-function applyColaFamilyFilter() {
+document.getElementById('cola-refit').addEventListener('click', function() {
+    if (colaCy) colaCy.fit(60);
+});
+document.getElementById('cola-reset-hl').addEventListener('click', function() {
+    if (colaCy) {
+        colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
+        applyColaFamilyFilter();
+        restartColaLayout();
+    }
+    document.getElementById('cola-search').value = '';
+    document.getElementById('cola-hint').style.display = '';
+    document.getElementById('cola-info-content').innerHTML = '';
+});
+document.getElementById('cola-search').addEventListener('input', function() {
     if (!colaCy) return;
+    var q = this.value.trim().toLowerCase();
     colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
-    var allActive = colaActiveFamilies.size === colaAllFamilies.length;
+    if (!q) return;
+    colaCy.elements().addClass('cola-faded');
     colaCy.nodes().forEach(function(n) {
         var raw = n.data('raw') || {};
-        var fn = raw.family_name || '';
-        var mn = raw.maiden_name || '';
-        var visible = allActive || colaActiveFamilies.has(fn) || colaActiveFamilies.has(mn);
-        if (visible) n.removeClass('fam-hidden');
-        else n.addClass('fam-hidden');
+        var name = (raw.display_name || '').toLowerCase();
+        if (name.indexOf(q) >= 0) {
+            n.removeClass('cola-faded').addClass('cola-focused');
+            n.connectedEdges().removeClass('cola-faded').addClass('cola-focused');
+            n.connectedEdges().connectedNodes().removeClass('cola-faded').addClass('cola-focused');
+        }
     });
-    colaCy.edges().forEach(function(e) {
-        var sHid = e.source().hasClass('fam-hidden');
-        var tHid = e.target().hasClass('fam-hidden');
-        if (sHid || tHid) e.addClass('fam-hidden');
-        else e.removeClass('fam-hidden');
-    });
-}
-
-document.getElementById('cola-fam-all').addEventListener('click', function() {
-    colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
-    document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = true; });
-    applyColaFamilyFilter();
-});
-document.getElementById('cola-fam-none').addEventListener('click', function() {
-    colaActiveFamilies.clear();
-    document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = false; });
-    applyColaFamilyFilter();
 });
 
-// ── Netzwerk initialisieren ─────────────────────────
-function initNetwork() {
+function initColaCy() {
+    // Nodes aus allPersons
     var nodes = allPersons.map(function(p) {
-        var year = p.birth_date ? p.birth_date.substring(0,4) : '';
+        var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
         var dyear = p.death_date ? p.death_date.substring(0,4) : '';
-        var fn = p.family_name ? p.family_name.charAt(0)+p.family_name.slice(1).toLowerCase() : '';
-        var gn = p.given_name || '';
+        var fn    = p.family_name
+            ? p.family_name.charAt(0) + p.family_name.slice(1).toLowerCase()
+            : '';
+        var gn    = p.given_name || '';
         var label = gn + '\n' + fn;
-        if (year) label += '\n*' + year + (dyear ? '  \u2020'+dyear : '');
-        return { group:'nodes', data: { id:String(p.id), label:label, sex:p.sex, raw:p, famColor:getFamilyColor(p.family_name) }};
+        if (year) label += '\n*' + year + (dyear ? '  †'+dyear : '');
+        return { group: 'nodes', data: {
+            id:       String(p.id),
+            label:    label,
+            sex:      p.sex,
+            raw:      p,
+            famColor: getFamilyColor(p.family_name),
+        }};
     });
 
+    // Kanten – normiert, keine Doppelungen
     var edgeSet = new Set(), edges = [];
     allRels.forEach(function(r) {
         var t = r.relationship_type;
         var src = String(r.person_id), tgt = String(r.related_person_id);
         var key, etype;
-        if (t==='hasWife'||t==='hasHusband') { key=[Math.min(r.person_id,r.related_person_id),Math.max(r.person_id,r.related_person_id),'m'].join('_'); etype='married'; }
-        else if (t==='hasExWife'||t==='hasExHusband') { key=[Math.min(r.person_id,r.related_person_id),Math.max(r.person_id,r.related_person_id),'ex'].join('_'); etype='exmarried'; }
-        else if (t==='hasMother'||t==='hasFather') { key=src+'_'+tgt+'_'+t; etype='parent'; }
-        else { return; }
+        if (t === 'hasWife' || t === 'hasHusband') {
+            key   = [Math.min(r.person_id,r.related_person_id),
+                     Math.max(r.person_id,r.related_person_id),'m'].join('_');
+            etype = 'married';
+        } else if (t === 'hasExWife' || t === 'hasExHusband') {
+            key   = [Math.min(r.person_id,r.related_person_id),
+                     Math.max(r.person_id,r.related_person_id),'ex'].join('_');
+            etype = 'exmarried';
+        } else if (t === 'hasMother' || t === 'hasFather') {
+            key   = src + '_' + tgt + '_' + t;
+            etype = 'parent';
+        } else { return; }
         if (edgeSet.has(key)) return;
         edgeSet.add(key);
-        edges.push({ group:'edges', data:{ id:key, source:src, target:tgt, type:etype }});
+        edges.push({ group: 'edges', data: {
+            id: key, source: src, target: tgt, type: etype,
+        }});
     });
 
     colaCy = cytoscape({
         container: document.getElementById('cola-cy'),
-        elements: nodes.concat(edges),
-        userZoomingEnabled: true, userPanningEnabled: true, wheelSensitivity: 0.3,
+        elements:  nodes.concat(edges),
+        userZoomingEnabled: true,
+        userPanningEnabled: true,
+        wheelSensitivity: 0.3,
         style: [
-            { selector:'node', style:{ label:'data(label)', 'text-valign':'center','text-halign':'center','text-wrap':'wrap','text-max-width':'72px','font-size':'8px','font-family':"'Helvetica Neue',Arial,sans-serif", color:'#223','background-color':'#ffffff','border-width':'2.5px','border-color':'data(famColor)', width:'80px',height:'44px' }},
-            { selector:'node[sex="m"]', style:{ shape:'round-rectangle' }},
-            { selector:'node[sex="f"]', style:{ shape:'ellipse' }},
-            { selector:'node:selected', style:{ 'border-width':'4px','border-color':'#334466','background-color':'#eef2ff' }},
-            { selector:'edge', style:{ 'curve-style':'bezier','target-arrow-shape':'none', width:1,'line-color':'#ccc', opacity:0.8 }},
-            { selector:'edge[type="parent"]', style:{ 'line-color':'#888', width:1.2,'line-style':'solid','target-arrow-shape':'triangle','target-arrow-color':'#888' }},
-            { selector:'edge[type="married"]', style:{ 'line-color':'#334', width:2.5,'line-style':'solid' }},
-            { selector:'edge[type="exmarried"]', style:{ 'line-color':'#aaa', width:1.2,'line-style':'dashed','line-dash-pattern':[5,4] }},
-            { selector:'.fam-hidden', style:{ opacity:0.03 }},
-            { selector:'.cola-hidden', style:{ opacity:0.03 }},
-            { selector:'.cola-faded', style:{ opacity:0.15 }},
-            { selector:'.cola-focused', style:{ opacity:1 }},
+            { selector: 'node', style: {
+                label: 'data(label)',
+                'text-valign': 'center', 'text-halign': 'center',
+                'text-wrap': 'wrap', 'text-max-width': '72px',
+                'font-size': '8px', 'font-family': "'Helvetica Neue',Arial,sans-serif",
+                color: '#223',
+                'background-color': '#ffffff',
+                'border-width': '2.5px', 'border-color': 'data(famColor)',
+                width: '80px', height: '44px',
+            }},
+            { selector: 'node[sex="m"]', style: { shape: 'round-rectangle',  }},
+            { selector: 'node[sex="f"]', style: { shape: 'ellipse' }},
+            { selector: 'node:selected', style: {
+                'border-width': '4px', 'border-color': '#334466',
+                'background-color': '#eef2ff',
+            }},
+            { selector: 'edge', style: {
+                'curve-style': 'bezier', 'target-arrow-shape': 'none',
+                width: 1, 'line-color': '#ccc', opacity: 0.8,
+            }},
+            { selector: 'edge[type="parent"]', style: {
+                'line-color': '#888', width: 1.2, 'line-style': 'solid',
+                'target-arrow-shape': 'triangle', 'target-arrow-color': '#888',
+            }},
+            { selector: 'edge[type="married"]', style: {
+                'line-color': '#334', width: 2.5, 'line-style': 'solid',
+            }},
+            { selector: 'edge[type="exmarried"]', style: {
+                'line-color': '#aaa', width: 1.2,
+                'line-style': 'dashed', 'line-dash-pattern': [5, 4],
+            }},
+            { selector: '.fam-hidden',   style: { opacity: 0.03 } },
+            { selector: '.cola-hidden',  style: { opacity: 0.03 } },
+            { selector: '.cola-faded',   style: { opacity: 0.15 } },
+            { selector: '.cola-focused', style: { opacity: 1 } },
         ],
-        layout: { name:'preset' },
+        layout: { name: 'preset' },
     });
 
-    // cose → cola
-    colaCy.layout({ name:'cose', animate:false, padding:60, nodeRepulsion:480000, idealEdgeLength:120, randomize:true, fit:true }).run();
+    // Erst cose für gute Startpositionen, dann cola live
+    colaCy.layout({
+        name: 'cose', animate: false, padding: 60,
+        nodeRepulsion: 480000, idealEdgeLength: 120,
+        randomize: true, fit: true,
+    }).run();
+
+    function startColaLayout() {
+        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+        colaLayout = colaCy.layout({
+            name: 'cola', animate: true, infinite: true,
+            fit: false, padding: 50, nodeSpacing: 18,
+            edgeLength: 130, avoidOverlap: true,
+            randomize: false, convergenceThreshold: 0.000001,
+            maxSimulationTime: 9999999,
+        });
+        colaLayout.run();
+    }
+
+    function restartColaLayout() {
+        // Kurze Pause damit Klassen-Änderungen durch sind
+        setTimeout(startColaLayout, 80);
+    }
+
     setTimeout(startColaLayout, 200);
+
+    // ── Familiennamen-Filter für Cola ────────────────────
+    var colaActiveFamilies = new Set();
+    var colaAllFamilies    = [];
+
+    function buildColaLegend() {
+        var famSet = new Set();
+        allPersons.forEach(function(p) {
+            if (p.family_name) famSet.add(p.family_name);
+            if (p.maiden_name) famSet.add(p.maiden_name);
+        });
+        colaAllFamilies = Array.from(famSet).sort();
+        colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+
+        var list = document.getElementById('cola-fam-list');
+        list.innerHTML = '';
+        colaAllFamilies.forEach(function(fn) {
+            var color = getFamilyColor(fn);
+            var label = fn.split(' ').map(function(w) {
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            }).join(' ');
+            var div = document.createElement('div');
+            div.className = 'cola-fam-item';
+            div.innerHTML =
+                '<input type="checkbox" checked data-fam="' + fn + '">' +
+                '<span class="cola-fam-dot" style="background:' + color + ';border:1.5px solid ' + color + ';"></span>' +
+                '<span>' + label + '</span>';
+            div.querySelector('input').addEventListener('change', function() {
+                if (this.checked) colaActiveFamilies.add(fn);
+                else              colaActiveFamilies.delete(fn);
+                applyColaFamilyFilter();
+            });
+            list.appendChild(div);
+        });
+    }
+
+    function applyColaFamilyFilter() {
+        if (!colaCy) return;
+        colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+        var allActive = colaActiveFamilies.size === colaAllFamilies.length;
+        colaCy.nodes().forEach(function(n) {
+            var raw = n.data('raw') || {};
+            var fn  = raw.family_name || '';
+            var mn  = raw.maiden_name || '';
+            var visible = allActive || colaActiveFamilies.has(fn) || colaActiveFamilies.has(mn);
+            if (visible) n.removeClass('fam-hidden');
+            else          n.addClass('fam-hidden');
+        });
+        colaCy.edges().forEach(function(e) {
+            var sHid = e.source().hasClass('fam-hidden');
+            var tHid = e.target().hasClass('fam-hidden');
+            if (sHid || tHid) e.addClass('fam-hidden');
+            else               e.removeClass('fam-hidden');
+        });
+    }
+
+    document.getElementById('cola-fam-all').addEventListener('click', function() {
+        colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
+        document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = true; });
+        applyColaFamilyFilter();
+    });
+    document.getElementById('cola-fam-none').addEventListener('click', function() {
+        colaActiveFamilies.clear();
+        document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = false; });
+        applyColaFamilyFilter();
+    });
 
     buildColaLegend();
 
-    // ── Knoten-Klick ────────────────────────────────
+    // Knoten-Klick: Highlight + Info
     colaCy.on('tap', 'node', function(evt) {
         var node = evt.target, d = node.data(), p = d.raw || {};
-        var year = p.birth_date ? p.birth_date.substring(0,4) : '';
+        var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
         var dyear = p.death_date ? p.death_date.substring(0,4) : '';
+        var relTypeDE = {
+            'hasMother':'hat Mutter','hasFather':'hat Vater',
+            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+        };
         var personMap = {};
-        allPersons.forEach(function(pr){ personMap[pr.id]=pr; });
-        var myRels = allRels.filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; }).sort(function(a,b){return a.id-b.id;});
-        var relIds = myRels.map(function(r){return r.id;});
+        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
+        var myRels = allRels
+            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+            .sort(function(a,b){ return a.id-b.id; });
+        var relIds = myRels.map(function(r){ return r.id; });
         var relLines = myRels.map(function(r) {
-            var nameA = personMap[r.person_id] ? personMap[r.person_id].display_name : 'ID '+r.person_id;
-            var nameB = personMap[r.related_person_id] ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
             var verb = relTypeDE[r.relationship_type] || r.relationship_type;
-            return '<div class="ci-row"><span class="ci-val" style="font-size:0.85em;">'+nameA+' '+verb+' '+nameB+'</span></div>';
+            return '<div class="ci-row"><span class="ci-val" style="font-size:0.85em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
         }).join('');
-        var f = function(v){return v||'\u2013';};
+        var f = function(v){ return v||'–'; };
         document.getElementById('cola-hint').style.display = 'none';
         document.getElementById('cola-info-content').innerHTML =
-            '<div class="ci-row"><span class="ci-lbl">Name</span><br><span class="ci-val" style="font-size:1.05em;">'+f(p.display_name)+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Geschlecht</span><br><span class="ci-val">'+(p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'\u2013')+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Geboren</span><br><span class="ci-val">'+formatDate(p.birth_date,p.birth_date_estimated)+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Gestorben</span><br><span class="ci-val">'+formatDate(p.death_date,p.death_date_estimated)+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Geburtsort</span><br><span class="ci-val">'+f(p.birth_place)+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Sterbeort</span><br><span class="ci-val">'+f(p.death_place)+'</span></div>'+
-            '<div class="ci-row"><span class="ci-lbl">Beruf</span><br><span class="ci-val">'+f(p.profession)+'</span></div>'+
-            '<div class="ci-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;"><span class="ci-lbl">Person-ID: '+f(p.id)+'</span><br><span class="ci-lbl">Rel-IDs: '+(relIds.length?relIds.join(', '):'\u2013')+'</span></div>'+
-            '<div class="ci-row" style="margin-top:0.3em;"><span class="ci-lbl">Beziehungen:</span></div>'+relLines;
+            '<div class="ci-row"><span class="ci-lbl">Name</span><br>' +
+            '<span class="ci-val" style="font-size:1.05em;">' + f(p.display_name) + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Geschlecht</span><br>' +
+            '<span class="ci-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Geboren</span><br>' +
+            '<span class="ci-val">' + formatDate(p.birth_date, p.birth_date_estimated) + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Gestorben</span><br>' +
+            '<span class="ci-val">' + formatDate(p.death_date, p.death_date_estimated) + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Geburtsort</span><br>' +
+            '<span class="ci-val">' + f(p.birth_place) + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Sterbeort</span><br>' +
+            '<span class="ci-val">' + f(p.death_place) + '</span></div>' +
+            '<div class="ci-row"><span class="ci-lbl">Beruf</span><br>' +
+            '<span class="ci-val">' + f(p.profession) + '</span></div>' +
+            '<div class="ci-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="ci-lbl">Person-ID: ' + f(p.id) + '</span><br>' +
+            '<span class="ci-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+            '<div class="ci-row" style="margin-top:0.3em;"><span class="ci-lbl">Beziehungen:</span></div>' +
+            relLines;
 
-        // Highlight
-        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
-        function colaNotHidden(el) { return !el.hasClass('fam-hidden'); }
+        // 1. Ring voll, 2. Ring gedimmt, Rest ausgeblendet
+        // Nur Nodes die der Familienfilter nicht ausgeblendet hat (opacity > 0.04)
+        // Sichtbar = kein fam-hidden (Familienfilter)
+        function colaNotFamHidden(el) { return !el.hasClass('fam-hidden'); }
+
+        // Alle sichtbaren Elemente hidden setzen (für Highlight-Reset)
+        colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
         colaCy.nodes().not('.fam-hidden').addClass('cola-hidden');
         colaCy.edges().not('.fam-hidden').forEach(function(e) {
-            if (!e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden')) e.addClass('cola-hidden');
+            if (!e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden')) {
+                e.addClass('cola-hidden');
+            }
         });
+
+        // Layout kurz pausieren während Highlight gesetzt wird
+        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+
+        // Angeklickter Node: immer sichtbar
         node.removeClass('cola-hidden').addClass('cola-focused');
+
+        // 1. Ring: direkte sichtbare Nachbarn
         var firstEdges = node.connectedEdges().not('.fam-hidden').filter(function(e) {
             return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
         });
         var firstN = firstEdges.connectedNodes().not(node).not('.fam-hidden');
         firstN.removeClass('cola-hidden').addClass('cola-focused');
         firstEdges.removeClass('cola-hidden').addClass('cola-focused');
+
+        // 2. Ring
         var secondEdges = firstN.connectedEdges().not(firstEdges).not('.fam-hidden').filter(function(e) {
             return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
         });
@@ -327,52 +534,12 @@ function initNetwork() {
             applyColaFamilyFilter();
             document.getElementById('cola-hint').style.display = '';
             document.getElementById('cola-info-content').innerHTML = '';
+            // Physics neu starten falls eingefroren
             restartColaLayout();
         }
     });
 }
 
-// ── Buttons ─────────────────────────────────────────
-document.getElementById('cola-reset-hl').addEventListener('click', function() {
-    if (colaCy) {
-        colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
-        applyColaFamilyFilter();
-        restartColaLayout();
-    }
-    document.getElementById('cola-search').value = '';
-    document.getElementById('cola-hint').style.display = '';
-    document.getElementById('cola-info-content').innerHTML = '';
-});
-document.getElementById('cola-refit').addEventListener('click', function() {
-    if (colaCy) colaCy.fit(60);
-});
-document.getElementById('cola-search').addEventListener('input', function() {
-    if (!colaCy) return;
-    var q = this.value.trim().toLowerCase();
-    colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
-    if (!q) { applyColaFamilyFilter(); return; }
-    colaCy.elements().addClass('cola-faded');
-    colaCy.nodes().forEach(function(n) {
-        var raw = n.data('raw') || {};
-        var name = (raw.display_name || '').toLowerCase();
-        if (name.indexOf(q) >= 0) {
-            n.removeClass('cola-faded').addClass('cola-focused');
-            n.connectedEdges().removeClass('cola-faded').addClass('cola-focused');
-            n.connectedEdges().connectedNodes().removeClass('cola-faded').addClass('cola-focused');
-        }
-    });
-});
-
-// ── Init ────────────────────────────────────────────
-window.addEventListener('load', function() {
-    setupLogout();
-    setupViewMenu();
-    initPage(function() {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('cola-body').style.display = 'flex';
-        initNetwork();
-    });
-});
 </script>
 </body>
 </html>

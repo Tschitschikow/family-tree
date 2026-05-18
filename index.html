@@ -1177,6 +1177,20 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
+    // ── Dropdown sofort aktiv ────────────────────────────
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() {
+            if (typeof switchView === 'function') switchView(el.dataset.view);
+        });
+    });
+
     function loadData() {
         Promise.all([
             client.from('persons').select('*'),
@@ -3518,19 +3532,8 @@ window.addEventListener('load', function() {
         a.click();
     });
 
-    // ════════════════════════════════════════════════════
-    // ── Ansichten-Steuerung ────────────────────────────
-    // ════════════════════════════════════════════════════
+    // ── Ansichten-Steuerung ──
     var currentView = 'timeline';
-
-    // Dropdown öffnen/schließen
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
 
     function switchView(view) {
         currentView = view;
@@ -3549,20 +3552,14 @@ window.addEventListener('load', function() {
         // Cola-Overlay
         var colaViewEl = document.getElementById('cola-view');
         if (view === 'network') {
-            colaViewEl.classList.add('active');
-            document.getElementById('info-panel').style.display = 'none';
-            if (!colaInited) { initColaCy(); colaInited = true; }
-            else if (colaLayout) { restartColaLayout(); }
-        } else {
-            colaViewEl.classList.remove('active');
-            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+            window.location.href = 'netzwerk.html';
+            return;
         }
 
-        // Tree-Overlay (Klassischer Stammbaum)
+        // Tree → eigene Seite (in Arbeit)
         if (view === 'stammbaum') {
-            openTreeOverlay();
-        } else {
-            document.getElementById('tree-overlay').classList.remove('active');
+            window.location.href = 'stammbaum.html';
+            return;
         }
 
         // Register → eigene Seite
@@ -3578,9 +3575,7 @@ window.addEventListener('load', function() {
         }
     }
 
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() { switchView(el.dataset.view); });
-    });
+
 
     // ── Register-Logik ─────────────────────────────────
     var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
