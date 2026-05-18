@@ -133,32 +133,7 @@ function render() {
     });
 }
 
-function showCard(p) {
-    var pm = {}; allPersons.forEach(function(x){pm[x.id]=x;});
-    var rels = allRels.filter(function(r){return r.person_id===p.id||r.related_person_id===p.id;})
-        .sort(function(a,b){return a.id-b.id;});
-    var relLines = rels.map(function(r) {
-        var a = pm[r.person_id]?pm[r.person_id].display_name:'ID '+r.person_id;
-        var b = pm[r.related_person_id]?pm[r.related_person_id].display_name:'ID '+r.related_person_id;
-        return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">'+
-               a+' '+(relTypeDE[r.relationship_type]||r.relationship_type)+' '+b+'</span></div>';
-    }).join('');
-    function row(l,v){return '<div class="rc-row"><span class="rc-lbl">'+l+'</span><span class="rc-val">'+v+'</span></div>';}
-    document.getElementById('card-hint').style.display='none';
-    document.getElementById('card-content').innerHTML =
-        row('Name',p.display_name||'–')+
-        row('Geschlecht',p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–')+
-        row('Mädchenname',p.maiden_name||'–')+
-        row('Geboren',formatDateFull(p.birth_date,p.birth_date_estimated))+
-        row('Geburtsort',p.birth_place||'–')+
-        row('Gestorben',formatDateFull(p.death_date,p.death_date_estimated))+
-        row('Sterbeort',p.death_place||'–')+
-        row('Beruf',p.profession||'–')+
-        '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">'+
-        '<span class="rc-lbl">Person-ID: '+p.id+'</span><br>'+
-        '<span class="rc-lbl">Rel-IDs: '+(rels.length?rels.map(function(r){return r.id;}).join(', '):'–')+'</span></div>'+
-        '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>'+relLines;
-}
+function showCard(p) { showPersonCard(p, 'card-content', 'card-hint'); }
 
 /* ── Event-Handler ────────────────────────────────────── */
 document.querySelectorAll('th[data-col]').forEach(function(th) {

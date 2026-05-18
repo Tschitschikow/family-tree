@@ -258,72 +258,35 @@ function initColaCy() {
     setTimeout(startColaLayout, 200);
 
     // ── Familiennamen-Filter für Cola ────────────────────
-    var colaActiveFamilies = new Set();
+    
     var colaAllFamilies    = [];
 
-    function buildColaLegend() {
-        var famSet = new Set();
-        allPersons.forEach(function(p) {
-            if (p.family_name) famSet.add(p.family_name);
-            if (p.maiden_name) famSet.add(p.maiden_name);
-        });
-        colaAllFamilies = Array.from(famSet).sort();
-        colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
-
-        var list = document.getElementById('cola-fam-list');
-        list.innerHTML = '';
-        colaAllFamilies.forEach(function(fn) {
-            var color = getFamilyColor(fn);
-            var label = fn.split(' ').map(function(w) {
-                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-            }).join(' ');
-            var div = document.createElement('div');
-            div.className = 'cola-fam-item';
-            div.innerHTML =
-                '<input type="checkbox" checked data-fam="' + fn + '">' +
-                '<span class="cola-fam-dot" style="background:' + color + ';border:1.5px solid ' + color + ';"></span>' +
-                '<span>' + label + '</span>';
-            div.querySelector('input').addEventListener('change', function() {
-                if (this.checked) colaActiveFamilies.add(fn);
-                else              colaActiveFamilies.delete(fn);
-                applyColaFamilyFilter();
-            });
-            list.appendChild(div);
-        });
-    }
+    // buildColaLegend: ersetzt durch shared.js buildFamilyLegend
 
     function applyColaFamilyFilter() {
-        if (!colaCy) return;
-        colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
-        var allActive = colaActiveFamilies.size === colaAllFamilies.length;
-        colaCy.nodes().forEach(function(n) {
-            var raw = n.data('raw') || {};
-            var fn  = raw.family_name || '';
-            var mn  = raw.maiden_name || '';
-            var visible = allActive || colaActiveFamilies.has(fn) || colaActiveFamilies.has(mn);
-            if (visible) n.removeClass('fam-hidden');
-            else          n.addClass('fam-hidden');
-        });
-        colaCy.edges().forEach(function(e) {
-            var sHid = e.source().hasClass('fam-hidden');
-            var tHid = e.target().hasClass('fam-hidden');
-            if (sHid || tHid) e.addClass('fam-hidden');
-            else               e.removeClass('fam-hidden');
-        });
-    }
-
-    document.getElementById('cola-fam-all').addEventListener('click', function() {
-        colaAllFamilies.forEach(function(fn) { colaActiveFamilies.add(fn); });
-        document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = true; });
-        applyColaFamilyFilter();
+    if (!colaCy) return;
+    colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
+    var allActive = activeFamilies.size === allFamilyNames.length;
+    colaCy.nodes().forEach(function(n) {
+        var raw = n.data('raw') || {};
+        var fn = raw.family_name || '';
+        var mn = raw.maiden_name || '';
+        var visible = allActive || activeFamilies.has(fn) || activeFamilies.has(mn);
+        if (visible) n.removeClass('fam-hidden');
+        else n.addClass('fam-hidden');
     });
-    document.getElementById('cola-fam-none').addEventListener('click', function() {
-        colaActiveFamilies.clear();
-        document.querySelectorAll('#cola-fam-list input').forEach(function(cb) { cb.checked = false; });
-        applyColaFamilyFilter();
+    colaCy.edges().forEach(function(e) {
+        var sHid = e.source().hasClass('fam-hidden');
+        var tHid = e.target().hasClass('fam-hidden');
+        if (sHid || tHid) e.addClass('fam-hidden');
+        else e.removeClass('fam-hidden');
     });
+}
 
-    buildColaLegend();
+    
+    
+
+    buildFamilyLegend('cola-fam-list', 'cola-fam-all', 'cola-fam-none', function() { applyColaFamilyFilter(); });
 
     // Knoten-Klick: Highlight + Info
     colaCy.on('tap', 'node', function(evt) {
@@ -351,27 +314,7 @@ function initColaCy() {
                    nameA + ' ' + verb + ' ' + nameB + '</span></div>';
         }).join('');
         var f = function(v){ return v||'–'; };
-        document.getElementById('cola-hint').style.display = 'none';
-        document.getElementById('cola-info-content').innerHTML =
-            '<div class="ci-row"><span class="ci-lbl">Name</span><br>' +
-            '<span class="ci-val" style="font-size:1.05em;">' + f(p.display_name) + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Geschlecht</span><br>' +
-            '<span class="ci-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Geboren</span><br>' +
-            '<span class="ci-val">' + formatDate(p.birth_date, p.birth_date_estimated) + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Gestorben</span><br>' +
-            '<span class="ci-val">' + formatDate(p.death_date, p.death_date_estimated) + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Geburtsort</span><br>' +
-            '<span class="ci-val">' + f(p.birth_place) + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Sterbeort</span><br>' +
-            '<span class="ci-val">' + f(p.death_place) + '</span></div>' +
-            '<div class="ci-row"><span class="ci-lbl">Beruf</span><br>' +
-            '<span class="ci-val">' + f(p.profession) + '</span></div>' +
-            '<div class="ci-row" style="margin-top:0.6em;border-top:1px solid #eef;padding-top:0.4em;">' +
-            '<span class="ci-lbl">Person-ID: ' + f(p.id) + '</span><br>' +
-            '<span class="ci-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
-            '<div class="ci-row" style="margin-top:0.3em;"><span class="ci-lbl">Beziehungen:</span></div>' +
-            relLines;
+        showPersonCard(p, 'cola-info-content', 'cola-hint');
 
         // 1. Ring voll, 2. Ring gedimmt, Rest ausgeblendet
         // Nur Nodes die der Familienfilter nicht ausgeblendet hat (opacity > 0.04)
