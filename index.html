@@ -2246,21 +2246,22 @@ window.addEventListener('load', function() {
         var df = sliderActive.death ? parseInt(document.getElementById('filter-death-from').value) : null;
         var dt = sliderActive.death ? parseInt(document.getElementById('filter-death-to').value)   : null;
 
-        // Kein Slider aktiv → nur Familien-Filter
-        if (!bf && !bt && !df && !dt) {
-            applyFamilyFilter();
-            return;
-        }
+        // Zuerst: alle inline-Styles entfernen (von vorherigem Filtern)
+        cy.nodes().removeStyle('opacity');
+        cy.edges().removeStyle('opacity');
+        cy.elements().removeClass('faded ring2');
 
-        // Zuerst Familien-Filter (Ebene 1)
+        // Familien-Filter anwenden (CSS-Klassen)
         applyFamilyFilter();
 
-        // Dann Jahresfilter drauflegen
-        cy.nodes().forEach(function(n) {
-            if (parseFloat(n.style('opacity')) <= 0.05) return;
+        // Kein Slider aktiv → fertig
+        if (!bf && !bt && !df && !dt) return;
+
+        // Jahresfilter drauflegen (nur auf sichtbare Nodes)
+        cy.nodes().not('.fam-hidden').forEach(function(n) {
             var d = n.data();
-            var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
-            var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
+            var byear = d.birth_date ? parseInt(d.birth_date.substring(0,4)) : null;
+            var dyear = d.death_date ? parseInt(d.death_date.substring(0,4)) : null;
             var ok = true;
             if (bf !== null && !(byear && byear >= bf)) ok = false;
             if (bt !== null && !(byear && byear <= bt)) ok = false;
@@ -2283,8 +2284,12 @@ window.addEventListener('load', function() {
             sliderActive[prefix] = false;
             updateSliderUI(prefix);
         });
-        // Highlight zurücksetzen
-        if (cy) { cy.elements().removeClass('faded ring2'); }
+        // Highlight + inline-Styles zurücksetzen
+        if (cy) {
+            cy.elements().removeClass('faded ring2');
+            cy.nodes().removeStyle('opacity');
+            cy.edges().removeStyle('opacity');
+        }
         document.getElementById('info-panel').style.display = 'none';
         applyFamilyFilter();
     });
