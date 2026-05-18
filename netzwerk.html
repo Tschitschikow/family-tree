@@ -4,39 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamisches Netzwerk – Bahrs Familie</title>
+    <link rel="stylesheet" href="shared.css">
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
-        html, body { height:100%; font-family:Georgia,'Times New Roman',serif; background:#f0f0f0; color:#222; }
         body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
 
-        /* Header */
-        header { background:#fff; padding:0.7em 2em; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e0e0e0; box-shadow:0 1px 4px rgba(0,0,0,0.06); flex-shrink:0; }
-        header h1 { font-size:1.1em; font-weight:400; color:#444; }
-        header nav { display:flex; align-items:center; gap:1.2em; }
-        #admin-btn { display:none; color:#666; font-size:0.85em; text-decoration:none; }
-        #logout-btn { background:none; border:1px solid #ddd; color:#888; padding:0.35em 1em; font-size:0.82em; border-radius:5px; cursor:pointer; font-family:inherit; }
-        #logout-btn:hover { background:#f0f0f0; }
-        #view-menu-wrap { position:relative; display:inline-flex; z-index:1000; }
-        #view-menu-btn { display:flex; align-items:center; gap:0.4em; padding:0.32em 0.85em; background:#f0f2f5; border:1px solid #ccd; border-radius:5px; cursor:pointer; color:#334; font-size:0.88em; font-family:inherit; font-weight:500; }
-        #view-menu-btn:hover { background:#e4e8f0; }
-        #view-menu-btn::after { content:' ▾'; font-size:0.8em; }
-        #view-dropdown { display:none; position:absolute; top:calc(100% + 4px); right:0; background:#fff; border:1px solid #ddd; border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,0.12); z-index:10000; min-width:220px; overflow:hidden; }
-        #view-dropdown.open { display:block; }
-        .vd-item { display:flex; align-items:center; gap:0.6em; padding:0.6em 1em; cursor:pointer; font-size:0.88em; color:#334; border-bottom:1px solid #f0f0f0; font-family:inherit; }
-        .vd-item:last-child { border-bottom:none; }
-        .vd-item:hover { background:#f5f7fa; }
-        .vd-item.active-view { background:#eef2ff; color:#223488; font-weight:600; }
-        .vd-icon { font-size:1.1em; width:1.4em; text-align:center; }
-
-        /* Cola-spezifisch */
+        /* Toolbar */
         #cola-header { background:#fff; border-bottom:1px solid #dde; padding:0.5em 1.2em; display:flex; align-items:center; gap:0.8em; flex-shrink:0; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
         #cola-header h2 { font-size:0.92em; font-weight:600; color:#334; margin:0; font-family:'Helvetica Neue',Arial,sans-serif; }
         .cola-hbtn { padding:0.3em 0.8em; background:#fff; border:1px solid #ccd; border-radius:5px; cursor:pointer; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; color:#445; }
         .cola-hbtn:hover { background:#f0f2f5; }
         #cola-search { padding:0.28em 0.7em; border:1px solid #ccd; border-radius:5px; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; width:150px; color:#334; }
         #cola-search:focus { outline:none; border-color:#8899cc; }
+
+        /* Layout */
         #cola-body { flex:1; display:flex; overflow:hidden; }
         #cola-cy { flex:1; position:relative; }
+
+        /* Legende links */
         #cola-legend { width:160px; min-width:140px; flex-shrink:0; background:#fff; border-right:1px solid #dde; padding:0.8em 0.7em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.78em; display:flex; flex-direction:column; gap:0.3em; }
         #cola-legend h4 { font-size:0.85em; font-weight:600; color:#334; margin:0 0 0.4em; padding-bottom:0.3em; border-bottom:1px solid #eef; }
         .cola-fam-item { display:flex; align-items:center; gap:0.4em; cursor:pointer; padding:0.15em 0; user-select:none; }
@@ -45,12 +29,15 @@
         .cola-legend-ctrl { display:flex; gap:6px; margin-bottom:0.3em; }
         .cola-legend-ctrl button { flex:1; font-size:0.82em; padding:0.2em 0.3em; background:#f0f2f5; border:1px solid #dde; border-radius:4px; cursor:pointer; font-family:inherit; color:#445; }
         .cola-legend-ctrl button:hover { background:#e4e8f0; }
+
+        /* Details rechts */
         #cola-info { width:210px; flex-shrink:0; background:#fff; border-left:1px solid #dde; padding:0.9em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.8em; color:#445; }
         #cola-info h3 { font-size:0.92em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em; }
         .ci-row { margin:0.28em 0; line-height:1.4; }
         .ci-lbl { color:#99a; font-size:0.86em; }
         .ci-val { color:#334; font-weight:500; }
         #cola-hint { color:#bbc; font-size:0.78em; margin-top:0.4em; font-style:italic; }
+
         #loading { text-align:center; padding:3em; color:#aaa; }
     </style>
 </head>
@@ -79,6 +66,7 @@
     <input type="text" id="cola-search" placeholder="Name suchen…" autocomplete="off">
     <button class="cola-hbtn" id="cola-reset-hl">Auswahl zurücksetzen</button>
     <button class="cola-hbtn" id="cola-refit">🎯 Einpassen</button>
+    <button class="cola-hbtn" id="btn-cola-export">💾 PNG</button>
 </div>
 
 <div id="loading">Lade Netzwerk...</div>
@@ -105,118 +93,11 @@
 <script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
 <script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 <script src="config.js"></script>
+<script src="shared.js"></script>
 <script>
 /* ══════════════════════════════════════════════════════
-   Dynamisches Netzwerk – komplett eigenständig
+   Dynamisches Netzwerk – eigene Logik
    ══════════════════════════════════════════════════════ */
-
-var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-var allPersons = [], allRels = [];
-
-/* ── Hilfsfunktionen (aus index.html kopiert) ──────── */
-function getFamilyColor(name) {
-    var n = allFamilyNames.length;
-    if (n === 0) return '#cccccc';  // Fallback vor erstem Laden
-
-    // Position dieses Namens in der sortierten Liste
-    var idx = allFamilyNames.indexOf(name);
-    if (idx < 0) {
-        // Name noch nicht in Liste (sollte nicht passieren, aber sicher ist sicher):
-        // Hash-Fallback damit trotzdem eine konsistente Farbe erscheint
-        var hash = 0;
-        for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xfffffff;
-        idx = hash % n;
-    }
-
-    // Hue gleichmäßig über [0, 1) verteilen
-    var hue = idx / n;
-
-    // HLS → RGB (inline, kein externes Lib nötig)
-    // L = 0.88 (hell/pastell), S = 0.70 (satt genug für Unterscheidbarkeit)
-    var h = hue, s = 0.70, l = 0.88;
-    var C = (1 - Math.abs(2 * l - 1)) * s;          // Chroma
-    var X = C * (1 - Math.abs((h * 6) % 2 - 1));    // Zwischenwert
-    var m = l - C / 2;                               // Helligkeitsversatz
-    var r = 0, g = 0, b = 0;
-    if      (h < 1/6) { r=C; g=X; b=0; }
-    else if (h < 2/6) { r=X; g=C; b=0; }
-    else if (h < 3/6) { r=0; g=C; b=X; }
-    else if (h < 4/6) { r=0; g=X; b=C; }
-    else if (h < 5/6) { r=X; g=0; b=C; }
-    else              { r=C; g=0; b=X; }
-
-    // Zu Hex konvertieren
-    function toHex(v) {
-        var hex = Math.round((v + m) * 255).toString(16);
-        return hex.length < 2 ? '0' + hex : hex;
-    }
-    return '#' + toHex(r) + toHex(g) + toHex(b);
-}
-
-    function formatDate(d, estimated) {
-        if (!d) return '';
-        if (estimated) return d.substring(0, 4) + ' (geschätzt)';
-        return d.split('T')[0];  // yyyy-mm-dd
-    }
-
-var relTypeDE = {
-    'hasMother':    'hat Mutter',
-    'hasFather':    'hat Vater',
-    'hasWife':      'hat Ehefrau',
-    'hasHusband':   'hat Ehemann',
-    'hasExWife':    'hat Ex-Ehefrau',
-    'hasExHusband': 'hat Ex-Ehemann',
-};
-
-/* ── Dropdown-Navigation ───────────────────────────── */
-document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    document.getElementById('view-dropdown').classList.toggle('open');
-});
-document.addEventListener('click', function() {
-    document.getElementById('view-dropdown').classList.remove('open');
-});
-var viewPages = {'timeline':'index.html','network':'netzwerk.html','stammbaum':'stammbaum.html','register':'register.html','karte':'karte.html'};
-document.querySelectorAll('.vd-item').forEach(function(el) {
-    el.addEventListener('click', function() {
-        var p = viewPages[el.dataset.view];
-        if (p) window.location.href = p;
-    });
-});
-document.getElementById('logout-btn').addEventListener('click', function() {
-    client.auth.signOut().then(function() { window.location.href = 'login.html'; });
-});
-
-/* ── Init ──────────────────────────────────────────── */
-window.addEventListener('load', function() {
-    client.auth.getSession().then(function(result) {
-        if (!result.data.session) { window.location.href = 'login.html'; return; }
-        if (result.data.session.user.email === ADMIN_EMAIL) {
-            var ab = document.getElementById('admin-btn');
-            if (ab) ab.style.display = 'inline-block';
-        }
-        // Daten laden
-        Promise.all([
-            client.from('persons').select('*'),
-            client.from('relationships').select('*'),
-        ]).then(function(results) {
-            if (results[0].error || results[1].error) { console.error('Fehler'); return; }
-            allPersons = results[0].data.map(function(p) { p.id = Number(p.id); return p; });
-            allRels = results[1].data.map(function(r) {
-                r.id = Number(r.id);
-                r.person_id = Number(r.person_id);
-                r.related_person_id = Number(r.related_person_id);
-                return r;
-            });
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('cola-body').style.display = 'flex';
-            initColaCy();
-        });
-    });
-});
-
-/* ── Netzwerk-Code ─────────────────────────────────── */
-if (typeof cytoscapeCola !== 'undefined') cytoscape.use(cytoscapeCola);
 
 // WebCola als Cytoscape-Extension registrieren
 if (typeof cytoscapeCola !== 'undefined') {
@@ -226,7 +107,8 @@ if (typeof cytoscapeCola !== 'undefined') {
 var colaCy      = null;
 var colaLayout  = null;
 
-// openColaView/closeColaView: nicht nötig (eigene Seite)
+
+
 
 document.getElementById('cola-refit').addEventListener('click', function() {
     if (colaCy) colaCy.fit(60);
@@ -540,6 +422,26 @@ function initColaCy() {
     });
 }
 
+/* ── PNG-Export ────────────────────────────────────── */
+document.getElementById('btn-cola-export').addEventListener('click', function() {
+    if (!colaCy) return;
+    var png = colaCy.png({ full: true, scale: 2, bg: '#f8f8f8' });
+    var a = document.createElement('a');
+    a.href = png;
+    a.download = 'netzwerk_' + new Date().toISOString().substring(0, 10) + '.png';
+    a.click();
+});
+
+/* ── Init ─────────────────────────────────────────── */
+window.addEventListener('load', function() {
+    setupLogout();
+    setupViewMenu();
+    initPage(function() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('cola-body').style.display = 'flex';
+        initColaCy();
+    });
+});
 </script>
 </body>
 </html>
