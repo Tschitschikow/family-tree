@@ -100,8 +100,8 @@ function render() {
                (p.birth_place||'').toLowerCase().includes(q) ||
                (p.death_place||'').toLowerCase().includes(q);
     });
-    rows.sort(function(a, b) {
-        var av = a[sortCol]||'', bv = b[sortCol]||'';
+    rows.sort(function(a,b) {
+        var av=a[sortCol]||'', bv=b[sortCol]||'';
         return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
     });
     document.getElementById('reg-count').textContent = rows.length + ' Personen';
@@ -140,7 +140,8 @@ function showCard(p) {
     var relLines = rels.map(function(r) {
         var a = pm[r.person_id]?pm[r.person_id].display_name:'ID '+r.person_id;
         var b = pm[r.related_person_id]?pm[r.related_person_id].display_name:'ID '+r.related_person_id;
-        return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">'+a+' '+(relTypeDE[r.relationship_type]||r.relationship_type)+' '+b+'</span></div>';
+        return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">'+
+               a+' '+(relTypeDE[r.relationship_type]||r.relationship_type)+' '+b+'</span></div>';
     }).join('');
     function row(l,v){return '<div class="rc-row"><span class="rc-lbl">'+l+'</span><span class="rc-val">'+v+'</span></div>';}
     document.getElementById('card-hint').style.display='none';
@@ -159,7 +160,7 @@ function showCard(p) {
         '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>'+relLines;
 }
 
-/* Event-Handler */
+/* ── Event-Handler ────────────────────────────────────── */
 document.querySelectorAll('th[data-col]').forEach(function(th) {
     th.addEventListener('click', function() {
         if (sortCol===th.dataset.col) sortAsc=!sortAsc;
@@ -170,7 +171,7 @@ document.querySelectorAll('th[data-col]').forEach(function(th) {
 document.getElementById('reg-search').addEventListener('input', function(){filter=this.value;render();});
 document.getElementById('reg-clear').addEventListener('click', function(){document.getElementById('reg-search').value='';filter='';render();});
 
-/* Init */
+/* ── Init ─────────────────────────────────────────────── */
 window.addEventListener('load', function() {
     setupLogout();
     setupViewMenu();

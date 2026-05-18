@@ -1,28 +1,33 @@
-/* Bahrs Familienstammbaum – shared.js
-   Nur Funktionen und Variablen. Kein DOM-Zugriff hier.
-   Jede Seite ruft initPage() selbst auf. */
+/* ══════════════════════════════════════════════════════════
+   Bahrs Familienstammbaum – shared.js
+   
+   Stellt Funktionen bereit. Kein DOM-Zugriff beim Laden.
+   Jede Seite ruft im eigenen <script> auf:
+   
+       initPage(function() {
+           // Daten geladen, Seite initialisieren
+       });
+   
+   ══════════════════════════════════════════════════════════ */
 
-// Falls ADMIN_EMAIL nicht in config.js definiert ist
-if (typeof ADMIN_EMAIL === 'undefined') var ADMIN_EMAIL = '';
-
-var client = null;  // wird von initPage gesetzt
+/* ── Globale Variablen ───────────────────────────────── */
+var client     = null;
 var allPersons = [];
-var allRels = [];
+var allRels    = [];
 
-/* Seite initialisieren: Supabase + Auth + Daten laden + callback */
+/* ── Seite initialisieren: Auth + Daten ──────────────── */
 function initPage(callback) {
     client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     client.auth.getSession().then(function(result) {
         if (!result.data.session) {
             window.location.href = 'login.html';
             return;
         }
+        // Admin-Button
         if (result.data.session.user.email === ADMIN_EMAIL) {
             var ab = document.getElementById('admin-btn');
             if (ab) ab.style.display = 'inline-block';
         }
-
         // Daten laden
         Promise.all([
             client.from('persons').select('*'),
@@ -44,17 +49,21 @@ function initPage(callback) {
     });
 }
 
-/* Logout */
+/* ── Logout-Button aktivieren ────────────────────────── */
 function setupLogout() {
     var btn = document.getElementById('logout-btn');
-    if (btn) btn.addEventListener('click', function() {
-        client.auth.signOut().then(function() { window.location.href = 'login.html'; });
-    });
+    if (btn) {
+        btn.addEventListener('click', function() {
+            client.auth.signOut().then(function() {
+                window.location.href = 'login.html';
+            });
+        });
+    }
 }
 
-/* Ansichten-Dropdown */
+/* ── Ansichten-Dropdown aktivieren ────────────────────── */
 function setupViewMenu() {
-    var menuBtn = document.getElementById('view-menu-btn');
+    var menuBtn  = document.getElementById('view-menu-btn');
     var dropdown = document.getElementById('view-dropdown');
     if (!menuBtn || !dropdown) return;
 
@@ -81,18 +90,17 @@ function setupViewMenu() {
     });
 }
 
-/* Familienfarbe */
+/* ── Familienfarbe ───────────────────────────────────── */
 function getFamilyColor(familyName) {
     if (!familyName) return '#888';
     var hash = 0;
     for (var i = 0; i < familyName.length; i++) {
         hash = familyName.charCodeAt(i) + ((hash << 5) - hash);
     }
-    var hue = Math.abs(hash) % 360;
-    return 'hsl(' + hue + ', 55%, 50%)';
+    return 'hsl(' + (Math.abs(hash) % 360) + ', 55%, 50%)';
 }
 
-/* Datumsformatierung */
+/* ── Datumsformatierung ──────────────────────────────── */
 function formatDate(d, estimated) {
     if (!d) return '\u2013';
     if (estimated) return d.substring(0, 4) + ' (geschätzt)';
@@ -109,7 +117,7 @@ function formatDateFull(d, estimated) {
     return d.split('T')[0];
 }
 
-/* Beziehungstypen */
+/* ── Beziehungstypen ─────────────────────────────────── */
 var relTypeDE = {
     'hasMother':    'hat Mutter',
     'hasFather':    'hat Vater',
