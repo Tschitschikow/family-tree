@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stammbaum – Bahrs Familie</title>
-    <link rel="stylesheet" href="shared.css">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -801,26 +800,36 @@
         <div id="view-menu-wrap">
             <button id="view-menu-btn">Ansicht</button>
             <div id="view-dropdown">
-                <div class="vd-item active-view" data-view="timeline">
+                <a href="index.html" class="vd-item active-view" style="text-decoration:none;">
                     <span class="vd-icon">📅</span> Zeitleiste
-                </div>
-                <div class="vd-item" data-view="network">
+                </a>
+                <a href="netzwerk.html" class="vd-item" style="text-decoration:none;">
                     <span class="vd-icon">🕸️</span> Dynamisches Netzwerk
-                </div>
-                <div class="vd-item" data-view="stammbaum">
+                </a>
+                <a href="stammbaum.html" class="vd-item" style="text-decoration:none;">
                     <span class="vd-icon">🌳</span> Klassischer Stammbaum
-                </div>
-                <div class="vd-item" data-view="register">
+                </a>
+                <a href="register.html" class="vd-item" style="text-decoration:none;">
                     <span class="vd-icon">📋</span> Register
-                </div>
-                <div class="vd-item" data-view="karte">
+                </a>
+                <a href="karte.html" class="vd-item" style="text-decoration:none;">
                     <span class="vd-icon">🗺️</span> Karte
-                </div>
+                </a>
             </div>
         </div>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
+<script>
+/* Dropdown sofort aktiv – kein Warten auf loadData */
+document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('view-dropdown').classList.toggle('open');
+});
+document.addEventListener('click', function() {
+    document.getElementById('view-dropdown').classList.remove('open');
+});
+</script>
 
 
 <div id="toolbar">
@@ -945,9 +954,20 @@
 </div>
 
 <div id="info-panel">
-    <button id="info-close" style="float:right;background:none;border:none;font-size:1.2em;cursor:pointer;color:#aaa;">✕</button>
-    <h2 style="font-size:1em;margin-bottom:0.6em;color:#444;border-bottom:1px solid #eee;padding-bottom:0.4em;">Details</h2>
-    <div id="info-content"></div>
+    <button id="info-close">✕</button>
+    <h2 id="info-name"></h2>
+    <div class="field">Geschlecht: <span id="info-sex"></span></div>
+    <div class="field">Geboren: <span id="info-birth"></span></div>
+    <div class="field">Gestorben: <span id="info-death"></span></div>
+    <div class="field">Geburtsort: <span id="info-birthplace"></span></div>
+    <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
+    <div class="field">Beruf: <span id="info-profession"></span></div>
+    <div class="field">Mädchenname: <span id="info-maiden"></span></div>
+    <div class="field" style="border-top:1px solid #eee; padding-top:0.4em; margin-top:0.5em;">
+        Person-ID: <span id="info-pid"></span>
+    </div>
+    <div class="field">Beziehungs-IDs: <span id="info-relids"></span></div>
+    <div id="info-reltext"></div>
 </div>
 
 <!-- ── Stammbaum SVG-Ansicht ── -->
@@ -1167,20 +1187,6 @@ window.addEventListener('load', function() {
         client.auth.signOut().then(function() { window.location.href = 'login.html'; });
     });
 
-    // ── Dropdown sofort aktiv ────────────────────────────
-    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
-        e.stopPropagation();
-        document.getElementById('view-dropdown').classList.toggle('open');
-    });
-    document.addEventListener('click', function() {
-        document.getElementById('view-dropdown').classList.remove('open');
-    });
-    document.querySelectorAll('.vd-item').forEach(function(el) {
-        el.addEventListener('click', function() {
-            if (typeof switchView === 'function') switchView(el.dataset.view);
-        });
-    });
-
     function loadData() {
         Promise.all([
             client.from('persons').select('*'),
@@ -1198,7 +1204,7 @@ window.addEventListener('load', function() {
                 return r;
             });
             document.getElementById('status-bar').style.display = 'none';
-            buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() { applyFamilyFilter(); });
+            buildLegend(allPersons);
         populateYearSelects(allPersons);
             initCy();
             applyFilter(allPersons, allRels);
@@ -1322,11 +1328,47 @@ window.addEventListener('load', function() {
 
         cy.on('tap', 'node', function(e) {
             var node = e.target, d = node.data();
-            // Person-Objekt finden (d.id ist String aus Cytoscape)
-            var numId = parseInt(d.id) || d.id;
-            var person = allPersons.find(function(p) { return p.id === numId; });
-            if (person) showPersonCard(person, 'info-content', null);
-            document.getElementById('info-panel').style.display = 'block';
+            document.getElementById('info-name').textContent       = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
+            document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
+            document.getElementById('info-birth').textContent      = formatDate(d.birth_date, d.birth_date_estimated) || '–';
+            document.getElementById('info-death').textContent      = formatDate(d.death_date, d.death_date_estimated) || '–';
+            document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
+            document.getElementById('info-deathplace').textContent = d.death_place  || '–';
+            document.getElementById('info-profession').textContent = d.profession   || '–';
+            document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
+            document.getElementById('info-pid').textContent = d.id || node.id();
+
+            // Beziehungen ausgeschrieben
+            var personMap = {};
+            allPersons.forEach(function(p) { personMap[p.id] = p; });
+            var relTypeDE = {
+                'hasMother':    'hat Mutter',
+                'hasFather':    'hat Vater',
+                'hasWife':      'hat Ehefrau',
+                'hasHusband':   'hat Ehemann',
+                'hasExWife':    'hat Ex-Ehefrau',
+                'hasExHusband': 'hat Ex-Ehemann',
+            };
+            var numId = parseInt(d.id) || d.id;  // String → Zahl für Vergleich
+            var myRels = allRels
+                .filter(function(r) { return r.person_id === numId || r.related_person_id === numId; })
+                .sort(function(a, b) { return a.id - b.id; });
+
+            var relIdsList = myRels.map(function(r) { return r.id; }).join(', ');
+            document.getElementById('info-relids').textContent = relIdsList || '–';
+
+            var relLines = myRels.map(function(r) {
+                var personA = personMap[r.person_id];
+                var personB = personMap[r.related_person_id];
+                var nameA = personA ? personA.display_name : 'ID ' + r.person_id;
+                var nameB = personB ? personB.display_name : 'ID ' + r.related_person_id;
+                var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
+                return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+            });
+            var relContainer = document.getElementById('info-reltext');
+            relContainer.innerHTML = relLines.join('');
+
+            document.getElementById('info-panel').style.display    = 'block';
 
             // Highlight: 1. Ring sichtbar, 2. Ring ring2, Rest faded
             // "sichtbar" = kein .fam-hidden (Familienfilter)
@@ -1373,7 +1415,9 @@ window.addEventListener('load', function() {
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
-                cy.elements().removeClass('faded ring2');
+                cy.elements().removeClass('faded');
+                cy.edges().removeStyle('opacity');  // opacity zurücksetzen
+                cy.nodes().removeStyle('opacity');
                 applyFamilyFilter();
                 document.getElementById('info-panel').style.display = 'none';
             }
@@ -1994,6 +2038,7 @@ window.addEventListener('load', function() {
     }
 
     // Welche Familien aktuell angezeigt werden
+    var activeFamilies = new Set();
 
     function applyFamilyFilter() {
         if (!cy) return;
@@ -2038,8 +2083,88 @@ window.addEventListener('load', function() {
         else applyFamilyFilter();
     });
 
-    // buildLegend: ersetzt durch shared.js buildFamilyLegend
+    function buildLegend(persons) {
+        var families = {};
+        persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
 
+        // ── Alphabetisch sortieren ───────────────────────────────
+        // localeCompare sorgt für korrekte deutsche Sortierung
+        // (z.B. Ü nach U, nicht ans Ende)
+        var sorted = Object.keys(families).sort(function(a, b) {
+            return a.localeCompare(b);
+        });
+
+        // ── Globale Namensliste für getFamilyColor() aktualisieren ──
+        // Das ist der Schlüssel: getFamilyColor() liest allFamilyNames,
+        // also muss diese Liste VOR dem Aufbau der Knoten aktuell sein.
+        // Da buildLegend() vor initCy()/applyFilter() aufgerufen wird,
+        // ist das garantiert.
+        allFamilyNames = sorted.slice();  // Kopie der sortierten Liste
+
+        // Beim ersten Aufbau: alle aktiv
+        activeFamilies = new Set(sorted);
+
+        var container = document.getElementById('legend-items');
+        container.innerHTML = '';
+        sorted.forEach(function(name) {
+            var item = document.createElement('div');
+            item.className = 'legend-item';
+            item.dataset.family = name;
+
+            var cb = document.createElement('input');
+            cb.type      = 'checkbox';
+            cb.className = 'legend-cb';
+            cb.checked   = true;
+            cb.addEventListener('change', function() {
+                if (cb.checked) {
+                    activeFamilies.add(name);
+                    item.classList.remove('dimmed');
+                } else {
+                    activeFamilies.delete(name);
+                    item.classList.add('dimmed');
+                }
+                // Wenn alle wieder an → Vollansicht
+                if (activeFamilies.size === sorted.length) {
+                    activeFamilies = new Set(sorted);
+                }
+                applyFamilyFilter();
+            });
+
+            var dot = document.createElement('div');
+            dot.className = 'legend-dot';
+            dot.style.background = getFamilyColor(name);
+
+            var label = document.createElement('span');
+            // Title-Case: erster Buchstabe groß, Rest klein
+            label.textContent = name.split(' ').map(function(w) {
+                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+            }).join(' ');
+            label.title = name; // Original als Tooltip
+
+            item.appendChild(cb);
+            item.appendChild(dot);
+            item.appendChild(label);
+            container.appendChild(item);
+        });
+
+        // Alle / Keine Buttons
+        document.getElementById('legend-all').onclick = function() {
+            activeFamilies = new Set(sorted);
+            container.querySelectorAll('.legend-item').forEach(function(item) {
+                item.querySelector('.legend-cb').checked = true;
+                item.classList.remove('dimmed');
+            });
+            applyFamilyFilter();
+        };
+        document.getElementById('legend-none').onclick = function() {
+            activeFamilies = new Set();
+            container.querySelectorAll('.legend-item').forEach(function(item) {
+                item.querySelector('.legend-cb').checked = false;
+                item.classList.add('dimmed');
+            });
+            applyFamilyFilter();
+        };
+    }
 
     // ── Ebene 2: Jahresbereich-Filter ───────────────────────────
     // Läuft NACH applyFamilyFilter – wirkt als UND-Einschränkung
@@ -2119,22 +2244,21 @@ window.addEventListener('load', function() {
         var df = sliderActive.death ? parseInt(document.getElementById('filter-death-from').value) : null;
         var dt = sliderActive.death ? parseInt(document.getElementById('filter-death-to').value)   : null;
 
-        // Zuerst: alle inline-Styles entfernen (von vorherigem Filtern)
-        cy.nodes().removeStyle('opacity');
-        cy.edges().removeStyle('opacity');
-        cy.elements().removeClass('faded ring2');
+        // Kein Slider aktiv → nur Familien-Filter
+        if (!bf && !bt && !df && !dt) {
+            applyFamilyFilter();
+            return;
+        }
 
-        // Familien-Filter anwenden (CSS-Klassen)
+        // Zuerst Familien-Filter (Ebene 1)
         applyFamilyFilter();
 
-        // Kein Slider aktiv → fertig
-        if (!bf && !bt && !df && !dt) return;
-
-        // Jahresfilter drauflegen (nur auf sichtbare Nodes)
-        cy.nodes().not('.fam-hidden').forEach(function(n) {
+        // Dann Jahresfilter drauflegen
+        cy.nodes().forEach(function(n) {
+            if (parseFloat(n.style('opacity')) <= 0.05) return;
             var d = n.data();
-            var byear = d.birth_date ? parseInt(d.birth_date.substring(0,4)) : null;
-            var dyear = d.death_date ? parseInt(d.death_date.substring(0,4)) : null;
+            var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
+            var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
             var ok = true;
             if (bf !== null && !(byear && byear >= bf)) ok = false;
             if (bt !== null && !(byear && byear <= bt)) ok = false;
@@ -2157,12 +2281,8 @@ window.addEventListener('load', function() {
             sliderActive[prefix] = false;
             updateSliderUI(prefix);
         });
-        // Highlight + inline-Styles zurücksetzen
-        if (cy) {
-            cy.elements().removeClass('faded ring2');
-            cy.nodes().removeStyle('opacity');
-            cy.edges().removeStyle('opacity');
-        }
+        // Highlight zurücksetzen
+        if (cy) { cy.elements().removeClass('faded ring2'); }
         document.getElementById('info-panel').style.display = 'none';
         applyFamilyFilter();
     });
@@ -3408,8 +3528,19 @@ window.addEventListener('load', function() {
         a.click();
     });
 
-    // ── Ansichten-Steuerung ──
+    // ════════════════════════════════════════════════════
+    // ── Ansichten-Steuerung ────────────────────────────
+    // ════════════════════════════════════════════════════
     var currentView = 'timeline';
+
+    // Dropdown öffnen/schließen
+    document.getElementById('view-menu-btn').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('view-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+        document.getElementById('view-dropdown').classList.remove('open');
+    });
 
     function switchView(view) {
         currentView = view;
@@ -3428,30 +3559,40 @@ window.addEventListener('load', function() {
         // Cola-Overlay
         var colaViewEl = document.getElementById('cola-view');
         if (view === 'network') {
-            window.location.href = 'netzwerk.html';
-            return;
+            colaViewEl.classList.add('active');
+            document.getElementById('info-panel').style.display = 'none';
+            if (!colaInited) { initColaCy(); colaInited = true; }
+            else if (colaLayout) { restartColaLayout(); }
+        } else {
+            colaViewEl.classList.remove('active');
+            if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
         }
 
-        // Tree → eigene Seite (in Arbeit)
+        // Tree-Overlay (Klassischer Stammbaum)
         if (view === 'stammbaum') {
-            window.location.href = 'stammbaum.html';
-            return;
+            openTreeOverlay();
+        } else {
+            document.getElementById('tree-overlay').classList.remove('active');
         }
 
-        // Register → eigene Seite
+        // Register
+        var regEl = document.getElementById('register-view');
         if (view === 'register') {
-            window.location.href = 'register.html';
-            return;
+            regEl.classList.add('active');
+            renderRegister();
+        } else {
+            regEl.classList.remove('active');
         }
 
-        // Karte → eigene Seite
+        // Karte
         if (view === 'karte') {
             window.location.href = 'karte.html';
-            return;
         }
     }
 
-
+    document.querySelectorAll('.vd-item').forEach(function(el) {
+        el.addEventListener('click', function() { switchView(el.dataset.view); });
+    });
 
     // ── Register-Logik ─────────────────────────────────
     var regSortCol = 'birth_date', regSortAsc = true, regFilter = '';
@@ -3524,7 +3665,51 @@ window.addEventListener('load', function() {
         });
     }
 
-    
+    function showRegCard(p) {
+        var myRels = allRels
+            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
+            .sort(function(a,b){ return a.id-b.id; });
+        var relIds = myRels.map(function(r){ return r.id; });
+        var personMap = {};
+        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
+        var relTypeDE = {
+            'hasMother':'hat Mutter','hasFather':'hat Vater',
+            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+        };
+        var relLines = myRels.map(function(r) {
+            var nameA = personMap[r.person_id]
+                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
+            var nameB = personMap[r.related_person_id]
+                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
+            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
+            return '<div class="rc-row"><span class="rc-val" style="font-size:0.88em;">' +
+                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
+        }).join('');
+        document.getElementById('reg-card-hint').style.display = 'none';
+        document.getElementById('reg-card-content').innerHTML =
+            '<div class="rc-row"><span class="rc-lbl">Name</span>' +
+            '<span class="rc-val">' + (p.display_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geschlecht</span>' +
+            '<span class="rc-val">' + (p.sex==='m'?'männlich':p.sex==='f'?'weiblich':'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Mädchenname</span>' +
+            '<span class="rc-val">' + (p.maiden_name||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geboren</span>' +
+            '<span class="rc-val">' + formatDateFull(p.birth_date, p.birth_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Geburtsort</span>' +
+            '<span class="rc-val">' + (p.birth_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Gestorben</span>' +
+            '<span class="rc-val">' + formatDateFull(p.death_date, p.death_date_estimated) + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Sterbeort</span>' +
+            '<span class="rc-val">' + (p.death_place||'–') + '</span></div>' +
+            '<div class="rc-row"><span class="rc-lbl">Beruf</span>' +
+            '<span class="rc-val">' + (p.profession||'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.5em;border-top:1px solid #eef;padding-top:0.4em;">' +
+            '<span class="rc-lbl">Person-ID: ' + p.id + '</span><br>' +
+            '<span class="rc-lbl">Rel-IDs: ' + (relIds.length?relIds.join(', '):'–') + '</span></div>' +
+            '<div class="rc-row" style="margin-top:0.3em;"><span class="rc-lbl">Beziehungen:</span></div>' +
+            relLines;
+    }
 
     // Sortieren per Spalten-Klick
     document.querySelectorAll('#reg-table th[data-col]').forEach(function(th) {
@@ -3792,7 +3977,11 @@ window.addEventListener('load', function() {
             var node = evt.target, d = node.data(), p = d.raw || {};
             var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
             var dyear = p.death_date ? p.death_date.substring(0,4) : '';
-            // relTypeDE: aus shared.js
+            var relTypeDE = {
+                'hasMother':'hat Mutter','hasFather':'hat Vater',
+                'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
+                'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
+            };
             var personMap = {};
             allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
             var myRels = allRels
