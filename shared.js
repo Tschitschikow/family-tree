@@ -2,6 +2,9 @@
    Nur Funktionen und Variablen. Kein DOM-Zugriff hier.
    Jede Seite ruft initPage() selbst auf. */
 
+// Falls ADMIN_EMAIL nicht in config.js definiert ist
+if (typeof ADMIN_EMAIL === 'undefined') var ADMIN_EMAIL = '';
+
 var client = null;  // wird von initPage gesetzt
 var allPersons = [];
 var allRels = [];

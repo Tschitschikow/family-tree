@@ -1171,15 +1171,14 @@ window.addEventListener('load', function() {
     // Logout: shared.js
 
     function loadData() {
-        loadSharedData(function() {
-            document.getElementById('status-bar').style.display = 'none';
-            buildLegend(allPersons);
+        // allPersons + allRels sind bereits von initPage geladen
+        document.getElementById('status-bar').style.display = 'none';
+        buildLegend(allPersons);
         populateYearSelects(allPersons);
-            initCy();
-            applyFilter(allPersons, allRels);
-            fillPathDropdowns();
-            fillColaAnchor();
-        });
+        initCy();
+        applyFilter(allPersons, allRels);
+        fillPathDropdowns();
+        if (typeof fillColaAnchor === 'function') fillColaAnchor();
     }
 
     function initCy() {
