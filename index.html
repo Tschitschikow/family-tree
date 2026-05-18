@@ -1419,9 +1419,7 @@ window.addEventListener('load', function() {
         });
         cy.on('tap', function(e) {
             if (e.target === cy) {
-                cy.elements().removeClass('faded');
-                cy.edges().removeStyle('opacity');  // opacity zurücksetzen
-                cy.nodes().removeStyle('opacity');
+                cy.elements().removeClass('faded ring2');
                 applyFamilyFilter();
                 document.getElementById('info-panel').style.display = 'none';
             }
