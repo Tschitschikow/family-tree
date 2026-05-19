@@ -450,18 +450,15 @@
 
         /* ── Info-Panel ── */
         #info-panel {
-            display: none;
-            position: fixed; top: 70px; right: 20px;
-            width: 260px;
-            max-height: calc(100vh - 90px);
+            width: 270px;
+            flex-shrink: 0;
+            background: #fff;
+            border-left: 1px solid #dde;
+            padding: 1em;
             overflow-y: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.10);
-            border: 1px solid #ebebeb;
-            padding: 1.1em;
-            z-index: 150;
-            font-size: 0.88em;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.82em;
+            color: #445;
         }
         #info-panel h2 {
             font-size: 1em; color: #222;
@@ -950,13 +947,12 @@ document.addEventListener('click', function() {
         <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
-    </div>
-</div>
 
-<div id="info-panel">
-    <button id="info-close" style="float:right;background:none;border:none;font-size:1.2em;cursor:pointer;color:#aaa;">✕</button>
-    <h2 style="font-size:1em;margin-bottom:0.6em;color:#444;border-bottom:1px solid #eee;padding-bottom:0.4em;">Details</h2>
-    <div id="info-content"></div>
+    <div id="info-panel" style="width:270px;flex-shrink:0;background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;">
+        <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
+        <p id="info-hint" style="color:#bbc;font-style:italic;font-size:0.82em;">Knoten anklicken.</p>
+        <div id="info-content"></div>
+    </div>
 </div>
 
 <!-- ── Stammbaum SVG-Ansicht ── -->
@@ -1287,7 +1283,7 @@ window.addEventListener('load', function() {
             var numId = parseInt(d.id) || d.id;
             var person = allPersons.find(function(p) { return p.id === numId; });
             if (person) showPersonCard(person, 'info-content', null);
-            document.getElementById('info-panel').style.display = 'block';
+            document.getElementById('info-hint').style.display = 'none';
 
             // Highlight: 1. Ring sichtbar, 2. Ring ring2, Rest faded
             // "sichtbar" = kein .fam-hidden (Familienfilter)
@@ -1338,14 +1334,11 @@ window.addEventListener('load', function() {
                 cy.edges().removeStyle('opacity');  // opacity zurücksetzen
                 cy.nodes().removeStyle('opacity');
                 applyFamilyFilter();
-                document.getElementById('info-panel').style.display = 'none';
+                document.getElementById('info-hint').style.display = '';
+                document.getElementById('info-content').innerHTML = '';
             }
         });
-        document.getElementById('info-close').addEventListener('click', function() {
-            cy.elements().removeClass('faded ring2');
-            applyFamilyFilter();
-            document.getElementById('info-panel').style.display = 'none';
-        });
+        // info-close: Panel ist immer sichtbar, Klick auf Hintergrund resettet
 
         // ── Nur vertikales Verschieben im Zeitachsen-Layout ──────
         // Ansatz: X-Position beim Grab merken, bei jedem position-Event zurücksetzen
