@@ -500,9 +500,7 @@ document.getElementById('tree-step1-next').addEventListener('click', function() 
     initSvgInteraction();
 });
 
-document.getElementById('tree-close-btn').addEventListener('click', function() {
-    switchView('timeline');
-});
+// tree-close-btn: Navigation über Dropdown
 
 // Anchor-Suche (aus bestehendem Code)
 function fillTreeAnchor(filter) {
@@ -533,7 +531,7 @@ document.getElementById('tree-anchor-select').addEventListener('change', functio
 
 // openTreeOverlay bleibt nutzbar
 function openTreeOverlay() {
-    document.getElementById('tree-overlay').classList.add('active');
+    // tree-overlay: Seite ist direkt sichtbar (kein Overlay)
     document.getElementById('tree-step-1').classList.add('active');
     document.getElementById('tree-ctx-menu').classList.remove('active');
     fillTreeAnchor('');
