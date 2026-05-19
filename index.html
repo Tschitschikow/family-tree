@@ -948,11 +948,13 @@ document.addEventListener('click', function() {
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
 
-    <div id="info-panel" style="width:270px;flex-shrink:0;background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;">
-        <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
-        <p id="info-hint" style="color:#bbc;font-style:italic;font-size:0.82em;">Knoten anklicken.</p>
-        <div id="info-content"></div>
-    </div>
+
+</div>
+
+<div id="info-panel" style="position:fixed;top:70px;right:0;width:270px;height:calc(100vh - 70px);background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;z-index:150;">
+    <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
+    <p id="info-hint" style="color:#bbc;font-style:italic;font-size:0.82em;">Knoten anklicken.</p>
+    <div id="info-content"></div>
 </div>
 
 <!-- ── Stammbaum SVG-Ansicht ── -->
