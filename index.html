@@ -954,20 +954,9 @@ document.addEventListener('click', function() {
 </div>
 
 <div id="info-panel">
-    <button id="info-close">✕</button>
-    <h2 id="info-name"></h2>
-    <div class="field">Geschlecht: <span id="info-sex"></span></div>
-    <div class="field">Geboren: <span id="info-birth"></span></div>
-    <div class="field">Gestorben: <span id="info-death"></span></div>
-    <div class="field">Geburtsort: <span id="info-birthplace"></span></div>
-    <div class="field">Sterbeort: <span id="info-deathplace"></span></div>
-    <div class="field">Beruf: <span id="info-profession"></span></div>
-    <div class="field">Mädchenname: <span id="info-maiden"></span></div>
-    <div class="field" style="border-top:1px solid #eee; padding-top:0.4em; margin-top:0.5em;">
-        Person-ID: <span id="info-pid"></span>
-    </div>
-    <div class="field">Beziehungs-IDs: <span id="info-relids"></span></div>
-    <div id="info-reltext"></div>
+    <button id="info-close" style="float:right;background:none;border:none;font-size:1.2em;cursor:pointer;color:#aaa;">✕</button>
+    <h2 style="font-size:1em;margin-bottom:0.6em;color:#444;border-bottom:1px solid #eee;padding-bottom:0.4em;">Details</h2>
+    <div id="info-content"></div>
 </div>
 
 <!-- ── Stammbaum SVG-Ansicht ── -->
@@ -1295,47 +1284,10 @@ window.addEventListener('load', function() {
 
         cy.on('tap', 'node', function(e) {
             var node = e.target, d = node.data();
-            document.getElementById('info-name').textContent       = d.label.split('\n')[0].replace(' †','').replace(' *','').trim();
-            document.getElementById('info-sex').textContent        = d.sex === 'm' ? 'männlich' : d.sex === 'f' ? 'weiblich' : '–';
-            document.getElementById('info-birth').textContent      = formatDate(d.birth_date, d.birth_date_estimated) || '–';
-            document.getElementById('info-death').textContent      = formatDate(d.death_date, d.death_date_estimated) || '–';
-            document.getElementById('info-birthplace').textContent = d.birth_place  || '–';
-            document.getElementById('info-deathplace').textContent = d.death_place  || '–';
-            document.getElementById('info-profession').textContent = d.profession   || '–';
-            document.getElementById('info-maiden').textContent     = d.maiden_name  || '–';
-            document.getElementById('info-pid').textContent = d.id || node.id();
-
-            // Beziehungen ausgeschrieben
-            var personMap = {};
-            allPersons.forEach(function(p) { personMap[p.id] = p; });
-            var relTypeDE = {
-                'hasMother':    'hat Mutter',
-                'hasFather':    'hat Vater',
-                'hasWife':      'hat Ehefrau',
-                'hasHusband':   'hat Ehemann',
-                'hasExWife':    'hat Ex-Ehefrau',
-                'hasExHusband': 'hat Ex-Ehemann',
-            };
-            var numId = parseInt(d.id) || d.id;  // String → Zahl für Vergleich
-            var myRels = allRels
-                .filter(function(r) { return r.person_id === numId || r.related_person_id === numId; })
-                .sort(function(a, b) { return a.id - b.id; });
-
-            var relIdsList = myRels.map(function(r) { return r.id; }).join(', ');
-            document.getElementById('info-relids').textContent = relIdsList || '–';
-
-            var relLines = myRels.map(function(r) {
-                var personA = personMap[r.person_id];
-                var personB = personMap[r.related_person_id];
-                var nameA = personA ? personA.display_name : 'ID ' + r.person_id;
-                var nameB = personB ? personB.display_name : 'ID ' + r.related_person_id;
-                var verb  = relTypeDE[r.relationship_type] || r.relationship_type;
-                return '<div class="field"><span>' + nameA + ' ' + verb + ' ' + nameB + '</span></div>';
-            });
-            var relContainer = document.getElementById('info-reltext');
-            relContainer.innerHTML = relLines.join('');
-
-            document.getElementById('info-panel').style.display    = 'block';
+            var numId = parseInt(d.id) || d.id;
+            var person = allPersons.find(function(p) { return p.id === numId; });
+            if (person) showPersonCard(person, 'info-content', null);
+            document.getElementById('info-panel').style.display = 'block';
 
             // Highlight: 1. Ring sichtbar, 2. Ring ring2, Rest faded
             // "sichtbar" = kein .fam-hidden (Familienfilter)
