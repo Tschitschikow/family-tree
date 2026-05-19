@@ -1168,6 +1168,9 @@ window.addEventListener('load', function() {
                 return r;
             });
             document.getElementById('status-bar').style.display = 'none';
+            // Globale allPersons für shared.js setzen
+            window.allPersons = allPersons;
+            window.allRels = allRels;
             buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() { applyFamilyFilter(); });
         populateYearSelects(allPersons);
             initCy();
