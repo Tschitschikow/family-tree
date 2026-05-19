@@ -91,13 +91,43 @@ function setupViewMenu() {
 }
 
 /* ── Familienfarbe ───────────────────────────────────── */
-function getFamilyColor(familyName) {
-    if (!familyName) return '#888';
+function getFamilyColor(name) {
+var n = allFamilyNames.length;
+if (n === 0) return '#cccccc';  // Fallback vor erstem Laden
+
+// Position dieses Namens in der sortierten Liste
+var idx = allFamilyNames.indexOf(name);
+if (idx < 0) {
+    // Name noch nicht in Liste (sollte nicht passieren, aber sicher ist sicher):
+    // Hash-Fallback damit trotzdem eine konsistente Farbe erscheint
     var hash = 0;
-    for (var i = 0; i < familyName.length; i++) {
-        hash = familyName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return 'hsl(' + (Math.abs(hash) % 360) + ', 55%, 50%)';
+    for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xfffffff;
+    idx = hash % n;
+}
+
+// Hue gleichmäßig über [0, 1) verteilen
+var hue = idx / n;
+
+// HLS → RGB (inline, kein externes Lib nötig)
+// L = 0.88 (hell/pastell), S = 0.70 (satt genug für Unterscheidbarkeit)
+var h = hue, s = 0.70, l = 0.88;
+var C = (1 - Math.abs(2 * l - 1)) * s;          // Chroma
+var X = C * (1 - Math.abs((h * 6) % 2 - 1));    // Zwischenwert
+var m = l - C / 2;                               // Helligkeitsversatz
+var r = 0, g = 0, b = 0;
+if      (h < 1/6) { r=C; g=X; b=0; }
+else if (h < 2/6) { r=X; g=C; b=0; }
+else if (h < 3/6) { r=0; g=C; b=X; }
+else if (h < 4/6) { r=0; g=X; b=C; }
+else if (h < 5/6) { r=X; g=0; b=C; }
+else              { r=C; g=0; b=X; }
+
+// Zu Hex konvertieren
+function toHex(v) {
+    var hex = Math.round((v + m) * 255).toString(16);
+    return hex.length < 2 ? '0' + hex : hex;
+}
+return '#' + toHex(r) + toHex(g) + toHex(b);
 }
 
 /* ── Datumsformatierung ──────────────────────────────── */

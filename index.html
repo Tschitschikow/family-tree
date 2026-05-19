@@ -1113,46 +1113,9 @@ document.addEventListener('click', function() {
 //      - Das Spektrum verteilt sich gleichmäßig über alle N Namen
 //      - Kein manuelles Eingreifen nötig
 
-var allFamilyNames = [];  // wird von buildLegend() gesetzt
+// allFamilyNames: aus shared.js (global)
 
-function getFamilyColor(name) {
-    var n = allFamilyNames.length;
-    if (n === 0) return '#cccccc';  // Fallback vor erstem Laden
-
-    // Position dieses Namens in der sortierten Liste
-    var idx = allFamilyNames.indexOf(name);
-    if (idx < 0) {
-        // Name noch nicht in Liste (sollte nicht passieren, aber sicher ist sicher):
-        // Hash-Fallback damit trotzdem eine konsistente Farbe erscheint
-        var hash = 0;
-        for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xfffffff;
-        idx = hash % n;
-    }
-
-    // Hue gleichmäßig über [0, 1) verteilen
-    var hue = idx / n;
-
-    // HLS → RGB (inline, kein externes Lib nötig)
-    // L = 0.88 (hell/pastell), S = 0.70 (satt genug für Unterscheidbarkeit)
-    var h = hue, s = 0.70, l = 0.88;
-    var C = (1 - Math.abs(2 * l - 1)) * s;          // Chroma
-    var X = C * (1 - Math.abs((h * 6) % 2 - 1));    // Zwischenwert
-    var m = l - C / 2;                               // Helligkeitsversatz
-    var r = 0, g = 0, b = 0;
-    if      (h < 1/6) { r=C; g=X; b=0; }
-    else if (h < 2/6) { r=X; g=C; b=0; }
-    else if (h < 3/6) { r=0; g=C; b=X; }
-    else if (h < 4/6) { r=0; g=X; b=C; }
-    else if (h < 5/6) { r=X; g=0; b=C; }
-    else              { r=C; g=0; b=X; }
-
-    // Zu Hex konvertieren
-    function toHex(v) {
-        var hex = Math.round((v + m) * 255).toString(16);
-        return hex.length < 2 ? '0' + hex : hex;
-    }
-    return '#' + toHex(r) + toHex(g) + toHex(b);
-}
+// getFamilyColor: aus shared.js
 
 // Pixel pro Jahr in der Zeitachsen-Ansicht
 var PX_PER_YEAR = 8;
@@ -1204,7 +1167,7 @@ window.addEventListener('load', function() {
                 return r;
             });
             document.getElementById('status-bar').style.display = 'none';
-            buildLegend(allPersons);
+            buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() { applyFamilyFilter(); });
         populateYearSelects(allPersons);
             initCy();
             applyFilter(allPersons, allRels);
@@ -2038,7 +2001,6 @@ window.addEventListener('load', function() {
     }
 
     // Welche Familien aktuell angezeigt werden
-    var activeFamilies = new Set();
 
     function applyFamilyFilter() {
         if (!cy) return;
@@ -2083,88 +2045,7 @@ window.addEventListener('load', function() {
         else applyFamilyFilter();
     });
 
-    function buildLegend(persons) {
-        var families = {};
-        persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
-
-        // ── Alphabetisch sortieren ───────────────────────────────
-        // localeCompare sorgt für korrekte deutsche Sortierung
-        // (z.B. Ü nach U, nicht ans Ende)
-        var sorted = Object.keys(families).sort(function(a, b) {
-            return a.localeCompare(b);
-        });
-
-        // ── Globale Namensliste für getFamilyColor() aktualisieren ──
-        // Das ist der Schlüssel: getFamilyColor() liest allFamilyNames,
-        // also muss diese Liste VOR dem Aufbau der Knoten aktuell sein.
-        // Da buildLegend() vor initCy()/applyFilter() aufgerufen wird,
-        // ist das garantiert.
-        allFamilyNames = sorted.slice();  // Kopie der sortierten Liste
-
-        // Beim ersten Aufbau: alle aktiv
-        activeFamilies = new Set(sorted);
-
-        var container = document.getElementById('legend-items');
-        container.innerHTML = '';
-        sorted.forEach(function(name) {
-            var item = document.createElement('div');
-            item.className = 'legend-item';
-            item.dataset.family = name;
-
-            var cb = document.createElement('input');
-            cb.type      = 'checkbox';
-            cb.className = 'legend-cb';
-            cb.checked   = true;
-            cb.addEventListener('change', function() {
-                if (cb.checked) {
-                    activeFamilies.add(name);
-                    item.classList.remove('dimmed');
-                } else {
-                    activeFamilies.delete(name);
-                    item.classList.add('dimmed');
-                }
-                // Wenn alle wieder an → Vollansicht
-                if (activeFamilies.size === sorted.length) {
-                    activeFamilies = new Set(sorted);
-                }
-                applyFamilyFilter();
-            });
-
-            var dot = document.createElement('div');
-            dot.className = 'legend-dot';
-            dot.style.background = getFamilyColor(name);
-
-            var label = document.createElement('span');
-            // Title-Case: erster Buchstabe groß, Rest klein
-            label.textContent = name.split(' ').map(function(w) {
-                return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-            }).join(' ');
-            label.title = name; // Original als Tooltip
-
-            item.appendChild(cb);
-            item.appendChild(dot);
-            item.appendChild(label);
-            container.appendChild(item);
-        });
-
-        // Alle / Keine Buttons
-        document.getElementById('legend-all').onclick = function() {
-            activeFamilies = new Set(sorted);
-            container.querySelectorAll('.legend-item').forEach(function(item) {
-                item.querySelector('.legend-cb').checked = true;
-                item.classList.remove('dimmed');
-            });
-            applyFamilyFilter();
-        };
-        document.getElementById('legend-none').onclick = function() {
-            activeFamilies = new Set();
-            container.querySelectorAll('.legend-item').forEach(function(item) {
-                item.querySelector('.legend-cb').checked = false;
-                item.classList.add('dimmed');
-            });
-            applyFamilyFilter();
-        };
-    }
+    // buildLegend: ersetzt durch shared.js buildFamilyLegend
 
     // ── Ebene 2: Jahresbereich-Filter ───────────────────────────
     // Läuft NACH applyFamilyFilter – wirkt als UND-Einschränkung
