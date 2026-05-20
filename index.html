@@ -185,7 +185,6 @@
             flex-shrink: 0;
             position: relative;
             background: #fafafa;
-            border-right: 1px solid #ebebeb;
             overflow: hidden;
             pointer-events: none;
         }
@@ -449,6 +448,8 @@ window.addEventListener('load', function() {
         populateYearSelects(allPersons);
         initCy();
         applyFilter(allPersons, allRels);
+        runLayout('timeline');
+        setTimeout(function() { if (cy) cy.fit(60); }, 300);
     });
 
 function initCy() {
