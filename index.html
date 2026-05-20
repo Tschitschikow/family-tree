@@ -623,10 +623,11 @@ function initCy() {
     });
     cy.on('tap', function(e) {
         if (e.target === cy) {
+            // Layer 2 zurücksetzen (Highlight)
             cy.elements().removeClass('faded ring2');
-            cy.nodes().removeStyle('opacity');
-            cy.edges().removeStyle('opacity');
+            // Layer 1 anwenden (Familienfilter)
             applyFamilyFilter();
+            // Info-Panel zurücksetzen
             document.getElementById('info-hint').style.display = '';
             document.getElementById('info-content').innerHTML = '';
         }
@@ -1248,37 +1249,24 @@ var activeFamilies = new Set();
 function applyFamilyFilter() {
     if (!cy) return;
 
-    // Tap-Highlight entfernen (CSS-Klassen)
-    cy.elements().removeClass('faded ring2');
+    // ── Layer 1: Familienfilter (fam-hidden) ──────────
+    // Zuerst ALLE fam-hidden entfernen
+    cy.elements().removeClass('fam-hidden');
 
-    // Alle Familien aktiv → fam-hidden entfernen, fertig
-    if (activeFamilies.size === allFamilyNames.length) {
-        cy.elements().removeClass('fam-hidden');
-        return;
+    // Dann nur verstecken wenn nicht alle Familien aktiv
+    if (activeFamilies.size < allFamilyNames.length) {
+        cy.nodes().forEach(function(n) {
+            var fn = n.data('family_name') || '';
+            var mn = n.data('maiden_name') || '';
+            var visible = activeFamilies.has(fn) || (mn && activeFamilies.has(mn));
+            if (!visible) n.addClass('fam-hidden');
+        });
+        cy.edges().forEach(function(e) {
+            if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
+                e.addClass('fam-hidden');
+            }
+        });
     }
-
-    // Direkt aktive Familien (auch Mädchenname)
-    var visibleIds = new Set();
-    cy.nodes().forEach(function(n) {
-        var fn = n.data('family_name');
-        var mn = n.data('maiden_name');
-        if (activeFamilies.has(fn) || (mn && activeFamilies.has(mn))) {
-            visibleIds.add(n.id());
-        }
-    });
-
-    // Nodes ein-/ausblenden
-    cy.nodes().forEach(function(n) {
-        if (visibleIds.has(n.id())) n.removeClass('fam-hidden');
-        else                         n.addClass('fam-hidden');
-    });
-    // Kanten: sichtbar wenn beide Endpunkte sichtbar
-    cy.edges().forEach(function(e) {
-        var sVis = visibleIds.has(e.source().id());
-        var tVis = visibleIds.has(e.target().id());
-        if (sVis && tVis) e.removeClass('fam-hidden');
-        else               e.addClass('fam-hidden');
-    });
 }
 
 // Checkbox-Änderung sofort anwenden (Ebene 1 + Ebene 2)
@@ -1497,14 +1485,15 @@ function applyYearFilter() {
 });
 
 document.getElementById('apply-layout').addEventListener('click', function() {
-    // Highlight zurücksetzen
+    // Layer 2 zurücksetzen (Highlight)
     cy.elements().removeClass('faded ring2');
-    cy.nodes().removeStyle('opacity');
-    cy.edges().removeStyle('opacity');
+    // Layer 1 anwenden (Familienfilter)
     applyFamilyFilter();
-    // Layout neu berechnen
+    // Layout neu + zentrieren (nur sichtbare Nodes)
     runLayout(document.getElementById('layout-select').value);
-    setTimeout(function() { if (cy) cy.fit(60); }, 400);
+    setTimeout(function() {
+        if (cy) cy.fit(cy.nodes().not('.fam-hidden'), 60);
+    }, 400);
 });
 
 function updateEdgeVisibility() {
