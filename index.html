@@ -368,33 +368,6 @@
 </header>
 
 <div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
-    <div class="range-wrap" id="birth-range-wrap">
-        <div class="range-label-row">
-            <span id="birth-from-label" class="inactive">–</span>
-            <span id="birth-to-label"   class="inactive">–</span>
-        </div>
-        <div class="dual-range" id="birth-dual">
-            <div class="range-track"></div>
-            <div class="range-track-fill" id="birth-fill"></div>
-            <input type="range" id="filter-birth-from" min="1660" max="2030" value="1660" step="1">
-            <input type="range" id="filter-birth-to"   min="1660" max="2030" value="2030" step="1">
-        </div>
-    </div>
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Verstorben:</span>
-    <div class="range-wrap" id="death-range-wrap">
-        <div class="range-label-row">
-            <span id="death-from-label" class="inactive">–</span>
-            <span id="death-to-label"   class="inactive">–</span>
-        </div>
-        <div class="dual-range" id="death-dual">
-            <div class="range-track"></div>
-            <div class="range-track-fill" id="death-fill"></div>
-            <input type="range" id="filter-death-from" min="1660" max="2030" value="1660" step="1">
-            <input type="range" id="filter-death-to"   min="1660" max="2030" value="2030" step="1">
-        </div>
-    </div>
-    <button class="tool-btn" id="reset-filter">Rücksetzen</button>
     <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
@@ -643,11 +616,12 @@ function initCy() {
     });
     cy.on('tap', function(e) {
         if (e.target === cy) {
-            cy.elements().removeClass('faded');
-            cy.edges().removeStyle('opacity');  // opacity zurücksetzen
+            cy.elements().removeClass('faded ring2');
             cy.nodes().removeStyle('opacity');
+            cy.edges().removeStyle('opacity');
             applyFamilyFilter();
-            document.getElementById('info-panel').style.display = 'none';
+            document.getElementById('info-hint').style.display = '';
+            document.getElementById('info-content').innerHTML = '';
         }
     });
 
@@ -1428,6 +1402,7 @@ function updateSliderUI(prefix) {
 }
 
 function initSlider(prefix, globalMin, globalMax) {
+    if (!document.getElementById('filter-birth-from')) return;
     var fromEl = document.getElementById('filter-' + prefix + '-from');
     var toEl   = document.getElementById('filter-' + prefix + '-to');
     fromEl.min = globalMin; fromEl.max = globalMax; fromEl.value = globalMin;
@@ -1448,6 +1423,7 @@ function initSlider(prefix, globalMin, globalMax) {
 }
 
 function populateYearSelects(persons) {
+    if (!document.getElementById('filter-birth-from')) return;
     var birthYears = new Set(), deathYears = new Set();
     persons.forEach(function(p) {
         if (p.birth_date) birthYears.add(parseInt(p.birth_date.substring(0, 4)));
@@ -1462,6 +1438,7 @@ function populateYearSelects(persons) {
 }
 
 function applyYearFilter() {
+    if (!document.getElementById('filter-birth-from')) return;
     if (!cy) return;
     var bf = sliderActive.birth ? parseInt(document.getElementById('filter-birth-from').value) : null;
     var bt = sliderActive.birth ? parseInt(document.getElementById('filter-birth-to').value)   : null;
@@ -1495,7 +1472,8 @@ function applyYearFilter() {
     });
 }
 
-document.getElementById('reset-filter').addEventListener('click', function() {
+    var resetBtn = document.getElementById('reset-filter');
+    if (resetBtn) resetBtn.addEventListener('click', function() {
     // Slider auf volle Range zurücksetzen
     ['birth','death'].forEach(function(prefix) {
         var fromEl = document.getElementById('filter-' + prefix + '-from');
