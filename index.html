@@ -1248,8 +1248,10 @@ var activeFamilies = new Set();
 function applyFamilyFilter() {
     if (!cy) return;
 
-    // Tap-Highlight zuerst entfernen
+    // Tap-Highlight + inline styles zuerst entfernen
     cy.elements().removeClass('faded ring2');
+    cy.nodes().removeStyle('opacity');
+    cy.edges().removeStyle('opacity');
 
     // Alle Familien aktiv → fam-hidden entfernen, fertig
     if (activeFamilies.size === allFamilyNames.length) {
@@ -1497,7 +1499,14 @@ function applyYearFilter() {
 });
 
 document.getElementById('apply-layout').addEventListener('click', function() {
+    // Highlight zurücksetzen
+    cy.elements().removeClass('faded ring2');
+    cy.nodes().removeStyle('opacity');
+    cy.edges().removeStyle('opacity');
+    applyFamilyFilter();
+    // Layout neu berechnen
     runLayout(document.getElementById('layout-select').value);
+    setTimeout(function() { if (cy) cy.fit(60); }, 400);
 });
 
 function updateEdgeVisibility() {
