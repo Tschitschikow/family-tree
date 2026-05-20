@@ -1249,18 +1249,24 @@ var activeFamilies = new Set();
 function applyFamilyFilter() {
     if (!cy) return;
 
+    console.log('applyFamilyFilter: activeFamilies.size=' + activeFamilies.size + 
+                ', allFamilyNames.length=' + allFamilyNames.length);
+
     // ── Layer 1: Familienfilter (fam-hidden) ──────────
     // Zuerst ALLE fam-hidden entfernen
     cy.elements().removeClass('fam-hidden');
 
     // Dann nur verstecken wenn nicht alle Familien aktiv
     if (activeFamilies.size < allFamilyNames.length) {
+        var visCount = 0, hidCount = 0;
         cy.nodes().forEach(function(n) {
             var fn = n.data('family_name') || '';
             var mn = n.data('maiden_name') || '';
             var visible = activeFamilies.has(fn) || (mn && activeFamilies.has(mn));
-            if (!visible) n.addClass('fam-hidden');
+            if (!visible) { n.addClass('fam-hidden'); hidCount++; }
+            else { visCount++; }
         });
+        console.log('  visible=' + visCount + ', hidden=' + hidCount);
         cy.edges().forEach(function(e) {
             if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
                 e.addClass('fam-hidden');
