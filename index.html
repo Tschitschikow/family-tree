@@ -1248,10 +1248,8 @@ var activeFamilies = new Set();
 function applyFamilyFilter() {
     if (!cy) return;
 
-    // Tap-Highlight + inline styles zuerst entfernen
+    // Tap-Highlight entfernen (CSS-Klassen)
     cy.elements().removeClass('faded ring2');
-    cy.nodes().removeStyle('opacity');
-    cy.edges().removeStyle('opacity');
 
     // Alle Familien aktiv → fam-hidden entfernen, fertig
     if (activeFamilies.size === allFamilyNames.length) {
