@@ -278,6 +278,37 @@
         }
         .legend-ctrl-btn:hover { background: #e4e4e4; border-color: #bbb; color: #222; }
 
+        /* ── Info-Panel ── */
+        #info-panel {
+            display: none;
+            position: fixed; top: 70px; right: 20px;
+            width: 260px;
+            max-height: calc(100vh - 90px);
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.10);
+            border: 1px solid #ebebeb;
+            padding: 1.1em;
+            z-index: 150;
+            font-size: 0.88em;
+        }
+        #info-panel h2 {
+            font-size: 1em; color: #222;
+            margin-bottom: 0.7em;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 0.4em;
+            font-weight: 600;
+        }
+        #info-panel .field { margin-bottom: 0.35em; color: #999; font-size: 0.9em; }
+        #info-panel .field span { color: #333; font-weight: 500; }
+        #info-close {
+            position: absolute; top: 0.5em; right: 0.7em;
+            cursor: pointer; font-size: 1.1em; color: #ccc;
+            background: none; border: none;
+        }
+        #info-close:hover { color: #888; }
+
         /* ── Ansichten-Dropdown-Menü ── */
         #view-menu-wrap {
             position: relative;
@@ -320,46 +351,21 @@
 
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
-    <nav style="display:flex; gap:1em; align-items:center;">
-        <!-- 3D-Ansicht ausgeblendet
-        <a href="stammbaum3d.html"
-           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
-           🌐 3D-Ansicht
-        </a>
-        -->
-
-
-        <a href="admin.html" id="admin-btn"
-           style="display:none; color:white; font-size:0.85em; text-decoration:none;
-                  background:rgba(200,150,12,0.4); border:1px solid rgba(200,150,12,0.7);
-                  padding:0.35em 0.9em; border-radius:5px;">
-           🔐 Admin
-        </a>
+    <nav>
+        <a href="admin.html" id="admin-btn" style="display:none;color:white;font-size:0.85em;text-decoration:none;background:rgba(200,150,12,0.4);border:1px solid rgba(200,150,12,0.7);padding:0.35em 0.9em;border-radius:5px;">🔐 Admin</a>
         <div id="view-menu-wrap">
             <button id="view-menu-btn">Ansicht</button>
             <div id="view-dropdown">
-                <a href="index.html" class="vd-item active-view" data-view="timeline" style="text-decoration:none;">
-                    <span class="vd-icon">📅</span> Zeitleiste
-                </a>
-                <a href="netzwerk.html" class="vd-item" data-view="network" style="text-decoration:none;">
-                    <span class="vd-icon">🕸️</span> Dynamisches Netzwerk
-                </a>
-                <a href="stammbaum.html" class="vd-item" data-view="stammbaum" style="text-decoration:none;">
-                    <span class="vd-icon">🌳</span> Klassischer Stammbaum
-                </a>
-                <a href="register.html" class="vd-item" data-view="register" style="text-decoration:none;">
-                    <span class="vd-icon">📋</span> Register
-                </a>
-                <a href="karte.html" class="vd-item" data-view="karte" style="text-decoration:none;">
-                    <span class="vd-icon">🗺️</span> Karte
-                </a>
+                <a href="index.html" class="vd-item active-view" data-view="timeline" style="text-decoration:none;"><span class="vd-icon">📅</span> Zeitleiste</a>
+                <a href="netzwerk.html" class="vd-item" data-view="network" style="text-decoration:none;"><span class="vd-icon">🕸️</span> Dynamisches Netzwerk</a>
+                <a href="stammbaum.html" class="vd-item" data-view="stammbaum" style="text-decoration:none;"><span class="vd-icon">🌳</span> Klassischer Stammbaum</a>
+                <a href="register.html" class="vd-item" data-view="register" style="text-decoration:none;"><span class="vd-icon">📋</span> Register</a>
+                <a href="karte.html" class="vd-item" data-view="karte" style="text-decoration:none;"><span class="vd-icon">🗺️</span> Karte</a>
             </div>
         </div>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
-
-
 
 <div id="toolbar">
     <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
@@ -410,145 +416,6 @@
 
     <span id="person-count"></span>
 
-</div>
-
-<!-- Pfadsuche Panel -->
-
-    <nav style="display:flex; gap:1em; align-items:center;">
-        <!-- 3D-Ansicht ausgeblendet
-        <a href="stammbaum3d.html"
-           style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">
-           🌐 3D-Ansicht
-        </a>
-        -->
-
-
-        <a href="admin.html" id="admin-btn"
-           style="display:none; color:white; font-size:0.85em; text-decoration:none;
-                  background:rgba(200,150,12,0.4); border:1px solid rgba(200,150,12,0.7);
-                  padding:0.35em 0.9em; border-radius:5px;">
-           🔐 Admin
-        </a>
-        <div id="view-menu-wrap">
-            <button id="view-menu-btn">Ansicht</button>
-            <div id="view-dropdown">
-                <a href="index.html" class="vd-item active-view" data-view="timeline" style="text-decoration:none;">
-                    <span class="vd-icon">📅</span> Zeitleiste
-                </a>
-                <a href="netzwerk.html" class="vd-item" data-view="network" style="text-decoration:none;">
-                    <span class="vd-icon">🕸️</span> Dynamisches Netzwerk
-                </a>
-                <a href="stammbaum.html" class="vd-item" data-view="stammbaum" style="text-decoration:none;">
-                    <span class="vd-icon">🌳</span> Klassischer Stammbaum
-                </a>
-                <a href="register.html" class="vd-item" data-view="register" style="text-decoration:none;">
-                    <span class="vd-icon">📋</span> Register
-                </a>
-                <a href="karte.html" class="vd-item" data-view="karte" style="text-decoration:none;">
-                    <span class="vd-icon">🗺️</span> Karte
-                </a>
-            </div>
-        </div>
-        <button id="logout-btn">Ausloggen</button>
-    </nav>
-</header>
-
-
-
-<div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
-    <div class="range-wrap" id="birth-range-wrap">
-        <div class="range-label-row">
-            <span id="birth-from-label" class="inactive">–</span>
-            <span id="birth-to-label"   class="inactive">–</span>
-        </div>
-        <div class="dual-range" id="birth-dual">
-            <div class="range-track"></div>
-            <div class="range-track-fill" id="birth-fill"></div>
-            <input type="range" id="filter-birth-from" min="1660" max="2030" value="1660" step="1">
-            <input type="range" id="filter-birth-to"   min="1660" max="2030" value="2030" step="1">
-        </div>
-    </div>
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold; margin-left:6px;">Verstorben:</span>
-    <div class="range-wrap" id="death-range-wrap">
-        <div class="range-label-row">
-            <span id="death-from-label" class="inactive">–</span>
-            <span id="death-to-label"   class="inactive">–</span>
-        </div>
-        <div class="dual-range" id="death-dual">
-            <div class="range-track"></div>
-            <div class="range-track-fill" id="death-fill"></div>
-            <input type="range" id="filter-death-from" min="1660" max="2030" value="1660" step="1">
-            <input type="range" id="filter-death-to"   min="1660" max="2030" value="2030" step="1">
-        </div>
-    </div>
-    <button class="tool-btn" id="reset-filter">Rücksetzen</button>
-    <input type="hidden" id="filter-name" value="">
-    <input type="hidden" id="layout-select" value="timeline">
-    <button class="tool-btn" id="apply-layout">Neu anordnen</button>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="show-parent" checked style="width:auto;">
-        Eltern-Kind
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="show-married" checked style="width:auto;">
-        Verheiratet
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="show-siblings" checked style="width:auto;">
-        Geschwister
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
-        <input type="checkbox" id="legend-neighbours" style="display:none;">
-    </label>
-
-    <span id="person-count"></span>
-
-</div>
-
-<!-- Pfadsuche Panel -->
-<div id="path-panel">
-    <label>Person A:</label>
-    <select id="path-person-a"><option value="">– Person wählen –</option></select>
-    <label>Person B:</label>
-    <select id="path-person-b"><option value="">– Person wählen –</option></select>
-    <label>Max. Schritte:</label>
-    <select id="path-max-steps" style="width:80px;">
-        <option value="4">4</option>
-        <option value="6" selected>6</option>
-        <option value="8">8</option>
-        <option value="10">10</option>
-    </select>
-    <button class="tool-btn" id="path-search-btn">Suchen</button>
-    <button class="tool-btn" id="path-reset-btn" style="background:#888;">Zurücksetzen</button>
-    <span id="path-result"></span>
-</div>
-
-<!-- Cola / Stammbaum-Ansicht Panel -->
-    <div class="cola-field">
-        <label>Ankerperson</label>
-        <select id="cola-anchor" style="width:200px;">
-            <option value="">– Person wählen –</option>
-        </select>
-    </div>
-    <div class="cola-field">
-        <label>Vorfahren (Gen.)</label>
-        <input type="number" id="cola-up" value="2" min="0" max="8" />
-    </div>
-    <div class="cola-field">
-        <label>Nachkommen (Gen.)</label>
-        <input type="number" id="cola-down" value="3" min="0" max="8" />
-    </div>
-    <div class="cola-field">
-        <label>Geb.jahr ab</label>
-        <input type="number" id="cola-year-from" value="" min="1600" max="2030" placeholder="–" style="width:80px;" />
-    </div>
-    <div class="cola-field">
-        <label>Geb.jahr bis</label>
-        <input type="number" id="cola-year-to" value="" min="1600" max="2030" placeholder="–" style="width:80px;" />
-    </div>
-    <button id="btn-cola-draw">Zeichnen</button>
-    <button id="btn-cola-export">💾 PNG</button>
 </div>
 
 <div id="status-bar">Lade Stammbaum...</div>
@@ -572,10 +439,10 @@
         <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
-
-
+    </div>
 </div>
-
+    </div>
+</div>
 
 <div id="info-panel" style="position:fixed;top:70px;right:0;width:270px;height:calc(100vh - 70px);background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;z-index:150;">
     <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
@@ -600,11 +467,9 @@ window.addEventListener('load', function() {
     var showSiblingsEdges = true;
     var repulsionValue = 40000000;
 
-    /* ── Dropdown sofort aktiv ─────────────────────────── */
     setupLogout();
     setupViewMenu();
 
-    /* ── Auth + Daten laden ───────────────────────────── */
     initPage(function() {
         document.getElementById('status-bar').style.display = 'none';
         buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() { applyFamilyFilter(); });
@@ -612,10 +477,6 @@ window.addEventListener('load', function() {
         initCy();
         applyFilter(allPersons, allRels);
     });
-
-    /* ═══════════════════════════════════════════════════
-       Zeitleisten-Funktionen (aus Original übernommen)
-       ═══════════════════════════════════════════════════ */
 
 function initCy() {
     cy = cytoscape({
@@ -734,8 +595,8 @@ function initCy() {
         var node = e.target, d = node.data();
         var numId = parseInt(d.id) || d.id;
         var person = allPersons.find(function(p) { return p.id === numId; });
-        if (person) showPersonCard(person, 'info-content', null);
-        document.getElementById('info-hint').style.display = 'none';
+        if (person) showPersonCard(person, 'info-content', 'info-hint');
+        document.getElementById('info-panel').style.display = 'block';
 
         // Highlight: 1. Ring sichtbar, 2. Ring ring2, Rest faded
         // "sichtbar" = kein .fam-hidden (Familienfilter)
@@ -786,11 +647,10 @@ function initCy() {
             cy.edges().removeStyle('opacity');  // opacity zurücksetzen
             cy.nodes().removeStyle('opacity');
             applyFamilyFilter();
-            document.getElementById('info-hint').style.display = '';
-            document.getElementById('info-content').innerHTML = '';
+            document.getElementById('info-panel').style.display = 'none';
         }
     });
-    // info-close: Panel ist immer sichtbar, Klick auf Hintergrund resettet
+
 
     // ── Nur vertikales Verschieben im Zeitachsen-Layout ──────
     // Ansatz: X-Position beim Grab merken, bei jedem position-Event zurücksetzen
@@ -799,6 +659,7 @@ function initCy() {
 
     cy.on('grabon', 'node', function(e) {
         var lv = document.getElementById('layout-select').value;
+        var colaOpen = false;
         if (lv === 'timeline' || lv === 'generations' || colaOpen) {
             _lockedY    = e.target.position('y');
             _isDragging = true;
@@ -818,6 +679,7 @@ function initCy() {
             e.target.position('y', _lockedY);
         }
         // Im Cola-Modus: Ehe-Knoten immer mittig zwischen Eheleuten halten
+        var colaOpen = false;
         if (!colaOpen) return;
         var node = e.target;
         // Prüfe ob dieser Knoten eine Person mit Ehe-Knoten ist
@@ -1400,6 +1262,7 @@ function runLayout(name) {
 }
 
 // Welche Familien aktuell angezeigt werden
+var activeFamilies = new Set();
 
 function applyFamilyFilter() {
     if (!cy) return;
@@ -1444,7 +1307,88 @@ document.getElementById('legend-neighbours').addEventListener('change', function
     else applyFamilyFilter();
 });
 
-// buildLegend: ersetzt durch shared.js buildFamilyLegend
+function buildLegend(persons) {
+    var families = {};
+    persons.forEach(function(p) { if (p.family_name) families[p.family_name] = true; });
+
+    // ── Alphabetisch sortieren ───────────────────────────────
+    // localeCompare sorgt für korrekte deutsche Sortierung
+    // (z.B. Ü nach U, nicht ans Ende)
+    var sorted = Object.keys(families).sort(function(a, b) {
+        return a.localeCompare(b);
+    });
+
+    // ── Globale Namensliste für getFamilyColor() aktualisieren ──
+    // Das ist der Schlüssel: getFamilyColor() liest allFamilyNames,
+    // also muss diese Liste VOR dem Aufbau der Knoten aktuell sein.
+    // Da buildLegend() vor initCy()/applyFilter() aufgerufen wird,
+    // ist das garantiert.
+    allFamilyNames = sorted.slice();  // Kopie der sortierten Liste
+
+    // Beim ersten Aufbau: alle aktiv
+    activeFamilies = new Set(sorted);
+
+    var container = document.getElementById('legend-items');
+    container.innerHTML = '';
+    sorted.forEach(function(name) {
+        var item = document.createElement('div');
+        item.className = 'legend-item';
+        item.dataset.family = name;
+
+        var cb = document.createElement('input');
+        cb.type      = 'checkbox';
+        cb.className = 'legend-cb';
+        cb.checked   = true;
+        cb.addEventListener('change', function() {
+            if (cb.checked) {
+                activeFamilies.add(name);
+                item.classList.remove('dimmed');
+            } else {
+                activeFamilies.delete(name);
+                item.classList.add('dimmed');
+            }
+            // Wenn alle wieder an → Vollansicht
+            if (activeFamilies.size === sorted.length) {
+                activeFamilies = new Set(sorted);
+            }
+            applyFamilyFilter();
+        });
+
+        var dot = document.createElement('div');
+        dot.className = 'legend-dot';
+        dot.style.background = getFamilyColor(name);
+
+        var label = document.createElement('span');
+        // Title-Case: erster Buchstabe groß, Rest klein
+        label.textContent = name.split(' ').map(function(w) {
+            return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        }).join(' ');
+        label.title = name; // Original als Tooltip
+
+        item.appendChild(cb);
+        item.appendChild(dot);
+        item.appendChild(label);
+        container.appendChild(item);
+    });
+
+    // Alle / Keine Buttons
+    document.getElementById('legend-all').onclick = function() {
+        activeFamilies = new Set(sorted);
+        container.querySelectorAll('.legend-item').forEach(function(item) {
+            item.querySelector('.legend-cb').checked = true;
+            item.classList.remove('dimmed');
+        });
+        applyFamilyFilter();
+    };
+    document.getElementById('legend-none').onclick = function() {
+        activeFamilies = new Set();
+        container.querySelectorAll('.legend-item').forEach(function(item) {
+            item.querySelector('.legend-cb').checked = false;
+            item.classList.add('dimmed');
+        });
+        applyFamilyFilter();
+    };
+}
 
 // ── Ebene 2: Jahresbereich-Filter ───────────────────────────
 // Läuft NACH applyFamilyFilter – wirkt als UND-Einschränkung
