@@ -372,6 +372,18 @@
     <input type="hidden" id="filter-name" value="">
     <input type="hidden" id="layout-select" value="timeline">
     <button class="tool-btn" id="apply-layout">Neu anordnen</button>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
+        <input type="checkbox" id="show-parent" checked style="width:auto; margin:0; accent-color:#888;">
+        Eltern-Kind
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
+        <input type="checkbox" id="show-married" checked style="width:auto; margin:0; accent-color:#888;">
+        Verheiratet
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
+        <input type="checkbox" id="show-siblings" checked style="width:auto; margin:0; accent-color:#888;">
+        Geschwister
+    </label>
     <label style="font-size:0.82em; display:flex; align-items:center; gap:4px;">
         <input type="checkbox" id="show-parent" checked style="width:auto;">
         Eltern-Kind
@@ -467,6 +479,20 @@ window.addEventListener('load', function() {
         cy.elements().removeClass('faded ring2');
         runLayout('timeline');
         setTimeout(function() { if (cy) cy.fit(60); }, 500);
+    });
+
+    // Checkboxen: Kanten ein/ausblenden
+    document.getElementById('show-parent').addEventListener('change', function() {
+        showParent = this.checked;
+        updateEdgeVisibility();
+    });
+    document.getElementById('show-married').addEventListener('change', function() {
+        showMarried = this.checked;
+        updateEdgeVisibility();
+    });
+    document.getElementById('show-siblings').addEventListener('change', function() {
+        showSiblingsEdges = this.checked;
+        updateEdgeVisibility();
     });
 
     // ═══════════════════════════════════════════════════════
