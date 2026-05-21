@@ -623,11 +623,7 @@ function initCy() {
     });
     cy.on('tap', function(e) {
         if (e.target === cy) {
-            // Layer 2 zurücksetzen (Highlight)
             cy.elements().removeClass('faded ring2');
-            // Layer 1 anwenden (Familienfilter)
-            applyFamilyFilter();
-            // Info-Panel zurücksetzen
             document.getElementById('info-hint').style.display = '';
             document.getElementById('info-content').innerHTML = '';
         }
@@ -1248,25 +1244,29 @@ var activeFamilies = new Set();
 
 function applyFamilyFilter() {
     if (!cy) return;
+    // Wenn noch nicht initialisiert → nichts tun
+    if (!allFamilyNames || allFamilyNames.length === 0) return;
+    if (!activeFamilies) return;
 
-    // ── Layer 1: Familienfilter (fam-hidden) ──────────
-    // Zuerst ALLE fam-hidden entfernen
+    // Alle sichtbar machen
     cy.elements().removeClass('fam-hidden');
 
-    // Dann nur verstecken wenn nicht alle Familien aktiv
-    if (activeFamilies.size < allFamilyNames.length) {
-        cy.nodes().forEach(function(n) {
-            var fn = n.data('family_name') || '';
-            var mn = n.data('maiden_name') || '';
-            var visible = activeFamilies.has(fn) || (mn && activeFamilies.has(mn));
-            if (!visible) n.addClass('fam-hidden');
-        });
-        cy.edges().forEach(function(e) {
-            if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
-                e.addClass('fam-hidden');
-            }
-        });
-    }
+    // Alle aktiv → fertig
+    if (activeFamilies.size >= allFamilyNames.length) return;
+
+    // Nicht-aktive Familien verstecken
+    cy.nodes().forEach(function(n) {
+        var fn = n.data('family_name') || '';
+        var mn = n.data('maiden_name') || '';
+        if (!activeFamilies.has(fn) && !(mn && activeFamilies.has(mn))) {
+            n.addClass('fam-hidden');
+        }
+    });
+    cy.edges().forEach(function(e) {
+        if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
+            e.addClass('fam-hidden');
+        }
+    });
 }
 
 // Checkbox-Änderung sofort anwenden (Ebene 1 + Ebene 2)
@@ -1485,15 +1485,12 @@ function applyYearFilter() {
 });
 
 document.getElementById('apply-layout').addEventListener('click', function() {
-    // Layer 2 zurücksetzen (Highlight)
+    // Highlight entfernen
     cy.elements().removeClass('faded ring2');
-    // Layer 1 anwenden (Familienfilter)
-    applyFamilyFilter();
-    // Layout neu + zentrieren (nur sichtbare Nodes)
+    // Layout neu berechnen
     runLayout(document.getElementById('layout-select').value);
-    setTimeout(function() {
-        if (cy) cy.fit(cy.nodes().not('.fam-hidden'), 60);
-    }, 400);
+    // Zentrieren
+    setTimeout(function() { if (cy) cy.fit(60); }, 400);
 });
 
 function updateEdgeVisibility() {
