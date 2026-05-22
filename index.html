@@ -90,6 +90,7 @@
         #cy {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
         }
 
         /* ── Details rechts ────────────────────────────── */
@@ -175,6 +176,7 @@
 
     <!-- Graph Mitte -->
     <div id="graph-area">
+        <svg id="tl-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></svg>
         <div id="cy"></div>
     </div>
 
@@ -342,14 +344,20 @@ window.addEventListener('load', function() {
         // ── Timeline-Layout anwenden ─────────────────
         applyTimelineLayout();
 
+        // ── Zeitleiste zeichnen ──────────────────────
+        drawTimeline();
+
         // ── Zentrieren ───────────────────────────────
-        setTimeout(function() { cy.fit(60); }, 300);
+        setTimeout(function() { cy.fit(60); drawTimeline(); }, 300);
 
         // ── Klick-Handler ────────────────────────────
         setupClickHandlers();
 
         // ── Kanten-Sichtbarkeit ──────────────────────
         updateEdgeVisibility();
+
+        // ── Viewport-Handler ────────────────────────
+        setupViewportHandlers();
     }
 
     // ══════════════════════════════════════════════════
@@ -387,6 +395,60 @@ window.addEventListener('load', function() {
             n.position('x', 200 + slots[slotKey] * 110);
             slots[slotKey]++;
         });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Zeitleiste zeichnen (SVG Hintergrund)
+    // ══════════════════════════════════════════════════
+    function drawTimeline() {
+        var svg = document.getElementById('tl-svg');
+        if (!svg || !cy) return;
+
+        // SVG leeren
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        // Cytoscape-Viewport: pan und zoom
+        var pan = cy.pan();
+        var zoom = cy.zoom();
+        var step = 25; // alle 25 Jahre eine Linie
+        var startYear = Math.floor(TL_MIN_YEAR / step) * step - step;
+        var endYear = Math.ceil(TL_MAX_YEAR / step) * step + step;
+        var svgW = svg.clientWidth || 4000;
+
+        for (var yr = startYear; yr <= endYear; yr += step) {
+            // Y-Position im Cytoscape-Koordinatensystem
+            var cyY = TL_PADDING + (TL_MAX_YEAR - yr) * PX_PER_YEAR;
+            // Umrechnung in Screen-Koordinaten
+            var screenY = cyY * zoom + pan.y;
+
+            // Linie
+            var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', 0);
+            line.setAttribute('x2', svgW);
+            line.setAttribute('y1', screenY);
+            line.setAttribute('y2', screenY);
+            line.setAttribute('stroke', '#ddd');
+            line.setAttribute('stroke-width', '0.5');
+            line.setAttribute('stroke-dasharray', '6 4');
+            svg.appendChild(line);
+
+            // Jahreszahl
+            var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', 8);
+            text.setAttribute('y', screenY - 3);
+            text.setAttribute('fill', '#aaa');
+            text.setAttribute('font-size', '10px');
+            text.setAttribute('font-family', "'Helvetica Neue', Arial, sans-serif");
+            text.textContent = yr;
+            svg.appendChild(text);
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    // Pan/Zoom → Zeitleiste neu zeichnen
+    // ══════════════════════════════════════════════════
+    function setupViewportHandlers() {
+        cy.on('pan zoom', function() { drawTimeline(); });
     }
 
     // ══════════════════════════════════════════════════
@@ -501,6 +563,7 @@ window.addEventListener('load', function() {
         applyTimelineLayout();
         applyFamilyFilter();
         cy.fit(60);
+        setTimeout(drawTimeline, 100);
     });
 
     document.getElementById('show-parent').addEventListener('change', function() {
