@@ -417,7 +417,7 @@ window.addEventListener('load', function() {
             var h = 0;
             var s = String(id);
             for (var i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
-            return Math.abs(h) % 800;
+            return Math.abs(h) % 1600;
         }
 
         // Sortiere: älteste zuerst
@@ -454,8 +454,8 @@ window.addEventListener('load', function() {
             var occupied = slotRows[ySlot];
             var x = baseX;
             var tries = 0;
-            while (occupied.some(function(ox) { return Math.abs(ox - x) < 95; }) && tries < 50) {
-                x += 100;
+            while (occupied.some(function(ox) { return Math.abs(ox - x) < 105; }) && tries < 80) {
+                x += 110;
                 tries++;
             }
             
@@ -469,9 +469,9 @@ window.addEventListener('load', function() {
                 if (placed[sid]) return;
                 var sNode = cy.getElementById(sid);
                 if (!sNode || sNode.length === 0) return;
-                var sx = x + 100;
-                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 95; })) {
-                    sx += 100;
+                var sx = x + 110;
+                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 105; })) {
+                    sx += 110;
                 }
                 sNode.position('x', sx);
                 placed[sid] = sx;
