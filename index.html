@@ -177,7 +177,6 @@
             min-height: 0;
             position: relative;
             display: flex;
-            display: flex;
         }
 
         /* ── Zeitachse ── */
@@ -413,8 +412,6 @@
         <div id="print-overlay"></div>
         <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
         
-    </div>
-</div>
     </div>
     <div id="info-panel" style="width:270px;flex-shrink:0;background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;">
         <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
@@ -791,11 +788,13 @@ function initCy() {
     });
     cy.on('tap', function(e) {
         if (e.target === cy) {
-            cy.elements().removeClass('faded');
-            cy.edges().removeStyle('opacity');  // opacity zurücksetzen
+            // Highlight komplett zurücksetzen
+            cy.elements().removeClass('faded ring2');
             cy.nodes().removeStyle('opacity');
-            applyFamilyFilter();
-            document.getElementById('info-hint').style.display = ''; document.getElementById('info-content').innerHTML = '';
+            cy.edges().removeStyle('opacity');
+            // Details-Panel zurücksetzen
+            document.getElementById('info-hint').style.display = '';
+            document.getElementById('info-content').innerHTML = '';
         }
     });
 
