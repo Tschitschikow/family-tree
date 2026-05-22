@@ -383,17 +383,9 @@ window.addEventListener('load', function() {
             n.position('y', y);
         });
 
-        // X: Familien-basierte Verteilung
-        // Ehepaare nebeneinander, Kinder unter den Eltern
+        // X: verbindungs-basierte Verteilung
+        // Kinder nahe bei Eltern, Ehepaare nebeneinander
         var placed = {};    // id → x
-        var familyX = {};   // family_name → Basis-X
-        var nextFamX = 0;
-
-        // Schritt A: Jeder Familie eine Basis-X zuweisen
-        allFamilyNames.forEach(function(fn, i) {
-            familyX[fn] = i * 140;
-        });
-        nextFamX = allFamilyNames.length * 140;
 
         // Schritt B: Ehepaare finden
         var spouseOf = {};  // id → [spouse_ids]
@@ -420,11 +412,12 @@ window.addEventListener('load', function() {
 
         // Schritt D: X-Position zuweisen
         // Erst Personen ohne Eltern (Wurzeln), dann deren Kinder
-        function getBaseX(nodeId) {
-            var node = cy.getElementById(nodeId);
-            if (!node || node.length === 0) return 0;
-            var fn = node.data('family_name') || '';
-            return (familyX[fn] !== undefined) ? familyX[fn] : 0;
+        // Einfacher Hash für initiale X-Streuung
+        function hashX(id) {
+            var h = 0;
+            var s = String(id);
+            for (var i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+            return Math.abs(h) % 800;
         }
 
         // Sortiere: älteste zuerst
@@ -449,8 +442,8 @@ window.addEventListener('load', function() {
                 placedParents.forEach(function(pid) { sumX += placed[pid]; });
                 baseX = sumX / placedParents.length;
             } else {
-                // Familien-Basis + leichter Versatz
-                baseX = getBaseX(id);
+                // Streuung basierend auf ID
+                baseX = hashX(id);
             }
 
             // Überlappung vermeiden
