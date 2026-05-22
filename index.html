@@ -391,9 +391,9 @@ window.addEventListener('load', function() {
 
         // Schritt A: Jeder Familie eine Basis-X zuweisen
         allFamilyNames.forEach(function(fn, i) {
-            familyX[fn] = i * 300;
+            familyX[fn] = i * 140;
         });
-        nextFamX = allFamilyNames.length * 300;
+        nextFamX = allFamilyNames.length * 140;
 
         // Schritt B: Ehepaare finden
         var spouseOf = {};  // id → [spouse_ids]
@@ -461,8 +461,8 @@ window.addEventListener('load', function() {
             var occupied = slotRows[ySlot];
             var x = baseX;
             var tries = 0;
-            while (occupied.some(function(ox) { return Math.abs(ox - x) < 105; }) && tries < 50) {
-                x += 115;
+            while (occupied.some(function(ox) { return Math.abs(ox - x) < 95; }) && tries < 50) {
+                x += 100;
                 tries++;
             }
             
@@ -476,9 +476,9 @@ window.addEventListener('load', function() {
                 if (placed[sid]) return;
                 var sNode = cy.getElementById(sid);
                 if (!sNode || sNode.length === 0) return;
-                var sx = x + 105;
-                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 105; })) {
-                    sx += 115;
+                var sx = x + 100;
+                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 95; })) {
+                    sx += 100;
                 }
                 sNode.position('x', sx);
                 placed[sid] = sx;
