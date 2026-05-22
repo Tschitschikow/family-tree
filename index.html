@@ -383,17 +383,107 @@ window.addEventListener('load', function() {
             n.position('y', y);
         });
 
-        // X: horizontale Überlappungen auflösen
-        var slots = {};
+        // X: Familien-basierte Verteilung
+        // Ehepaare nebeneinander, Kinder unter den Eltern
+        var placed = {};    // id → x
+        var familyX = {};   // family_name → Basis-X
+        var nextFamX = 0;
+
+        // Schritt A: Jeder Familie eine Basis-X zuweisen
+        allFamilyNames.forEach(function(fn, i) {
+            familyX[fn] = i * 300;
+        });
+        nextFamX = allFamilyNames.length * 300;
+
+        // Schritt B: Ehepaare finden
+        var spouseOf = {};  // id → [spouse_ids]
+        allRels.forEach(function(r) {
+            if (r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband') {
+                var a = String(r.person_id), b = String(r.related_person_id);
+                if (!spouseOf[a]) spouseOf[a] = [];
+                if (!spouseOf[b]) spouseOf[b] = [];
+                if (spouseOf[a].indexOf(b) < 0) spouseOf[a].push(b);
+                if (spouseOf[b].indexOf(a) < 0) spouseOf[b].push(a);
+            }
+        });
+
+        // Schritt C: Eltern finden
+        var parentOf = {};  // child_id → [parent_ids]
+        allRels.forEach(function(r) {
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                var child = String(r.person_id);
+                var parent = String(r.related_person_id);
+                if (!parentOf[child]) parentOf[child] = [];
+                parentOf[child].push(parent);
+            }
+        });
+
+        // Schritt D: X-Position zuweisen
+        // Erst Personen ohne Eltern (Wurzeln), dann deren Kinder
+        function getBaseX(nodeId) {
+            var node = cy.getElementById(nodeId);
+            if (!node || node.length === 0) return 0;
+            var fn = node.data('family_name') || '';
+            return (familyX[fn] !== undefined) ? familyX[fn] : 0;
+        }
+
+        // Sortiere: älteste zuerst
         var sortedNodes = cy.nodes().sort(function(a, b) {
             return (a.data('birthYear') || 9999) - (b.data('birthYear') || 9999);
         });
+
+        var slotRows = {};  // y-slot → nächste freie X-Position
+
         sortedNodes.forEach(function(n) {
-            var y = Math.round(n.position('y'));
-            var slotKey = Math.floor(y / 40);
-            if (!slots[slotKey]) slots[slotKey] = 0;
-            n.position('x', 200 + slots[slotKey] * 110);
-            slots[slotKey]++;
+            var id = n.id();
+            if (placed[id]) return;
+
+            var baseX;
+            // Hat diese Person Eltern die schon platziert sind?
+            var parents = parentOf[id] || [];
+            var placedParents = parents.filter(function(pid) { return placed[pid]; });
+
+            if (placedParents.length > 0) {
+                // Unter den Eltern platzieren
+                var sumX = 0;
+                placedParents.forEach(function(pid) { sumX += placed[pid]; });
+                baseX = sumX / placedParents.length;
+            } else {
+                // Familien-Basis + leichter Versatz
+                baseX = getBaseX(id);
+            }
+
+            // Überlappung vermeiden
+            var ySlot = Math.floor(n.position('y') / 45);
+            if (!slotRows[ySlot]) slotRows[ySlot] = [];
+            
+            // Finde freie Position nahe baseX
+            var occupied = slotRows[ySlot];
+            var x = baseX;
+            var tries = 0;
+            while (occupied.some(function(ox) { return Math.abs(ox - x) < 105; }) && tries < 50) {
+                x += 115;
+                tries++;
+            }
+            
+            n.position('x', x);
+            placed[id] = x;
+            occupied.push(x);
+
+            // Ehepartner direkt daneben
+            var spouses = spouseOf[id] || [];
+            spouses.forEach(function(sid) {
+                if (placed[sid]) return;
+                var sNode = cy.getElementById(sid);
+                if (!sNode || sNode.length === 0) return;
+                var sx = x + 105;
+                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 105; })) {
+                    sx += 115;
+                }
+                sNode.position('x', sx);
+                placed[sid] = sx;
+                occupied.push(sx);
+            });
         });
     }
 
