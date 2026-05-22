@@ -588,6 +588,21 @@ window.addEventListener('load', function() {
                 document.getElementById('details-content').innerHTML = '';
             }
         });
+
+        // Nur horizontales Verschieben: Y bleibt fest (Geburtsjahr)
+        var dragStartY = null;
+        cy.on('grab', 'node', function(e) {
+            dragStartY = e.target.position('y');
+        });
+        cy.on('drag', 'node', function(e) {
+            if (dragStartY !== null) {
+                e.target.position('y', dragStartY);
+            }
+        });
+        cy.on('free', 'node', function(e) {
+            dragStartY = null;
+            drawTimeline();
+        });
     }
 
     // ══════════════════════════════════════════════════
