@@ -176,7 +176,7 @@
             flex: 1;
             min-height: 0;
             position: relative;
-            margin-right: 270px;
+            display: flex;
             display: flex;
         }
 
@@ -221,6 +221,7 @@
             background-color: #f8f8f8;
             flex: 1;
             min-height: 0;
+            position: relative;
         }
         #tl-svg {
             position: absolute;
@@ -415,12 +416,11 @@
     </div>
 </div>
     </div>
-</div>
-
-<div id="info-panel" style="position:fixed;top:70px;right:0;width:270px;height:calc(100vh - 70px);background:#ffffff;border-left:2px solid #ccd;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#334;z-index:9999;box-shadow:-2px 0 12px rgba(0,0,0,0.12);">
-    <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #dde;padding-bottom:0.3em;">Details</h3>
-    <p id="info-hint" style="color:#888;font-style:italic;font-size:0.85em;">Knoten anklicken.</p>
-    <div id="info-content"></div>
+    <div id="info-panel" style="width:270px;flex-shrink:0;background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;">
+        <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
+        <p id="info-hint" style="color:#888;font-style:italic;font-size:0.85em;">Knoten anklicken.</p>
+        <div id="info-content"></div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
