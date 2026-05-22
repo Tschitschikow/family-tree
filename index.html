@@ -6,350 +6,120 @@
     <title>Zeitleiste – Bahrs Familie</title>
     <link rel="stylesheet" href="shared.css">
     <style>
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* ── Seiten-Layout ─────────────────────────────── */
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background: #f8f8f8;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* ── Header: hell grau ── */
-        header {
-            background: #ffffff;
-            color: #222;
-            padding: 0.7em 2em;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            border-bottom: 1px solid #e0e0e0;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-        }
-        header h1 { font-size: 1.1em; font-weight: 400; color: #444; letter-spacing: 0.02em; }
-        header nav a {
-            color: #666;
-            font-size: 0.88em;
-            text-decoration: none;
-        }
-        header nav a:hover { color: #222; }
-
-        #logout-btn {
-            background: white;
-            border: 1px solid #ddd;
-            color: #555;
-            padding: 0.35em 0.9em;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-family: inherit;
-        }
-        #logout-btn:hover { background: #f0f0f0; border-color: #bbb; }
-
-        /* ── Toolbar: sehr hell ── */
+        /* ── Toolbar ───────────────────────────────────── */
         #toolbar {
-            background: #ffffff;
-            border-bottom: 1px solid #e8e8e8;
-            padding: 0.5em 1.5em;
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 0.4em 1.2em;
             display: flex;
             align-items: center;
             gap: 0.8em;
-            flex-wrap: wrap;
             flex-shrink: 0;
-        }
-        #toolbar label { font-size: 0.82em; color: #888; }
-        #filter-name {
-            padding: 0.35em 0.7em;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.88em;
-            font-family: inherit;
-            width: 180px;
-            background: #fafafa;
-            color: #333;
-        }
-        #filter-name:focus { outline: none; border-color: #aaa; background: white; }
-
-        /* ── Dual-Range-Slider ── */
-        .range-wrap {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            user-select: none;
-        }
-        .range-label-row {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            font-size: 0.78em;
-            color: #5a3e2b;
-            font-weight: 500;
-        }
-        .range-label-row span {
-            min-width: 34px;
-            text-align: center;
-        }
-        .range-label-row span.inactive { color: #ccc; }
-        .dual-range {
-            position: relative;
-            width: 140px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-        }
-        .dual-range input[type=range] {
-            position: absolute;
-            width: 100%;
-            height: 4px;
-            background: transparent;
-            appearance: none;
-            -webkit-appearance: none;
-            pointer-events: none;
-            outline: none;
-        }
-        .dual-range input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #5a3e2b;
-            border: 2px solid white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-            cursor: grab;
-            pointer-events: all;
-        }
-        .dual-range input[type=range]::-moz-range-thumb {
-            width: 16px; height: 16px;
-            border-radius: 50%;
-            background: #5a3e2b;
-            border: 2px solid white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.25);
-            cursor: grab;
-            pointer-events: all;
-        }
-        .dual-range input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; }
-        .range-track {
-            position: absolute;
-            height: 4px;
-            background: #ddd;
-            border-radius: 2px;
-            width: 100%;
-            top: 50%; transform: translateY(-50%);
-            z-index: 0;
-        }
-        .range-track-fill {
-            position: absolute;
-            height: 4px;
-            background: #5a3e2b;
-            border-radius: 2px;
-            top: 50%; transform: translateY(-50%);
-            z-index: 1;
-            pointer-events: none;
-        }
-        #layout-select {
-            padding: 0.35em 0.7em;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.88em;
-            font-family: inherit;
-            background: #fafafa;
-            color: #333;
+            font-size: 0.85em;
         }
         .tool-btn {
-            padding: 0.35em 0.8em;
-            background: #f0f0f0;
-            color: #444;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 0.3em 0.8em;
+            background: #fff;
+            border: 1px solid #ccd;
+            border-radius: 5px;
             cursor: pointer;
             font-size: 0.82em;
             font-family: inherit;
+            color: #445;
         }
-        .tool-btn:hover { background: #e4e4e4; border-color: #bbb; color: #222; }
-        #person-count { font-size: 0.8em; color: #bbb; margin-left: auto; }
+        .tool-btn:hover { background: #f0f2f5; }
 
-        /* ── Graph-Container ── */
-        #graph-wrap {
+        /* ── Hauptbereich: Legende | Graph | Details ──── */
+        #main {
             flex: 1;
-            min-height: 0;
-            position: relative;
             display: flex;
-        }
-
-        /* ── Zeitachse ── */
-        #timeline {
-            width: 52px;
-            flex-shrink: 0;
-            position: relative;
-            background: #fafafa;
-            border-right: 1px solid #ebebeb;
             overflow: hidden;
-            pointer-events: none;
-        }
-        .tl-label {
-            position: absolute;
-            right: 6px;
-            font-size: 0.65em;
-            color: #bbb;
-            font-family: inherit;
-            transform: translateY(-50%);
-            white-space: nowrap;
-            letter-spacing: 0.02em;
-        }
-        .tl-line {
-            position: absolute;
-            left: 0; right: 0;
-            height: 1px;
-            background: #ebebeb;
-        }
-        .tl-band {
-            position: absolute;
-            left: 0; right: 0;
-            pointer-events: none;
         }
 
-        #cy {
-            background: transparent !important;
-            min-height: 500px;
-        }
-
-        #cy-wrapper {
-            background-color: #f8f8f8;
-            flex: 1;
-            min-height: 0;
-            position: relative;
-        }
-        #tl-svg {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-        }
-
-        /* ── Legende: fixer linker Balken neben Graph ── */
+        /* ── Legende links ─────────────────────────────── */
         #legend {
-            width: auto;
+            width: 160px;
             min-width: 140px;
-            max-width: 260px;
             flex-shrink: 0;
-            background: #ffffff;
+            background: #fff;
             border-right: 1px solid #e8e8e8;
-            padding: 0.6em 0.9em 0.6em 0.7em;
+            padding: 0.6em 0.7em;
             font-size: 0.78em;
             overflow-y: auto;
-            white-space: nowrap;
         }
         #legend h4 {
-            color: #888;
-            margin-bottom: 0.4em;
             font-size: 0.88em;
-            font-weight: 500;
-            border-bottom: 1px solid #f0f0f0;
+            font-weight: 600;
+            color: #334;
+            margin: 0 0 0.4em;
             padding-bottom: 0.3em;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
+            border-bottom: 1px solid #eef;
         }
-        .legend-item {
-            display: flex; align-items: center; margin-bottom: 0.25em;
-            gap: 0.5em; cursor: pointer; padding: 0.1em 0.2em; border-radius: 3px;
-        }
-        .legend-item:hover { background: #f5f5f5; }
-        .legend-item.dimmed { opacity: 0.35; }
-        .legend-dot {
-            width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .legend-cb { width: auto; margin: 0; cursor: pointer; accent-color: #888; }
         .legend-controls {
-            display: flex; gap: 0.4em; margin-bottom: 0.4em;
-            border-bottom: 1px solid #f0f0f0; padding-bottom: 0.35em;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 0.4em;
         }
         .legend-ctrl-btn {
+            flex: 1;
             font-size: 0.82em;
-            color: #444;
-            background: #f0f0f0;
-            border: 1px solid #ddd;
+            padding: 0.2em 0.3em;
+            background: #f0f2f5;
+            border: 1px solid #dde;
             border-radius: 4px;
             cursor: pointer;
-            padding: 0.25em 0.6em;
             font-family: inherit;
+            color: #445;
         }
-        .legend-ctrl-btn:hover { background: #e4e4e4; border-color: #bbb; color: #222; }
+        .legend-ctrl-btn:hover { background: #e4e8f0; }
 
-        /* ── Info-Panel ── */
-        #info-panel {
-            display: none;
-            position: fixed; top: 70px; right: 20px;
-            width: 260px;
-            max-height: calc(100vh - 90px);
-            overflow-y: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.10);
-            border: 1px solid #ebebeb;
-            padding: 1.1em;
-            z-index: 150;
-            font-size: 0.88em;
-        }
-        #info-panel h2 {
-            font-size: 1em; color: #222;
-            margin-bottom: 0.7em;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 0.4em;
-            font-weight: 600;
-        }
-        #info-panel .field { margin-bottom: 0.35em; color: #999; font-size: 0.9em; }
-        #info-panel .field span { color: #333; font-weight: 500; }
-        #info-close {
-            position: absolute; top: 0.5em; right: 0.7em;
-            cursor: pointer; font-size: 1.1em; color: #ccc;
-            background: none; border: none;
-        }
-        #info-close:hover { color: #888; }
-
-        /* ── Ansichten-Dropdown-Menü ── */
-        #view-menu-wrap {
+        /* ── Graph-Bereich (Mitte) ─────────────────────── */
+        #graph-area {
+            flex: 1;
             position: relative;
-            display: inline-flex;
-            z-index: 1000;
+            background: #f8f8f8;
         }
-        #view-menu-btn {
-            display: flex; align-items: center; gap: 0.4em;
-            padding: 0.32em 0.85em;
-            background: #f0f2f5;
-            border: 1px solid #ccd;
-            border-radius: 5px; cursor: pointer;
-            color: #334; font-size: 0.88em;
-            font-family: inherit; font-weight: 500;
+        #cy {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
         }
-        #view-menu-btn:hover { background: #e4e8f0; border-color: #aab; }
-        #view-menu-btn::after { content: ' ▾'; font-size:0.8em; }
-        #view-dropdown {
-            display: none; position: absolute; top: calc(100% + 4px); right: 0;
-            background: #fff; border: 1px solid #ddd; border-radius: 6px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 10000;
-            min-width: 200px; overflow: hidden;
-        }
-        #view-dropdown.open { display: block; }
-        .vd-item {
-            display: flex; align-items: center; gap: 0.6em;
-            padding: 0.6em 1em; cursor: pointer;
-            font-size: 0.88em; color: #334;
-            border-bottom: 1px solid #f0f0f0;
-            font-family: inherit;
-        }
-        .vd-item:last-child { border-bottom: none; }
-        .vd-item:hover { background: #f5f7fa; }
-        .vd-item.active-view { background: #eef2ff; color: #223488; font-weight: 600; }
-        .vd-item .vd-icon { font-size: 1.1em; width: 1.4em; text-align: center; }
 
+        /* ── Details rechts ────────────────────────────── */
+        #details {
+            width: 270px;
+            flex-shrink: 0;
+            background: #fff;
+            border-left: 1px solid #dde;
+            padding: 1em;
+            overflow-y: auto;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 0.82em;
+            color: #445;
+        }
+        #details h3 {
+            font-size: 0.95em;
+            font-weight: 600;
+            color: #223;
+            margin: 0 0 0.5em;
+            border-bottom: 1px solid #eef;
+            padding-bottom: 0.3em;
+        }
+
+        /* ── Statusbar ─────────────────────────────────── */
+        #status { text-align: center; padding: 2em; color: #aaa; }
     </style>
 </head>
 <body>
 
+<!-- ── Header (identisch auf allen Seiten) ──────────── -->
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
     <nav>
@@ -368,11 +138,10 @@
     </nav>
 </header>
 
+<!-- ── Toolbar ──────────────────────────────────────── -->
 <div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Geboren:</span>
-    <input type="hidden" id="filter-name" value="">
-    <input type="hidden" id="layout-select" value="timeline">
-    <button class="tool-btn" id="apply-layout">Neu anordnen</button>
+    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Generationenansicht</span>
+    <button class="tool-btn" id="btn-refit">Neu anordnen</button>
     <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
         <input type="checkbox" id="show-parent" checked style="width:auto; margin:0; accent-color:#888;">
         Eltern-Kind
@@ -385,15 +154,15 @@
         <input type="checkbox" id="show-siblings" checked style="width:auto; margin:0; accent-color:#888;">
         Geschwister
     </label>
-
-
-    <span id="person-count"></span>
-
+    <span id="person-count" style="margin-left:auto; font-size:0.8em; color:#999;"></span>
 </div>
 
-<div id="status-bar">Lade Stammbaum...</div>
+<!-- ── Ladebalken ──────────────────────────────────── -->
+<div id="status">Lade Stammbaum...</div>
 
-<div id="graph-wrap">
+<!-- ── Hauptbereich ────────────────────────────────── -->
+<div id="main" style="display:none;">
+    <!-- Legende links -->
     <div id="legend">
         <h4>🎨 Familiennamen</h4>
         <div class="legend-controls">
@@ -401,71 +170,339 @@
             <span style="color:#e0e0e0">|</span>
             <button class="legend-ctrl-btn" id="legend-none">Keine</button>
         </div>
-
         <div id="legend-items"></div>
     </div>
-    <div id="timeline"></div>
-    <div id="cy-wrapper" style="position:relative; flex:1; min-height:0; min-width:0;">
-        <svg id="tl-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;"></svg>
-        <div id="gen-overlay" style="position:absolute; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:0;"></div>
-        <div id="cy" style="position:absolute; top:0; left:0; right:0; bottom:0;"></div>
-        <div id="print-overlay"></div>
-        <!-- Druckansicht: HTML-Steckbriefe über Cytoscape-Kanten -->
-        
+
+    <!-- Graph Mitte -->
+    <div id="graph-area">
+        <div id="cy"></div>
     </div>
-    <div id="info-panel" style="width:270px;flex-shrink:0;background:#fff;border-left:1px solid #dde;padding:1em;overflow-y:auto;font-family:'Helvetica Neue',Arial,sans-serif;font-size:0.82em;color:#445;">
-        <h3 style="font-size:0.95em;font-weight:600;color:#223;margin:0 0 0.5em;border-bottom:1px solid #eef;padding-bottom:0.3em;">Details</h3>
-        <p id="info-hint" style="color:#888;font-style:italic;font-size:0.85em;">Knoten anklicken.</p>
-        <div id="info-content"></div>
+
+    <!-- Details rechts -->
+    <div id="details">
+        <h3>Details</h3>
+        <p id="details-hint" style="color:#888; font-style:italic; font-size:0.85em;">Knoten anklicken.</p>
+        <div id="details-content"></div>
     </div>
 </div>
 
+<!-- ── Scripts ──────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/klayjs@0.4.1/klay.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/cytoscape-klay@3.1.4/cytoscape-klay.js"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <script>
+/* ══════════════════════════════════════════════════════
+   Zeitleiste – komplett neu aufgebaut
+   ══════════════════════════════════════════════════════ */
+
 window.addEventListener('load', function() {
 
-    // ── Variablen ────────────────────────────────────────
     var cy = null;
     var showParent = true;
     var showMarried = true;
     var showSiblingsEdges = true;
-    var repulsionValue = 40000000;
     var PX_PER_YEAR = 8;
     var TL_MIN_YEAR = 1660;
     var TL_MAX_YEAR = 2025;
-    var TL_PADDING = 100;
+    var TL_PADDING = 80;
 
-    // ── Init: Menü sofort, dann Daten laden ──────────────
+    // ── Schritt 1: Menü sofort aktiv ─────────────────
     setupLogout();
     setupViewMenu();
 
+    // ── Schritt 2: Daten laden ───────────────────────
     initPage(function() {
-        // Daten geladen → Graph aufbauen
-        document.getElementById('status-bar').style.display = 'none';
+        document.getElementById('status').style.display = 'none';
+        document.getElementById('main').style.display = 'flex';
+
+        // Schritt 3: Familienlegende aufbauen
         buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() {
             applyFamilyFilter();
         });
-        initCy();
-        applyFilter(allPersons, allRels);
-        runLayout('timeline');
-        setTimeout(function() { if (cy) cy.fit(60); }, 500);
+
+        // Schritt 4: Graph aufbauen
+        buildGraph();
+
+        // Schritt 5: Personenzähler
+        updateCount();
     });
 
-    // ── Neu anordnen ─────────────────────────────────────
-    document.getElementById('apply-layout').addEventListener('click', function() {
+    // ══════════════════════════════════════════════════
+    // Graph aufbauen
+    // ══════════════════════════════════════════════════
+    function buildGraph() {
+        // ── Nodes ────────────────────────────────────
+        var nodes = [];
+        var edges = [];
+
+        allPersons.forEach(function(p) {
+            var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0, 4)) : null;
+            var fn = p.family_name || '';
+            var gn = p.given_name || '';
+            var label = gn + '\n' + fn;
+            if (birthYear) label += '\n*' + birthYear;
+
+            nodes.push({
+                group: 'nodes',
+                data: {
+                    id: String(p.id),
+                    label: label,
+                    sex: p.sex,
+                    family_name: p.family_name || '',
+                    maiden_name: p.maiden_name || '',
+                    birthYear: birthYear,
+                    famColor: getFamilyColor(p.family_name),
+                    birth_date: p.birth_date || '',
+                    death_date: p.death_date || '',
+                }
+            });
+        });
+
+        // ── Edges ────────────────────────────────────
+        var edgeSet = {};
+        allRels.forEach(function(r) {
+            var t = r.relationship_type;
+            var src = String(r.person_id);
+            var tgt = String(r.related_person_id);
+            var key, etype;
+
+            if (t === 'hasWife' || t === 'hasHusband') {
+                key = Math.min(r.person_id, r.related_person_id) + '_' + Math.max(r.person_id, r.related_person_id) + '_m';
+                etype = 'married';
+            } else if (t === 'hasExWife' || t === 'hasExHusband') {
+                key = Math.min(r.person_id, r.related_person_id) + '_' + Math.max(r.person_id, r.related_person_id) + '_ex';
+                etype = 'exmarried';
+            } else if (t === 'hasMother' || t === 'hasFather') {
+                key = src + '_' + tgt + '_' + t;
+                etype = 'parent';
+                // Richtung: Kind → Elternteil
+                src = String(r.person_id);
+                tgt = String(r.related_person_id);
+            } else {
+                return;
+            }
+
+            if (edgeSet[key]) return;
+            edgeSet[key] = true;
+            edges.push({
+                group: 'edges',
+                data: { id: key, source: src, target: tgt, type: etype }
+            });
+        });
+
+        // ── Cytoscape erstellen ──────────────────────
+        cy = cytoscape({
+            container: document.getElementById('cy'),
+            elements: nodes.concat(edges),
+            wheelSensitivity: 0.3,
+            minZoom: 0.1,
+            maxZoom: 3,
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'label': 'data(label)',
+                        'text-valign': 'center',
+                        'text-halign': 'center',
+                        'text-wrap': 'wrap',
+                        'text-max-width': '90px',
+                        'font-size': '7px',
+                        'font-family': "'Helvetica Neue', Arial, sans-serif",
+                        'color': '#333',
+                        'background-color': '#ffffff',
+                        'border-width': '2.5px',
+                        'border-color': 'data(famColor)',
+                        'width': '90px',
+                        'height': '36px',
+                    }
+                },
+                { selector: 'node[sex="m"]', style: { 'shape': 'round-rectangle' } },
+                { selector: 'node[sex="f"]', style: { 'shape': 'ellipse' } },
+                {
+                    selector: 'edge',
+                    style: {
+                        'curve-style': 'bezier',
+                        'width': 0.6,
+                        'line-color': '#999',
+                        'target-arrow-shape': 'none',
+                        'opacity': 0.6,
+                    }
+                },
+                { selector: 'edge[type="parent"]', style: { 'line-color': '#666', 'width': 0.6, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#666', 'arrow-scale': 0.4 } },
+                { selector: 'edge[type="married"]', style: { 'line-color': '#555', 'width': 1.5, 'line-style': 'solid' } },
+                { selector: 'edge[type="exmarried"]', style: { 'line-color': '#aaa', 'width': 0.6, 'line-style': 'dashed' } },
+                // Highlight-Klassen
+                { selector: '.fam-hidden', style: { 'opacity': 0.03 } },
+                { selector: '.faded',      style: { 'opacity': 0.05 } },
+                { selector: '.ring2',      style: { 'opacity': 0.22 } },
+            ],
+        });
+
+        // ── Timeline-Layout anwenden ─────────────────
+        applyTimelineLayout();
+
+        // ── Zentrieren ───────────────────────────────
+        setTimeout(function() { cy.fit(60); }, 300);
+
+        // ── Klick-Handler ────────────────────────────
+        setupClickHandlers();
+
+        // ── Kanten-Sichtbarkeit ──────────────────────
+        updateEdgeVisibility();
+    }
+
+    // ══════════════════════════════════════════════════
+    // Timeline-Layout: Y = Geburtsjahr
+    // ══════════════════════════════════════════════════
+    function applyTimelineLayout() {
+        var years = [];
+        cy.nodes().forEach(function(n) {
+            var y = n.data('birthYear');
+            if (y) years.push(y);
+        });
+        if (years.length === 0) return;
+
+        TL_MIN_YEAR = Math.min.apply(null, years);
+        TL_MAX_YEAR = Math.max.apply(null, years);
+
+        var avgYear = Math.round(years.reduce(function(a, b) { return a + b; }, 0) / years.length);
+
+        // Y-Position: älteste oben, jüngste unten
+        cy.nodes().forEach(function(n) {
+            var year = n.data('birthYear') || avgYear;
+            var y = TL_PADDING + (TL_MAX_YEAR - year) * PX_PER_YEAR;
+            n.position('y', y);
+        });
+
+        // X: horizontale Überlappungen auflösen
+        var slots = {};
+        var sortedNodes = cy.nodes().sort(function(a, b) {
+            return (a.data('birthYear') || 9999) - (b.data('birthYear') || 9999);
+        });
+        sortedNodes.forEach(function(n) {
+            var y = Math.round(n.position('y'));
+            var slotKey = Math.floor(y / 40);
+            if (!slots[slotKey]) slots[slotKey] = 0;
+            n.position('x', 200 + slots[slotKey] * 110);
+            slots[slotKey]++;
+        });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Klick-Handler
+    // ══════════════════════════════════════════════════
+    function setupClickHandlers() {
+        // Klick auf Node: Highlight + Details
+        cy.on('tap', 'node', function(e) {
+            var node = e.target;
+            var d = node.data();
+            var numId = parseInt(d.id) || d.id;
+
+            // Details anzeigen (shared.js)
+            var person = allPersons.find(function(p) { return p.id === numId; });
+            if (person) showPersonCard(person, 'details-content', 'details-hint');
+
+            // Highlight: 1. Ring sichtbar, 2. Ring gedimmt, Rest ausgeblendet
+            var firstRing = new Set([node.id()]);
+            var secondRing = new Set();
+
+            node.connectedEdges().not('.fam-hidden').forEach(function(edge) {
+                var neighbor = edge.source().id() === node.id() ? edge.target() : edge.source();
+                if (!neighbor.hasClass('fam-hidden')) {
+                    firstRing.add(neighbor.id());
+                    neighbor.connectedEdges().not('.fam-hidden').forEach(function(e2) {
+                        var n2 = e2.source().id() === neighbor.id() ? e2.target() : e2.source();
+                        if (!n2.hasClass('fam-hidden') && !firstRing.has(n2.id())) {
+                            secondRing.add(n2.id());
+                        }
+                    });
+                }
+            });
+
+            cy.nodes().not('.fam-hidden').forEach(function(n) {
+                n.removeClass('faded ring2');
+                if (firstRing.has(n.id())) { /* sichtbar */ }
+                else if (secondRing.has(n.id())) { n.addClass('ring2'); }
+                else { n.addClass('faded'); }
+            });
+            cy.edges().not('.fam-hidden').forEach(function(edge) {
+                edge.removeClass('faded ring2');
+                var sFirst = firstRing.has(edge.source().id());
+                var tFirst = firstRing.has(edge.target().id());
+                if (sFirst && tFirst) { /* sichtbar */ }
+                else { edge.addClass('faded'); }
+            });
+        });
+
+        // Klick auf Hintergrund: alles zurücksetzen
+        cy.on('tap', function(e) {
+            if (e.target === cy) {
+                cy.elements().removeClass('faded ring2');
+                document.getElementById('details-hint').style.display = '';
+                document.getElementById('details-content').innerHTML = '';
+            }
+        });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Familienfilter
+    // ══════════════════════════════════════════════════
+    function applyFamilyFilter() {
+        if (!cy) return;
+        if (!allFamilyNames || allFamilyNames.length === 0) return;
+
+        // Alle sichtbar machen
+        cy.elements().removeClass('fam-hidden');
+
+        // Alle Familien aktiv → fertig
+        if (activeFamilies.size >= allFamilyNames.length) return;
+
+        // Nicht-aktive verstecken
+        cy.nodes().forEach(function(n) {
+            var fn = n.data('family_name') || '';
+            var mn = n.data('maiden_name') || '';
+            if (!activeFamilies.has(fn) && !(mn && activeFamilies.has(mn))) {
+                n.addClass('fam-hidden');
+            }
+        });
+        cy.edges().forEach(function(e) {
+            if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
+                e.addClass('fam-hidden');
+            }
+        });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Kanten-Sichtbarkeit (Checkboxen)
+    // ══════════════════════════════════════════════════
+    function updateEdgeVisibility() {
+        if (!cy) return;
+        cy.edges().forEach(function(e) {
+            var t = e.data('type');
+            if (t === 'parent') e.style('display', showParent ? 'element' : 'none');
+            else if (t === 'married' || t === 'exmarried') e.style('display', showMarried ? 'element' : 'none');
+        });
+    }
+
+    // ══════════════════════════════════════════════════
+    // Personenzähler
+    // ══════════════════════════════════════════════════
+    function updateCount() {
+        document.getElementById('person-count').textContent = allPersons.length + ' Personen';
+    }
+
+    // ══════════════════════════════════════════════════
+    // Button-Handler
+    // ══════════════════════════════════════════════════
+    document.getElementById('btn-refit').addEventListener('click', function() {
+        if (!cy) return;
         cy.elements().removeClass('faded ring2');
-        runLayout('timeline');
-        setTimeout(function() { if (cy) cy.fit(60); }, 500);
+        applyTimelineLayout();
+        applyFamilyFilter();
+        cy.fit(60);
     });
 
-    // Checkboxen: Kanten ein/ausblenden
     document.getElementById('show-parent').addEventListener('change', function() {
         showParent = this.checked;
         updateEdgeVisibility();
@@ -478,964 +515,6 @@ window.addEventListener('load', function() {
         showSiblingsEdges = this.checked;
         updateEdgeVisibility();
     });
-
-    // ═══════════════════════════════════════════════════════
-    // Graph-Funktionen (1:1 aus Original)
-    // ═══════════════════════════════════════════════════════
-
-function buildElements(persons, relationships) {
-    var birthYears = persons
-        .map(function(p) { return p.birth_date ? parseInt(p.birth_date.substring(0,4)) : null; })
-        .filter(function(y) { return y !== null; });
-    var minYear = birthYears.length ? Math.min.apply(null, birthYears) : 1660;
-    var maxYear = birthYears.length ? Math.max.apply(null, birthYears) : 2025;
-    var avgYear = birthYears.length ? Math.round(
-        birthYears.reduce(function(a,b){return a+b;},0) / birthYears.length) : 1850;
-
-    function calcNodeSize(birth_date) {
-        // Älteste Person: 150x75, Jüngste: 50x25, linear dazwischen
-        var year  = birth_date ? parseInt(birth_date.substring(0,4)) : avgYear;
-        var ratio = (maxYear - minYear) > 0 ? (maxYear - year) / (maxYear - minYear) : 0.5;
-        // ratio=1 → älteste Person (großer Knoten), ratio=0 → jüngste (kleiner Knoten)
-        var w = Math.round(50  + ratio * 100);  // 50..150
-        var h = Math.round(25  + ratio * 50);   // 25..75
-        return { w: w, h: h };
-    }
-
-    var personIds = new Set(persons.map(function(p) { return p.id; }));
-    var marriedIds = new Set();
-    relationships.forEach(function(r) {
-        if ((r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband' ||
-             r.relationship_type === 'hasExWife' || r.relationship_type === 'hasExHusband') &&
-            personIds.has(r.person_id) && personIds.has(r.related_person_id)) {
-            marriedIds.add(r.person_id);
-            marriedIds.add(r.related_person_id);
-        }
-    });
-
-    var elements = [];
-    persons.forEach(function(p) {
-        var sz = calcNodeSize(p.birth_date);
-        // Geburtsjahr für spätere Y-Positionierung im data speichern
-        var birthYear = p.birth_date ? parseInt(p.birth_date.substring(0,4)) : avgYear;
-        // Label aufbauen: Name [† *] + Mädchenname
-        // Symbole direkt hinter dem Namen in Zeile 1, klar getrennt
-        var nameLine = p.display_name;
-        var symbols = '';
-        if (p.death_date)                                        symbols += ' †';
-        if (p.birth_date_estimated || p.death_date_estimated)    symbols += ' *';
-        nameLine = nameLine + symbols;
-
-        // Mädchenname als zweite Zeile
-        var label = nameLine;
-        if (p.maiden_name) {
-            label = nameLine + '\nGeb. ' + p.maiden_name;
-        }
-        elements.push({ group: 'nodes', data: {
-            id:          p.id,
-            label:       label,
-            sex:         p.sex,
-            family_name: p.family_name,
-            birth_date:  p.birth_date  || '',
-            death_date:  p.death_date  || '',
-            birth_place: p.birth_place || '',
-            death_place: p.death_place || '',
-            profession:  p.profession  || '',
-            maiden_name: p.maiden_name || '',
-            nodeW:       sz.w,
-            nodeH:       sz.h,
-            famColor:    getFamilyColor(p.family_name),
-            birthYear:   birthYear,
-            birth_date_estimated: p.birth_date_estimated || false,
-            death_date_estimated: p.death_date_estimated || false,
-        },
-        classes: marriedIds.has(p.id) ? 'married' : '',
-        });
-    });
-
-    relationships.forEach(function(r) {
-        if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
-        if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-            elements.push({ group: 'edges', data: {
-                id: 'e'+r.id, source: r.related_person_id, target: r.person_id,
-                type: r.relationship_type,
-                label: r.relationship_type === 'hasMother' ? 'ist Mutter von' : 'ist Vater von',
-            }});
-        }
-        if (r.relationship_type === 'hasWife') {
-            elements.push({ group: 'edges', data: {
-                id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                type: r.relationship_type, label: 'sind verheiratet',
-            }});
-        }
-        if (r.relationship_type === 'hasExWife') {
-            elements.push({ group: 'edges', data: {
-                id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                type: r.relationship_type, label: 'waren verheiratet',
-            }});
-        }
-        if (r.relationship_type === 'hasExWife') {
-            elements.push({ group: 'edges', data: {
-                id: 'e'+r.id, source: r.person_id, target: r.related_person_id,
-                type: r.relationship_type, label: 'waren verheiratet',
-            }});
-        }
-    });
-
-    // ── Geschwister berechnen ────────────────────────────────
-    // Elternteil → Liste der Kinder
-    var childrenOf = {};
-    relationships.forEach(function(r) {
-        if (!personIds.has(r.person_id) || !personIds.has(r.related_person_id)) return;
-        if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
-            var parentId = r.related_person_id;
-            var childId  = r.person_id;
-            if (!childrenOf[parentId]) childrenOf[parentId] = [];
-            childrenOf[parentId].push(childId);
-        }
-    });
-
-    // Geschwister-Paare ermitteln (jedes Paar nur einmal)
-    var siblingPairs = new Set();
-    Object.values(childrenOf).forEach(function(children) {
-        for (var i = 0; i < children.length; i++) {
-            for (var j = i + 1; j < children.length; j++) {
-                var a = Math.min(children[i], children[j]);
-                var b = Math.max(children[i], children[j]);
-                siblingPairs.add(a + '_' + b);
-            }
-        }
-    });
-
-    siblingPairs.forEach(function(pair) {
-        var parts = pair.split('_');
-        var idA = Number(parts[0]);
-        var idB = Number(parts[1]);
-        if (!personIds.has(idA) || !personIds.has(idB)) return;
-        elements.push({ group: 'edges', data: {
-            id: 'sib_' + pair,
-            source: idA,
-            target: idB,
-            type: 'sibling',
-            label: 'Geschwister',
-        }});
-    });
-
-    return elements;
-}
-
-function initCy() {
-    cy = cytoscape({
-        container:        document.getElementById('cy'),
-        elements:         [],
-        wheelSensitivity: 0.2,   // sanfteres Zoomen (Standard: 1.0)
-        style: [
-            {
-                selector: 'node',
-                style: {
-                    'label':            'data(label)',
-                    'font-size':        '8px',
-                    'font-family':      'Helvetica Neue, Arial, sans-serif',
-                    'text-valign':      'center',
-                    'text-halign':      'center',
-                    'text-wrap':        'wrap',
-                    'text-max-width':   '75px',
-                    'width':            'data(nodeW)',
-                    'height':           'data(nodeH)',
-                    'shape':            'ellipse',
-                    'background-color': '#ffffff',
-                    'border-width':     '3px',
-                    'border-color':     'data(famColor)',
-                    'color':            '#222',
-                }
-            },
-            { selector: 'node[sex = "f"]', style: {
-                'shape': 'ellipse',
-                'border-style': 'solid',
-            }},
-            { selector: 'node[sex = "m"]', style: {
-                'shape':           'round-rectangle',
-                'border-style':    'solid',
-            }},
-            {
-                selector: 'node.married',
-                style: { 'border-color': 'data(famColor)', 'border-width': '3px' }
-            },
-            { selector: 'node:selected', style: { 'border-width': '4px', 'border-color': '#333', 'border-style': 'solid' } },
-            {
-                selector: 'edge',
-                style: {
-                    'width': 1, 'line-color': '#ccc',
-                    'target-arrow-color': '#ccc', 'target-arrow-shape': 'triangle',
-                    'curve-style': 'bezier',
-                    'font-size': '7px', 'font-family': 'Helvetica Neue, Arial, sans-serif',
-                    'text-rotation': 'autorotate', 'text-margin-y': '-8px',
-                    'color': '#aaa', 'label': '',
-                }
-            },
-            { selector: 'edge[type = "hasMother"]', style: {
-                'line-color': '#666', 'target-arrow-color': '#666', 'color': '#666', 'width': 0.6,
-                'line-style': 'solid',
-            }},
-            { selector: 'edge[type = "hasFather"]', style: {
-                'line-color': '#666', 'target-arrow-color': '#666', 'color': '#666', 'width': 0.6,
-                'line-style': 'solid',
-            }},
-            {
-                selector: 'edge[type = "hasWife"]',
-                style: {
-                    'line-color': '#555', 'target-arrow-shape': 'none',
-                    'line-style': 'solid', 'width': 1.5, 'color': '#555',
-                }
-            },
-            {
-                selector: 'edge[type = "hasExWife"]',
-                style: {
-                    'line-color': '#aaa', 'target-arrow-shape': 'none',
-                    'line-style': 'dashed', 'line-dash-pattern': [5, 4],
-                    'width': 0.6, 'color': '#aaa',
-                }
-            },
-            {
-                selector: 'edge[type = "hasExHusband"]',
-                style: {
-                    'line-color': '#aaa', 'target-arrow-shape': 'none',
-                    'line-style': 'dashed', 'line-dash-pattern': [5, 4],
-                    'width': 0.6, 'color': '#aaa',
-                }
-            },
-            {
-                selector: 'edge[type = "sibling"]',
-                style: {
-                    'line-color': '#bbb',
-                    'source-arrow-shape': 'none',
-                    'target-arrow-shape': 'none',
-                    'line-style': 'dashed', 'line-dash-pattern': [4, 4],
-                    'width': 0.5,
-                    'color': '#bbb',
-                    'curve-style': 'bezier',
-                    'font-size': '7px',
-                    'font-family': 'Helvetica Neue, Arial, sans-serif',
-                    'text-rotation': 'autorotate',
-                    'text-margin-y': '-8px',
-                    'label': '',
-                }
-            },
-            { selector: '.fam-hidden', style: { 'opacity': 0.04 } },
-            { selector: '.faded',     style: { 'opacity': 0.05 } },
-            { selector: '.ring2',     style: { 'opacity': 0.22 } }
-        ],
-    });
-
-    // Zeitachse beim Zoomen/Panen mitbewegen
-    cy.on('viewport', function() {
-        var layout = document.getElementById('layout-select').value;
-        if (layout === 'timeline') {
-            updateTimeline();
-        } else if (layout === 'generations') {
-            drawGenerationBands();
-        }
-    });
-
-    cy.on('tap', 'node', function(e) {
-        var node = e.target, d = node.data();
-        var numId = parseInt(d.id) || d.id;
-        var person = allPersons.find(function(p) { return p.id === numId; });
-        if (person) showPersonCard(person, 'info-content', 'info-hint');
-
-        // Highlight: 1. Ring sichtbar, 2. Ring ring2, Rest faded
-        // "sichtbar" = kein .fam-hidden (Familienfilter)
-        var firstRing  = new Set([node.id()]);
-        var secondRing = new Set();
-
-        function notFamHidden(el) { return !el.hasClass('fam-hidden'); }
-
-        // 1. Ring: direkte sichtbare Nachbarn
-        node.connectedEdges().filter(notFamHidden).forEach(function(edge) {
-            if (notFamHidden(edge.source()) && notFamHidden(edge.target())) {
-                firstRing.add(edge.source().id());
-                firstRing.add(edge.target().id());
-            }
-        });
-
-        // 2. Ring
-        firstRing.forEach(function(nid) {
-            cy.getElementById(nid).connectedEdges().filter(notFamHidden).forEach(function(edge) {
-                if (notFamHidden(edge.source()) && notFamHidden(edge.target())) {
-                    if (!firstRing.has(edge.source().id())) secondRing.add(edge.source().id());
-                    if (!firstRing.has(edge.target().id())) secondRing.add(edge.target().id());
-                }
-            });
-        });
-
-        // Nodes klassifizieren (fam-hidden nicht anfassen)
-        cy.nodes().not('.fam-hidden').forEach(function(n) {
-            n.removeClass('faded ring2');
-            if (firstRing.has(n.id()))       { /* sichtbar */ }
-            else if (secondRing.has(n.id())) { n.addClass('ring2'); }
-            else                              { n.addClass('faded'); }
-        });
-
-        // Kanten klassifizieren
-        cy.edges().not('.fam-hidden').forEach(function(e) {
-            var s = e.source().id(), t = e.target().id();
-            e.removeClass('faded ring2');
-            var bothFirst = firstRing.has(s)  && firstRing.has(t);
-            var eitherSec = secondRing.has(s) || secondRing.has(t);
-            if (!bothFirst && !eitherSec)   e.addClass('faded');
-            else if (!bothFirst && eitherSec) e.addClass('ring2');
-        });
-    });
-    cy.on('tap', function(e) {
-        if (e.target === cy) {
-            // Highlight komplett zurücksetzen
-            cy.elements().removeClass('faded ring2');
-            cy.nodes().removeStyle('opacity');
-            cy.edges().removeStyle('opacity');
-            // Details-Panel zurücksetzen
-            document.getElementById('info-hint').style.display = '';
-            document.getElementById('info-content').innerHTML = '';
-        }
-    });
-
-
-    // ── Nur vertikales Verschieben im Zeitachsen-Layout ──────
-    // Ansatz: X-Position beim Grab merken, bei jedem position-Event zurücksetzen
-    var _lockedY = null;
-    var _isDragging = false;
-
-    cy.on('grabon', 'node', function(e) {
-        var lv = document.getElementById('layout-select').value;
-        var colaOpen = false;
-        if (lv === 'timeline' || lv === 'generations' || colaOpen) {
-            _lockedY    = e.target.position('y');
-            _isDragging = true;
-        }
-    });
-
-    cy.on('free', 'node', function(e) {
-        if (_isDragging && _lockedY !== null) {
-            e.target.position('y', _lockedY);
-        }
-        _isDragging = false;
-        _lockedY    = null;
-    });
-
-    cy.on('drag', 'node', function(e) {
-        if (_isDragging && _lockedY !== null) {
-            e.target.position('y', _lockedY);
-        }
-        // Im Cola-Modus: Ehe-Knoten immer mittig zwischen Eheleuten halten
-        var colaOpen = false;
-        if (!colaOpen) return;
-        var node = e.target;
-        // Prüfe ob dieser Knoten eine Person mit Ehe-Knoten ist
-        node.connectedEdges().forEach(function(edge) {
-            var t = edge.data('type');
-            if (t !== 'hasWife' && t !== 'hasExWife') return;
-            // Finde den Ehe-Knoten (kleiner Knoten mit nodeType=marriage)
-            var other = edge.source().id() === node.id() ? edge.target() : edge.source();
-            if (!other || other.data('nodeType') !== 'marriage') return;
-            // Finde den zweiten Ehepartner
-            other.connectedEdges().forEach(function(e2) {
-                if (e2.id() === edge.id()) return;
-                var t2 = e2.data('type');
-                if (t2 !== 'hasWife' && t2 !== 'hasExWife') return;
-                var partner = e2.source().id() === other.id() ? e2.target() : e2.source();
-                if (!partner || partner.data('nodeType') === 'marriage') return;
-                // Ehe-Knoten mittig setzen
-                var newX = (node.position('x') + partner.position('x')) / 2;
-                other.position({ x: newX, y: _lockedY !== null ? _lockedY : other.position('y') });
-            });
-        });
-    });
-}
-
-function applyFilter(persons, relationships) {
-    cy.elements().remove();
-    cy.add(buildElements(persons, relationships));
-    updateCount(persons.length);
-    runLayout(document.getElementById('layout-select').value);
-}
-
-function updateTimeline() {
-    var tlDiv  = document.getElementById('timeline');
-    var svg    = document.getElementById('tl-svg');
-
-    // Leeren
-    tlDiv.innerHTML = '';
-    while (svg.firstChild) svg.removeChild(svg.firstChild);
-
-    if (!cy || cy.nodes().length === 0) return;
-
-    var minYear     = TL_MIN_YEAR;
-    var maxYear     = TL_MAX_YEAR;
-    var step        = 25;
-    var startDecade = Math.floor(minYear / step) * step;
-    var endDecade   = Math.ceil(maxYear  / step) * step;
-
-    var svgW = svg.clientWidth  || svg.parentElement.clientWidth  || 800;
-    var svgH = svg.clientHeight || svg.parentElement.clientHeight || 600;
-
-    // SVG viewBox setzen
-    svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
-
-    for (var yr = startDecade; yr <= endDecade; yr += step) {
-        var gY = TL_PADDING + (maxYear - yr) * PX_PER_YEAR;
-        var sY = cy.pan().y + gY * cy.zoom();
-
-        // ── Linie links in Timeline-Leiste ───────────────────
-        var tlLine = document.createElement('div');
-        tlLine.className = 'tl-line';
-        tlLine.style.top = sY + 'px';
-        tlDiv.appendChild(tlLine);
-
-        var tlLabel = document.createElement('div');
-        tlLabel.className   = 'tl-label';
-        tlLabel.style.top   = sY + 'px';
-        tlLabel.textContent = yr;
-        tlDiv.appendChild(tlLabel);
-
-        // ── Horizontale SVG-Linie quer durch den Graph ───────
-        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', '0');
-        line.setAttribute('x2', svgW);
-        line.setAttribute('y1', sY);
-        line.setAttribute('y2', sY);
-        line.setAttribute('stroke', '#cccccc');
-        line.setAttribute('stroke-width', '0.5');
-        line.setAttribute('stroke-dasharray', '6 4');
-        svg.appendChild(line);
-    }
-}
-
-function applyTimelineLayout() {
-    // Geburtsjahr-Grenzen aus aktuellen Knoten
-    var years = cy.nodes().map(function(n) { return n.data('birthYear'); })
-                          .filter(function(y) { return y; });
-    TL_MIN_YEAR = Math.min.apply(null, years);
-    TL_MAX_YEAR = Math.max.apply(null, years);
-    TL_PADDING  = 80;
-    var avgYear = Math.round(years.reduce(function(a,b){return a+b;},0) / years.length);
-
-    cy.nodes().forEach(function(node) {
-        var year = node.data('birthYear') || avgYear;
-        // Jung oben (kleine Y), Alt unten (große Y)
-        var y = TL_PADDING + (TL_MAX_YEAR - year) * PX_PER_YEAR;
-        node.position('y', y);
-    });
-
-    // ── Horizontale Überlappungen auflösen ──────────────────
-    // Knoten auf gleicher Y-Ebene (±30px) horizontal auseinanderschieben
-    var nodeList = cy.nodes().toArray();
-    var iterations = 50;
-    var minGap = 110;   // Mindestabstand horizontal (Knotenbreite 100 + 10px Luft)
-
-    for (var iter = 0; iter < iterations; iter++) {
-        var moved = false;
-        for (var i = 0; i < nodeList.length; i++) {
-            for (var j = i + 1; j < nodeList.length; j++) {
-                var ni = nodeList[i];
-                var nj = nodeList[j];
-                var dy = Math.abs(ni.position('y') - nj.position('y'));
-                if (dy > 60) continue;   // nicht auf gleicher Ebene
-
-                var dx = nj.position('x') - ni.position('x');
-                var dist = Math.abs(dx);
-                if (dist < minGap) {
-                    var push = (minGap - dist) / 2 + 1;
-                    if (dx >= 0) {
-                        ni.position('x', ni.position('x') - push);
-                        nj.position('x', nj.position('x') + push);
-                    } else {
-                        ni.position('x', ni.position('x') + push);
-                        nj.position('x', nj.position('x') - push);
-                    }
-                    moved = true;
-                }
-            }
-        }
-        if (!moved) break;
-    }
-
-    cy.fit(60);
-    updateTimeline();
-}
-
-function runLayout(name) {
-    if (!cy || cy.nodes().length === 0) return;
-
-    // Zeitachse ein/ausblenden
-    var tlDiv = document.getElementById('timeline');
-    tlDiv.style.display = (name === 'timeline') ? 'block' : 'none';
-    if (name !== 'timeline') {
-        tlDiv.innerHTML = '';
-        var svg = document.getElementById('tl-svg');
-        if (svg) { while (svg.firstChild) svg.removeChild(svg.firstChild); }
-    }
-    // Generationen-Bänder entfernen wenn anderes Layout
-    if (name !== 'generations') {
-        var genOverlay = document.getElementById('gen-overlay');
-        if (genOverlay) genOverlay.innerHTML = '';
-    }
-
-    cy.style()
-        .selector('edge[type = "hasMother"]').style({
-            'display': showParent  ? 'element' : 'none',
-            'label':   showParent  ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasFather"]').style({
-            'display': showParent  ? 'element' : 'none',
-            'label':   showParent  ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasWife"]').style({
-            'display': showMarried ? 'element' : 'none',
-            'label':   showMarried ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasExWife"]').style({
-            'display': showMarried ? 'element' : 'none',
-            'label':   showMarried ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasExWife"]').style({
-            'display': showMarried ? 'element' : 'none',
-            'label':   showMarried ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasExHusband"]').style({
-            'display': showMarried ? 'element' : 'none',
-            'label':   showMarried ? 'data(label)' : '',
-        })
-        .selector('edge[type = "sibling"]').style({
-            'display': showSiblingsEdges ? 'element' : 'none',
-            'label':   showSiblingsEdges ? 'data(label)' : '',
-        })
-        .update();
-
-    if (name === 'timeline') {
-        // Im Timeline-Layout alle Knoten gleich groß setzen
-        cy.nodes().forEach(function(n) {
-            n.style({ 'width': 100, 'height': 50 });
-        });
-
-        // Erst cose laufen lassen für X-Positionen
-        var coseConfig = {
-            name: 'cose',
-            animate: false,
-            fit: false,
-            padding: 40,
-            idealEdgeLength: 100,
-            nodeRepulsion: repulsionValue,
-            nodeOverlap: 20,        // Überlappungen aktiv verhindern
-            gravity: 80,
-            numIter: 1500,
-            initialTemp: 200,
-            coolingFactor: 0.95,
-            minTemp: 1.0,
-            randomize: true,
-        };
-        var layout = cy.layout(coseConfig);
-        layout.on('layoutstop', function() {
-            // Y-Koordinaten durch Geburtsjahr ersetzen
-            applyTimelineLayout();
-        });
-        layout.run();
-        return;
-    }
-
-    var config;
-    switch(name) {
-        case 'cose':
-            config = {
-                name: 'cose', animate: true, animationDuration: 600,
-                refresh: 20, fit: true, padding: 40,
-                idealEdgeLength: 100, nodeRepulsion: repulsionValue,
-                nodeOverlap: 20,        // Überlappungen aktiv verhindern
-                gravity: 80,
-                numIter: 1500, initialTemp: 200, coolingFactor: 0.95,
-                minTemp: 1.0, randomize: true,
-            };
-            break;
-        case 'klay':
-            config = {
-                name: 'klay', animate: false,
-                klay: {
-                    direction: 'DOWN', nodePlacement: 'BRANDES_KOEPF',
-                    edgeRouting: 'SPLINES', spacing: 60, thoroughness: 7,
-                    fixedAlignment: 'NONE', separateConnectedComponents: true,
-                    inLayerSpacingFactor: 2.0,
-                },
-            };
-            break;
-        case 'dagre':
-            config = { name: 'dagre', rankDir: 'TB', nodeSep: 40, rankSep: 80, padding: 30 };
-            break;
-        case 'generations':
-            // Generationen selbst berechnen, cose für X-Positionen
-            config = {
-                name: 'cose',
-                animate: false,
-                fit: false,
-                padding: 40,
-                idealEdgeLength: 100,
-                nodeRepulsion: repulsionValue,
-                nodeOverlap: 20,
-                gravity: 80,
-                numIter: 1500,
-                initialTemp: 200,
-                coolingFactor: 0.95,
-                minTemp: 1.0,
-                randomize: true,
-            };
-            break;
-        case 'breadthfirst':
-            config = { name: 'breadthfirst', directed: true, spacingFactor: 1.2, padding: 20 };
-            break;
-        default:
-            config = { name: name, animate: true, animationDuration: 600 };
-    }
-
-    var layout = cy.layout(config);
-    layout.on('layoutstop', function() {
-        cy.nodes().forEach(function(n) {
-            n.style({ 'width': n.data('nodeW'), 'height': n.data('nodeH') });
-        });
-        if (name === 'generations') {
-            applyGenerationsLayout();
-        } else {
-            cy.fit(40);
-        }
-    });
-    layout.run();
-}
-
-
-
-function updateEdgeVisibility() {
-    if (!cy) return;
-    cy.style()
-        .selector('edge[type = "hasMother"]').style({
-            'display': showParent   ? 'element' : 'none',
-            'label':   showParent   ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasFather"]').style({
-            'display': showParent   ? 'element' : 'none',
-            'label':   showParent   ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasWife"]').style({
-            'display': showMarried  ? 'element' : 'none',
-            'label':   showMarried  ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasExWife"]').style({
-            'display': showMarried  ? 'element' : 'none',
-            'label':   showMarried  ? 'data(label)' : '',
-        })
-        .selector('edge[type = "hasExHusband"]').style({
-            'display': showMarried  ? 'element' : 'none',
-            'label':   showMarried  ? 'data(label)' : '',
-        })
-        .selector('edge[type = "sibling"]').style({
-            'display': showSiblingsEdges ? 'element' : 'none',
-            'label':   showSiblingsEdges ? 'data(label)' : '',
-        })
-        .update();
-}
-
-function applyGenerationsLayout() {
-    // Schritt 1: Generationsnummern per BFS berechnen
-    // Kanten: hasMother/hasFather zeigen von Kind → Elternteil
-    // Wir wollen: Elternteil hat niedrigere Nummer als Kind
-
-    var genMap = {};   // nodeId (String) → generation (int, 0 = Wurzel)
-
-    // Adjazenzliste: wer sind die Kinder von X?
-    var children = {};   // parentId → [childId, ...]
-    var parents  = {};   // childId  → [parentId, ...]
-
-    cy.edges().forEach(function(e) {
-        var t = e.data('type');
-        if (t === 'hasMother' || t === 'hasFather') {
-            // Kante geht von related_person (Elternteil) → person (Kind)
-            var parentId = String(e.source().id());
-            var childId  = String(e.target().id());
-            if (!children[parentId]) children[parentId] = [];
-            if (!parents[childId])   parents[childId]   = [];
-            children[parentId].push(childId);
-            parents[childId].push(parentId);
-        }
-    });
-
-    // Wurzeln = Knoten ohne Eltern im aktuellen Graph
-    var allIds = cy.nodes().map(function(n) { return String(n.id()); });
-    var roots  = allIds.filter(function(id) {
-        return !parents[id] || parents[id].length === 0;
-    });
-
-    // BFS von allen Wurzeln (Generation 0)
-    var queue = [];
-    roots.forEach(function(id) {
-        genMap[id] = 0;
-        queue.push(id);
-    });
-
-    while (queue.length > 0) {
-        var cur = queue.shift();
-        var gen = genMap[cur];
-        (children[cur] || []).forEach(function(childId) {
-            // Kind-Generation = max(bisherige, Eltern+1)
-            // → Geschwister bekommen dieselbe Nummer (max ihrer Eltern)
-            var newGen = gen + 1;
-            if (genMap[childId] === undefined || genMap[childId] < newGen) {
-                genMap[childId] = newGen;
-                queue.push(childId);
-            }
-        });
-    }
-
-    // Knoten ohne Eltern und Kinder (isoliert): Generation 0
-    cy.nodes().forEach(function(n) {
-        var id = String(n.id());
-        if (genMap[id] === undefined) genMap[id] = 0;
-    });
-
-    GEN_LEVELS = genMap;
-
-    // Schritt 2: Y-Position = generation × PX_PER_GEN
-    var PX_PER_GEN = 120;
-    var PADDING    = 80;
-
-    cy.nodes().forEach(function(n) {
-        var id  = String(n.id());
-        var gen = genMap[id] || 0;
-        n.position('y', PADDING + gen * PX_PER_GEN);
-    });
-
-    // Schritt 3: Überlappungen horizontal auflösen (wie Timeline)
-    var nodeList = cy.nodes().toArray();
-    var minGap   = 110;
-    for (var iter = 0; iter < 60; iter++) {
-        var moved = false;
-        for (var i = 0; i < nodeList.length; i++) {
-            for (var j = i + 1; j < nodeList.length; j++) {
-                var ni = nodeList[i], nj = nodeList[j];
-                if (Math.abs(ni.position('y') - nj.position('y')) > 70) continue;
-                var dx = nj.position('x') - ni.position('x');
-                var dist = Math.abs(dx);
-                if (dist < minGap) {
-                    var push = (minGap - dist) / 2 + 1;
-                    if (dx >= 0) {
-                        ni.position('x', ni.position('x') - push);
-                        nj.position('x', nj.position('x') + push);
-                    } else {
-                        ni.position('x', ni.position('x') + push);
-                        nj.position('x', nj.position('x') - push);
-                    }
-                    moved = true;
-                }
-            }
-        }
-        if (!moved) break;
-    }
-
-    cy.fit(60);
-    drawGenerationBands();
-}
-
-function drawGenerationBands() {
-    var overlay = document.getElementById('gen-overlay');
-    overlay.innerHTML = '';
-    if (!cy || cy.nodes().length === 0 || Object.keys(GEN_LEVELS).length === 0) return;
-
-    // Maximale Generation ermitteln
-    var maxGen = 0;
-    Object.values(GEN_LEVELS).forEach(function(g) { if (g > maxGen) maxGen = g; });
-
-    var PX_PER_GEN = 120;
-    var PADDING    = 80;
-
-    for (var gen = 0; gen <= maxGen; gen++) {
-        // Mittelpunkt dieser Ebene im Graph-Koordinatensystem
-        var graphY  = PADDING + gen * PX_PER_GEN;
-        var screenY = cy.pan().y + graphY * cy.zoom();
-
-        // Abwechselndes Band (Hintergrund)
-        var bandTop    = cy.pan().y + (graphY - 55) * cy.zoom();
-        var bandHeight = 110 * cy.zoom();
-        if (gen % 2 === 0) {
-            var band = document.createElement('div');
-            band.style.cssText =
-                'position:absolute; left:0; right:0; pointer-events:none;' +
-                'background:rgba(0,0,0,0.025);' +
-                'top:' + bandTop + 'px; height:' + bandHeight + 'px;';
-            overlay.appendChild(band);
-        }
-
-        // Trennlinie zwischen Generationen
-        if (gen > 0) {
-            var lineY = cy.pan().y + (graphY - 60) * cy.zoom();
-            var line = document.createElement('div');
-            line.style.cssText =
-                'position:absolute; left:0; right:0; height:1px;' +
-                'background:#ddd; pointer-events:none;' +
-                'top:' + lineY + 'px;';
-            overlay.appendChild(line);
-        }
-
-        // Label links: "Gen. 1" (1 = älteste)
-        var label = document.createElement('div');
-        label.style.cssText =
-            'position:absolute; left:6px; pointer-events:none;' +
-            'font-size:0.62em; color:#bbb; font-family:inherit;' +
-            'transform:translateY(-50%); top:' + screenY + 'px;';
-        label.textContent = 'Gen. ' + (gen + 1);
-        overlay.appendChild(label);
-    }
-}
-
-function initGenBtns(containerId, storeFn) {
-    var container = document.getElementById(containerId);
-    container.querySelectorAll('.tree-gen-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            container.querySelectorAll('.tree-gen-btn').forEach(function(b) {
-                b.classList.remove('selected');
-            });
-            btn.classList.add('selected');
-            storeFn(parseInt(btn.dataset.val));
-        });
-    });
-}
-
-function initSlider(prefix, globalMin, globalMax) {
-    if (!document.getElementById('filter-birth-from')) return;
-    var fromEl = document.getElementById('filter-' + prefix + '-from');
-    var toEl   = document.getElementById('filter-' + prefix + '-to');
-    fromEl.min = globalMin; fromEl.max = globalMax; fromEl.value = globalMin;
-    toEl.min   = globalMin; toEl.max   = globalMax; toEl.value   = globalMax;
-    sliderActive[prefix] = false;
-    updateSliderUI(prefix);
-
-    function onChange() {
-        var f = parseInt(fromEl.value), t = parseInt(toEl.value);
-        if (f > t) { this.value = (this === fromEl) ? t : f; }
-        // Aktiv sobald nicht mehr am vollen Rand
-        sliderActive[prefix] = !(parseInt(fromEl.value) === globalMin && parseInt(toEl.value) === globalMax);
-        updateSliderUI(prefix);
-        applyYearFilter();
-    }
-    fromEl.addEventListener('input', onChange);
-    toEl.addEventListener('input', onChange);
-}
-
-function updateSliderUI(prefix) {
-    var fromEl = document.getElementById('filter-' + prefix + '-from');
-    var toEl   = document.getElementById('filter-' + prefix + '-to');
-    var fill   = document.getElementById(prefix + '-fill');
-    var fromLbl = document.getElementById(prefix + '-from-label');
-    var toLbl   = document.getElementById(prefix + '-to-label');
-    var min = parseInt(fromEl.min), max = parseInt(fromEl.max);
-    var f   = parseInt(fromEl.value), t = parseInt(toEl.value);
-
-    // Kreuzung verhindern
-    if (f > t) { fromEl.value = t; f = t; }
-
-    var pctFrom = (f - min) / (max - min) * 100;
-    var pctTo   = (t - min) / (max - min) * 100;
-    fill.style.left  = pctFrom + '%';
-    fill.style.width = (pctTo - pctFrom) + '%';
-
-    // Labels anzeigen wenn aktiv
-    if (sliderActive[prefix]) {
-        fromLbl.textContent = f;
-        toLbl.textContent   = t;
-        fromLbl.classList.remove('inactive');
-        toLbl.classList.remove('inactive');
-    } else {
-        fromLbl.textContent = '–';
-        toLbl.textContent   = '–';
-        fromLbl.classList.add('inactive');
-        toLbl.classList.add('inactive');
-    }
-}
-
-function applyYearFilter() {
-    if (!document.getElementById('filter-birth-from')) return;
-    if (!cy) return;
-    var bf = sliderActive.birth ? parseInt(document.getElementById('filter-birth-from').value) : null;
-    var bt = sliderActive.birth ? parseInt(document.getElementById('filter-birth-to').value)   : null;
-    var df = sliderActive.death ? parseInt(document.getElementById('filter-death-from').value) : null;
-    var dt = sliderActive.death ? parseInt(document.getElementById('filter-death-to').value)   : null;
-
-    // Kein Slider aktiv → nur Familien-Filter
-    if (!bf && !bt && !df && !dt) {
-        applyFamilyFilter();
-        return;
-    }
-
-    // Zuerst Familien-Filter (Ebene 1)
-    applyFamilyFilter();
-
-    // Dann Jahresfilter drauflegen
-    cy.nodes().forEach(function(n) {
-        if (parseFloat(n.style('opacity')) <= 0.05) return;
-        var d = n.data();
-        var byear = d.birth_date ? parseInt(d.birth_date.substring(0, 4)) : null;
-        var dyear = d.death_date ? parseInt(d.death_date.substring(0, 4)) : null;
-        var ok = true;
-        if (bf !== null && !(byear && byear >= bf)) ok = false;
-        if (bt !== null && !(byear && byear <= bt)) ok = false;
-        if (df !== null && !(dyear && dyear >= df)) ok = false;
-        if (dt !== null && !(dyear && dyear <= dt)) ok = false;
-        if (!ok) {
-            n.style('opacity', 0.04);
-            n.connectedEdges().forEach(function(e) { e.style('opacity', 0); });
-        }
-    });
-}
-
-function populateYearSelects(persons) {
-    if (!document.getElementById('filter-birth-from')) return;
-    var birthYears = new Set(), deathYears = new Set();
-    persons.forEach(function(p) {
-        if (p.birth_date) birthYears.add(parseInt(p.birth_date.substring(0, 4)));
-        if (p.death_date) deathYears.add(parseInt(p.death_date.substring(0, 4)));
-    });
-    var bMin = Math.min.apply(null, Array.from(birthYears).filter(Boolean));
-    var bMax = Math.max.apply(null, Array.from(birthYears).filter(Boolean));
-    var dMin = Math.min.apply(null, Array.from(deathYears).filter(Boolean));
-    var dMax = Math.max.apply(null, Array.from(deathYears).filter(Boolean));
-    initSlider('birth', bMin, bMax);
-    initSlider('death', dMin, dMax);
-}
-
-function updateCount(n) {
-    document.getElementById('person-count').textContent = n + ' Personen';
-}
-
-function applyFamilyFilter() {
-    if (!cy) return;
-    if (typeof activeFamilies === 'undefined' || typeof allFamilyNames === 'undefined') return;
-    if (allFamilyNames.length === 0) return;
-
-    // Zuerst alles sichtbar
-    cy.elements().removeClass('fam-hidden');
-
-    // Alle Familien aktiv → fertig
-    if (activeFamilies.size >= allFamilyNames.length) return;
-
-    // Nicht-aktive Nodes verstecken
-    cy.nodes().forEach(function(n) {
-        var fn = n.data('family_name') || '';
-        var mn = n.data('maiden_name') || '';
-        if (!activeFamilies.has(fn) && !(mn && activeFamilies.has(mn))) {
-            n.addClass('fam-hidden');
-        }
-    });
-    // Kanten verstecken wenn ein Endpunkt versteckt
-    cy.edges().forEach(function(e) {
-        if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
-            e.addClass('fam-hidden');
-        }
-    });
-}
-
 });
 </script>
 </body>
