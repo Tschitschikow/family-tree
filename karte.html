@@ -6,19 +6,16 @@
     <title>Karte – Bahrs Familie</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; font-family: Georgia, serif; background: #fdf8f0; }
-        body { display: flex; flex-direction: column; }
+        body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         header { background: #5a3e2b; color: white; padding: 0.8em 2em; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        header h1 { font-size: 1.2em; }
         #logout-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.4em 1em; border-radius: 5px; cursor: pointer; font-family: Georgia, serif; }
-        #logout-btn:hover { background: rgba(255,255,255,0.3); }
         #toolbar { background: #f0e8dc; border-bottom: 1px solid #ddd; padding: 0.6em 1.5em; display: flex; align-items: center; gap: 1em; flex-wrap: wrap; flex-shrink: 0; }
-        #toolbar label { font-size: 0.9em; color: #5a3e2b; }
+        #toolbar label { font-size: 0.85em; color: #555; }
         .tool-btn { padding: 0.4em 0.9em; background: #5a3e2b; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; }
-        .tool-btn:hover { background: #7a5e4b; }
+        .tool-btn:hover { background: #f0f2f5; }
         .toggle-btn { padding: 0.35em 0.8em; border: 1px solid #5a3e2b; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; background: white; color: #5a3e2b; }
-        .toggle-btn.active { background: #5a3e2b; color: white; }
+        .toggle-btn.active { background: #eef2ff; color: #223488; border-color: #aab; }
         #progress-wrap { display: none; align-items: center; gap: 0.6em; font-size: 0.85em; color: #5a3e2b; }
         #progress-wrap.visible { display: flex; }
         #progress-bar-outer { width: 150px; height: 8px; background: #ddd; border-radius: 4px; overflow: hidden; }
@@ -34,9 +31,19 @@
 </head>
 <body>
 <header>
-    <h1>🗺️ Bahrs Familie – Orte</h1>
-    <nav style="display:flex; gap:1em; align-items:center;">
-        <a href="stammbaum.html" style="color:rgba(255,255,255,0.85); font-size:0.9em; text-decoration:none;">🌳 Stammbaum</a>
+    <h1>🌳 Bahrs Familienstammbaum</h1>
+    <nav>
+        <a href="admin.html" id="admin-btn" style="display:none;color:white;font-size:0.85em;text-decoration:none;background:rgba(200,150,12,0.4);border:1px solid rgba(200,150,12,0.7);padding:0.35em 0.9em;border-radius:5px;">🔐 Admin</a>
+        <div id="view-menu-wrap">
+            <button id="view-menu-btn">Ansicht</button>
+            <div id="view-dropdown">
+                <a href="index.html" class="vd-item" data-view="timeline" style="text-decoration:none;"><span class="vd-icon">📅</span> Zeitleiste</a>
+                <a href="netzwerk.html" class="vd-item" data-view="network" style="text-decoration:none;"><span class="vd-icon">🕸️</span> Dynamisches Netzwerk</a>
+                <a href="stammbaum.html" class="vd-item" data-view="stammbaum" style="text-decoration:none;"><span class="vd-icon">🌳</span> Klassischer Stammbaum</a>
+                <a href="register.html" class="vd-item" data-view="register" style="text-decoration:none;"><span class="vd-icon">📋</span> Register</a>
+                <a href="karte.html" class="vd-item active-view" data-view="karte" style="text-decoration:none;"><span class="vd-icon">🗺️</span> Karte</a>
+            </div>
+        </div>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
@@ -55,137 +62,109 @@
 <div id="map"></div>
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="shared.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 
-    var manualCache = {
-    'Ahle': { lat: 52.1946531, lng: 8.5113448 },
-    'Bad Schwartau': { lat: 53.9196435, lng: 10.6978692 },
-    'Bahrenfleth': { lat: 53.8745951, lng: 9.4408474 },
-    'Bensberg': { lat: 51.2323776, lng: 9.3541143 },
-    'Berlin': { lat: 52.5173885, lng: 13.3951309 },
-    'Bielefeld': { lat: 52.0191005, lng: 8.531007 },
-    'Bieren, Nordrhein-Westfalen': { lat: 52.2357993, lng: 8.5272924 },
-    'Blangenmoor': { lat: 53.9261805, lng: 9.1894091 },
-    'Braunschweig': { lat: 52.2646577, lng: 10.5236066 },
-    'Bremen': { lat: 53.0758196, lng: 8.8071646 },
-    'Brodau, Schashagen': { lat: 54.1139706, lng: 10.9010389 },
-    'Buer': { lat: 51.5798968, lng: 7.0527181 },
-    'Burg/D.': { lat: 51.1375247, lng: 7.1519803 },
-    // 'Börtgenhagen': nicht gefunden
-    'Bössow': { lat: 53.9190988, lng: 11.2158834 },
-    'Bünde': { lat: 52.2004727, lng: 8.5828944 },
-    'Celle': { lat: 52.624056, lng: 10.081052 },
-    'Ciry-Salsogne, Soissons': { lat: 49.3613, lng: 3.46174 },
-    'Darry': { lat: 54.3123365, lng: 10.5710349 },
-    'Datteln': { lat: 51.651468, lng: 7.3385906 },
-    'Düsseldorf': { lat: 51.2254018, lng: 6.7763137 },
-    'Düssin, Mecklenburg-Vorpommern': { lat: 53.3616631, lng: 10.983036 },
-    'Elmshorn': { lat: 53.7532486, lng: 9.6524559 },
-    'Ennigloh': { lat: 52.2054344, lng: 8.5620635 },
-    'Epinal': { lat: 48.1747684, lng: 6.4503643 },
-    'Eppelheim': { lat: 49.4025, lng: 8.63306 },
-    'Essen': { lat: 51.4582235, lng: 7.0158171 },
-    'Eutin': { lat: 54.1364642, lng: 10.6159077 },
-    'Frestedt': { lat: 54.0245034, lng: 9.1767919 },
-    'Grossenbornholt': { lat: 54.1025161, lng: 9.3353566 },
-    'Gudow, Sophienthal': { lat: 53.5620441, lng: 10.806223 },
-    'Güldenstein': { lat: 54.2229507, lng: 10.8375245 },
-    'Gülze': { lat: 53.3531356, lng: 10.8097113 },
-    // 'Haan, Rheinland': nicht gefunden
-    'Habighorst': { lat: 52.7108115, lng: 10.224134 },
-    'Hademarschen': { lat: 54.1267158, lng: 9.414654 },
-    'Hamburg': { lat: 53.5501721, lng: 10.0013165 },
-    'Hannover': { lat: 52.3744779, lng: 9.7385532 },
-    'Hassee': { lat: 54.3046465, lng: 10.1007406 },
-    'Haus Kilver': { lat: 52.233693, lng: 8.4667805 },
-    'Heide, Dithmarschen': { lat: 54.1948848, lng: 9.0928251 },
-    'Heidelberg': { lat: 49.4093582, lng: 8.694724 },
-    'Heiligenstedten': { lat: 53.9313413, lng: 9.4697982 },
-    'Herford': { lat: 52.1152245, lng: 8.6711118 },
-    'Holsen': { lat: 52.2044606, lng: 8.5169127 },
-    'Holstenniendorf': { lat: 54.0416761, lng: 9.3480997 },
-    'Itzehoe': { lat: 53.919448, lng: 9.5172441 },
-    'Kakoehl': { lat: 54.2812286, lng: 10.6768572 },
-    'Keppeln': { lat: 51.6897228, lng: 6.2697156 },
-    'Kiel': { lat: 54.3227085, lng: 10.135555 },
-    'Koselau': { lat: 54.2459128, lng: 10.9432157 },
-    'Krempe': { lat: 53.8360392, lng: 9.489977 },
-    'Krumstedt': { lat: 54.0682927, lng: 9.1794772 },
-    'Kuhstorf': { lat: 53.3832987, lng: 11.2499916 },
-    'Langenfeld': { lat: 51.1008952, lng: 6.9459377 },
-    'Langenfeld-Immigrath': { lat: 51.1083594, lng: 6.9739104 },
-    'Leverkusen': { lat: 51.0324743, lng: 6.9881194 },
-    'Luxemburg': { lat: 49.8158683, lng: 6.1296751 },
-    'Löhne': { lat: 52.1990346, lng: 8.7141587 },
-    'Lütjenburg': { lat: 54.2928257, lng: 10.5905485 },
-    'Lütjenburg Friederikenthal': { lat: 54.2772424, lng: 10.6219343 },
-    'Mainz': { lat: 49.9995205, lng: 8.2736253 },
-    'Markendorf': { lat: 51.9856062, lng: 13.1731194 },
-    'Marne': { lat: 48.961264, lng: 4.3122436 },
-    'Melle, Niedersachsen': { lat: 52.1950352, lng: 8.3474835 },
-    'Muccum': { lat: 52.2212435, lng: 8.5374879 },
-    'Mölln': { lat: 53.62892, lng: 10.6880174 },
-    'Neuenkirchen, Kreis Dithmarschen': { lat: 54.23649, lng: 8.9877874 },
-    'Niebüll': { lat: 54.7869088, lng: 8.8255846 },
-    'Nortorf': { lat: 54.1684689, lng: 9.8559648 },
-    'Ochsenhals': { lat: 54.1503358, lng: 10.6782968 },
-    'Oeverwisch': { lat: 54.1862568, lng: 9.035403 },
-    'Oldenburg': { lat: 53.1389753, lng: 8.2146017 },
-    'Oldenburg/H.': { lat: 53.1451047, lng: 8.2231279 },
-    'Oldenswort': { lat: 54.3712288, lng: 8.9411522 },
-    'Osnabrück': { lat: 52.2719595, lng: 8.047635 },
-    'Ostkilver': { lat: 52.2146416, lng: 8.4890168 },
-    'Ostkilver 2': { lat: 52.2393695, lng: 8.4821352 },
-    'Ostrohe': { lat: 54.2146656, lng: 9.1284721 },
-    'oрёл': { lat: 52.9709262, lng: 36.0642127 },
-    'oрёл знаменка': { lat: 52.89608, lng: 35.986679 },
-    'Pansdorf': { lat: 50.6285541, lng: 12.1176076 },
-    'Pforzheim': { lat: 48.890934, lng: 8.7025509 },
-    'Potsdam': { lat: 52.4009309, lng: 13.0591397 },
-    'Preußisch-Oldendorf': { lat: 52.3048433, lng: 8.4971557 },
-    'Puls': { lat: 54.0835679, lng: 9.5156084 },
-    'Pölitz, Schleswig-Holstein': { lat: 53.7745778, lng: 10.3824309 },
-    'Ratzeburg': { lat: 53.7011061, lng: 10.774288 },
-    'Redingsdorf': { lat: 54.1100538, lng: 10.709078 },
-    'Reppenhagen': { lat: 53.9404379, lng: 11.099503 },
-    'Rhodos': { lat: 36.1725297, lng: 27.9194016 },
-    'Riga': { lat: 56.9493977, lng: 24.1051846 },
-    'Rohlfshagen': { lat: 53.7637994, lng: 10.3540862 },
+var manualCache = {
+    'Ahle':                       { lat: 52.1946531,  lng:  8.5113448 },
+    'Bad Schwartau':              { lat: 53.9196435,  lng: 10.6978692 },
+    'Bahrenfleth':                { lat: 53.8745951,  lng:  9.4408474 },
+    'Berlin':                     { lat: 52.5173885,  lng: 13.3951309 },
+    'Blangenmoor':                { lat: 53.9261805,  lng:  9.1894091 },
+    'Bössow':                     { lat: 53.9190988,  lng: 11.2158834 },
+    'Brodau, Schashagen':         { lat: 54.1139706,  lng: 10.9010389 },
+    'Burg/D.':                    { lat: 51.1375247,  lng:  7.1519803 },
+    'Ciry-Salsogne, Soissons':    { lat: 49.3613,     lng:  3.46174   },
+    'Darry':                      { lat: 54.3123365,  lng: 10.5710349 },
+    'Datteln':                    { lat: 51.651468,   lng:  7.3385906 },
+    'Düsseldorf':                 { lat: 51.2254018,  lng:  6.7763137 },
+    'Düssin, Mecklenburg-Vorpommern': { lat: 53.9210478, lng: 14.7390662 },
+    'Elmshorn':                   { lat: 53.7532486,  lng:  9.6524559 },
+    'Ennigloh':                   { lat: 52.2054344,  lng:  8.5620635 },
+    'Essen':                      { lat: 51.4582235,  lng:  7.0158171 },
+    'Eutin':                      { lat: 54.1364642,  lng: 10.6159077 },
+    'Frestedt':                   { lat: 54.0245034,  lng:  9.1767919 },
+    'Grossenbornholt':            { lat: 54.1025161,  lng:  9.3353566 },
+    'Gudow, Sophienthal':         { lat: 53.5620441,  lng: 10.806223  },
+    'Güldenstein':                { lat: 54.2229507,  lng: 10.8375245 },
+    'Gülze':                      { lat: 53.3531356,  lng: 10.8097113 },
+    'Habighorst':                 { lat: 52.7108115,  lng: 10.224134  },
+    'Hademarschen':               { lat: 54.1267158,  lng:  9.414654  },
+    'Hamburg':                    { lat: 53.5501721,  lng: 10.0013165 },
+    'Hannover':                   { lat: 52.3744779,  lng:  9.7385532 },
+    'Hassee':                     { lat: 54.3046465,  lng: 10.1007406 },
+    'Haus Kilver':                { lat: 52.233693,   lng:  8.4667805 },
+    'Heide, Dithmarschen':        { lat: 54.1948848,  lng:  9.0928251 },
+    'Heiligenstedten':            { lat: 53.9313413,  lng:  9.4697982 },
+    'Herford':                    { lat: 52.1152245,  lng:  8.6711118 },
+    'Holsen':                     { lat: 52.2044606,  lng:  8.5169127 },
+    'Holstenniendorf':            { lat: 54.0416761,  lng:  9.3480997 },
+    'Itzehoe':                    { lat: 53.919448,   lng:  9.5172441 },
+    'Kakoehl':                    { lat: 54.2812286,  lng: 10.6768572 },
+    'Kiel':                       { lat: 54.3227085,  lng: 10.135555  },
+    'Koselau':                    { lat: 54.2459128,  lng: 10.9432157 },
+    'Krempe':                     { lat: 53.8360392,  lng:  9.489977  },
+    'Krumstedt':                  { lat: 54.0682927,  lng:  9.1794772 },
+    'Kuhstorf':                   { lat: 53.3832987,  lng: 11.2499916 },
+    'Löhne':                      { lat: 52.1990346,  lng:  8.7141587 },
+    'Lütjenburg':                 { lat: 54.2928257,  lng: 10.5905485 },
+    'Lütjenburg Friederikenthal': { lat: 54.2772424,  lng: 10.6219343 },
+    'Markendorf':                 { lat: 51.9856062,  lng: 13.1731194 },
+    'Marne':                      { lat: 48.961264,   lng:  4.3122436 },
+    'Mölln':                      { lat: 53.62892,    lng: 10.6880174 },
+    'Muccum':                     { lat: 52.2212435,  lng:  8.5374879 },
+    'Neuenkirchen, Kreis Dithmarschen': { lat: 54.2035, lng: 9.0791  },
+    'Niebüll':                    { lat: 54.7869088,  lng:  8.8255846 },
+    'Nortorf':                    { lat: 54.1684689,  lng:  9.8559648 },
+    'Ochsenhals':                 { lat: 54.1503358,  lng: 10.6782968 },
+    'Oeverwisch':                 { lat: 54.1862568,  lng:  9.035403  },
+    'Oldenburg':                  { lat: 53.1389753,  lng:  8.2146017 },
+    'Oldenburg/H.':               { lat: 53.1451047,  lng:  8.2231279 },
+    'Oldenswort':                 { lat: 54.3712288,  lng:  8.9411522 },
+    'oрёл':                       { lat: 52.9709262,  lng: 36.0642127 },
+    'oрёл знаменка':              { lat: 52.89608,    lng: 35.986679  },
+    'Ostkilver':                  { lat: 52.2146416,  lng:  8.4890168 },
+    'Ostkilver 2':                { lat: 52.2393695,  lng:  8.4821352 },
+    'Ostrohe':                    { lat: 54.2146656,  lng:  9.1284721 },
+    'Pansdorf':                   { lat: 50.6285541,  lng: 12.1176076 },
+    'Pforzheim':                  { lat: 48.890934,   lng:  8.7025509 },
+    'Pölitz, Schleswig-Holstein': { lat: 53.5486435,  lng: 14.5657399 },
+    'Potsdam':                    { lat: 52.4009309,  lng: 13.0591397 },
+    'Puls':                       { lat: 54.0835679,  lng:  9.5156084 },
+    'Ratzeburg':                  { lat: 53.7011061,  lng: 10.774288  },
+    'Redingsdorf':                { lat: 54.1100538,  lng: 10.709078  },
+    'Reppenhagen':                { lat: 53.9404379,  lng: 11.099503  },
+    'Rhodos':                     { lat: 36.1725297,  lng: 27.9194016 },
+    'Rödinghausen':               { lat: 52.2310301,  lng:  8.497988  },
+    'Rohlfshagen':                { lat: 53.7637994,  lng: 10.3540862 },
+    'Rönfeldholz':                { lat: 54.2862618,  lng: 10.5387596 },
     'Rosenkranz, Niebüll':        { lat: 54.89490,    lng:  8.75117   },
-    'Rödinghausen': { lat: 52.2310301, lng: 8.497988 },
-    'Rönfeldholz': { lat: 54.2862618, lng: 10.5387596 },
-    'Schwenningdorf': { lat: 52.2452415, lng: 8.496435 },
     'Seegalendorf, Eutin':        { lat: 54.3120838,  lng: 10.9516438 },
-    'Solingen': { lat: 51.1721629, lng: 7.0845893 },
-    'Spenge': { lat: 52.1419264, lng: 8.4830331 },
-    'St. Michaelisdonn': { lat: 53.9833, lng: 9.11667 },
-    'Stegen, Schleswig-Holstein': { lat: 54.3045805, lng: 9.6651772 },
-    'Stellshagen': { lat: 53.9455447, lng: 11.1382675 },
-    'Stendorf, Schleswig-Holstein': { lat: 54.1640011, lng: 10.6925521 },
-    'Stockelsdorf': { lat: 53.8981783, lng: 10.6437687 },
-    'Stücker Hof': { lat: 53.583239,   lng: 11.209944  },
-    'Südlengern': { lat: 52.1930252, lng: 8.6041312 },
-    'Süsel': { lat: 54.0791463, lng: 10.7132522 },
-    'Tangstedt': { lat: 53.7333, lng: 10.0833 },
-    'Taschkent': { lat: 41.3123363, lng: 69.2787079 },
-    'Thesdorf': { lat: 53.6440678, lng: 9.8143358 },
-    'Treufeld': { lat: 54.2550505, lng: 10.4762863 },
-    'Unnar': { lat: 46.3111363, lng: 7.7917743 },
-    'Verden (Aller)': { lat: 52.9405218, lng: 9.2359776 },
-    'Vergünne, Lüneburg': { lat: 53.14811,    lng: 11.09475   },
-    'Walsrode': { lat: 52.8625395, lng: 9.5883023 },
-    'Werfen, Kreis Herford': { lat: 52.1805996, lng: 8.5536931 },
-    'Wesseln': { lat: 54.2094293, lng: 9.0763054 },
-    'Westerbüttel': { lat: 53.9171592, lng: 9.151358 },
-    'Westkilver': { lat: 52.2209429, lng: 8.4626567 },
-    'Wohltorf': { lat: 53.5167, lng: 10.2833 },
-    'Wolmersdorf': { lat: 54.0774571, lng: 9.104183 },
-    'Zarnekau': { lat: 54.1375301, lng: 10.6873062 },
-    'Zühr': { lat: 53.4371465, lng: 11.0278604 },
-    'залегощ': { lat: 52.90242, lng: 36.893154 },
+    'Spenge':                     { lat: 52.1419264,  lng:  8.4830331 },
+    'St. Michaelisdonn':          { lat: 53.9833,     lng:  9.11667   },
+    'Stegen, Schleswig-Holstein': { lat: 54.2350,     lng: 10.0217    },
+    'Stellshagen':                { lat: 53.9455447,  lng: 11.1382675 },
+    'Stendorf':                   { lat: 50.7189985,  lng:  9.828059  },
+    'Stockelsdorf':               { lat: 53.8981783,  lng: 10.6437687 },
+    'Stücker Hof':                { lat: 53.583239,   lng: 11.209944  },
+    'Südlengern':                 { lat: 52.1930252,  lng:  8.6041312 },
+    'Süsel':                      { lat: 54.0791463,  lng: 10.7132522 },
+    'Tangstedt':                  { lat: 53.7333,     lng: 10.0833    },
+    'Thesdorf':                   { lat: 53.6440678,  lng:  9.8143358 },
+    'Treufeld':                   { lat: 54.2550505,  lng: 10.4762863 },
+    'Vergünne, Lüneburg':         { lat: 53.14811,    lng: 11.09475   },
+    'Werfen, Kreis Herford':      { lat: 52.1850,     lng:  8.6200    },
+    'Wesseln':                    { lat: 54.2094293,  lng:  9.0763054 },
+    'Westerbüttel':               { lat: 53.9171592,  lng:  9.151358  },
+    'Westkilver':                 { lat: 52.2209429,  lng:  8.4626567 },
+    'Wohltorf':                   { lat: 53.5167,     lng: 10.2833    },
+    'Wolmersdorf':                { lat: 54.0774571,  lng:  9.104183  },
+    'Zarnekau':                   { lat: 54.1375301,  lng: 10.6873062 },
+    'Zühr':                       { lat: 53.4371465,  lng: 11.0278604 },
+    'залегощ':                    { lat: 52.90242,    lng: 36.893154  },
 };
-    
+
 window.addEventListener('load', function() {
 
     var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
