@@ -353,6 +353,10 @@ function initColaCy() {
         secondEdges.removeClass('cola-hidden').addClass('cola-faded');
     });
 
+    colaCy.on('tap', 'edge', function(evt) {
+        showEdgeCard(evt.target, 'cola-info-content', 'cola-hint');
+    });
+
     colaCy.on('tap', function(evt) {
         if (evt.target === colaCy) {
             colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');

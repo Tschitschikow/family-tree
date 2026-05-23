@@ -376,7 +376,7 @@ window.addEventListener('load', function() {
                 },
                 { selector: 'edge[type="parent"]', style: { 'line-color': '#666', 'width': 0.6, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#666', 'arrow-scale': 0.4 } },
                 { selector: 'edge[type="married"]', style: { 'line-color': '#555', 'width': 1.5, 'line-style': 'solid' } },
-                { selector: 'edge[type="exmarried"]', style: { 'line-color': '#aaa', 'width': 0.6, 'line-style': 'dashed' } },
+                { selector: 'edge[type="exmarried"]', style: { 'line-color': '#999', 'width': 1.5, 'line-style': 'dashed', 'line-dash-pattern': [6, 4] } },
                 // Geschwister
                 { selector: 'edge[type="sibling"]', style: { 'line-color': '#88a', 'width': 0.5, 'line-style': 'dashed', 'line-dash-pattern': [4, 3] } },
                 { selector: 'edge[type="half-sibling"]', style: { 'line-color': '#aab', 'width': 0.4, 'line-style': 'dashed', 'line-dash-pattern': [2, 3] } },
@@ -624,6 +624,11 @@ window.addEventListener('load', function() {
                 if (sFirst && tFirst) { /* sichtbar */ }
                 else { edge.addClass('faded'); }
             });
+        });
+
+        // Klick auf Kante: Details anzeigen
+        cy.on('tap', 'edge', function(e) {
+            showEdgeCard(e.target, 'details-content', 'details-hint');
         });
 
         // Klick auf Hintergrund: alles zurücksetzen

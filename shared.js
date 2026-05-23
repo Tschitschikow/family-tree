@@ -286,3 +286,44 @@ function showPersonCard(p, contentId, hintId) {
         '<div style="margin-top:0.3em;"><span style="color:#99a;font-size:0.85em;">Beziehungen:</span></div>' +
         relLines;
 }
+
+
+/* ── Kanten-Detailkarte ──────────────────────────────── 
+   edge:      Cytoscape-Edge-Objekt
+   contentId: z.B. 'details-content' oder 'cola-info-content'
+   hintId:    z.B. 'details-hint' oder 'cola-hint'
+*/
+function showEdgeCard(edge, contentId, hintId) {
+    var d = edge.data();
+    var src = allPersons.find(function(p) { return p.id === parseInt(d.source); });
+    var tgt = allPersons.find(function(p) { return p.id === parseInt(d.target); });
+    var srcName = src ? src.display_name : 'ID ' + d.source;
+    var tgtName = tgt ? tgt.display_name : 'ID ' + d.target;
+
+    var typeLabels = {
+        'parent':       'Eltern-Kind',
+        'married':      'Ehepartner',
+        'exmarried':    'Ex-Ehepartner',
+        'sibling':      'Vollgeschwister',
+        'half-sibling': 'Halbgeschwister',
+    };
+    var typeLabel = typeLabels[d.type] || d.type;
+
+    function row(lbl, val) {
+        return '<div style="margin:0.3em 0;"><span style="color:#99a;font-size:0.85em;display:block;">' +
+               lbl + '</span><span style="color:#223;font-weight:500;">' + val + '</span></div>';
+    }
+
+    if (hintId) {
+        var hint = document.getElementById(hintId);
+        if (hint) hint.style.display = 'none';
+    }
+
+    var el = document.getElementById(contentId);
+    if (!el) return;
+    el.innerHTML =
+        row('Beziehungstyp', typeLabel) +
+        row('Person A', srcName) +
+        row('Person B', tgtName) +
+        row('Kanten-ID', d.id || '\u2013');
+}
