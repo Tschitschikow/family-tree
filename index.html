@@ -293,6 +293,49 @@ window.addEventListener('load', function() {
             });
         });
 
+        // ── Geschwister-Kanten (berechnet aus gemeinsamen Eltern) ──
+        // Eltern pro Kind sammeln
+        var childParents = {};  // childId → { mothers: [], fathers: [] }
+        allRels.forEach(function(r) {
+            if (r.relationship_type === 'hasMother') {
+                var cid = String(r.person_id);
+                if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
+                childParents[cid].mothers.push(String(r.related_person_id));
+            }
+            if (r.relationship_type === 'hasFather') {
+                var cid2 = String(r.person_id);
+                if (!childParents[cid2]) childParents[cid2] = { mothers: [], fathers: [] };
+                childParents[cid2].fathers.push(String(r.related_person_id));
+            }
+        });
+
+        // Kinder paarweise vergleichen
+        var childIds = Object.keys(childParents);
+        for (var ci = 0; ci < childIds.length; ci++) {
+            for (var cj = ci + 1; cj < childIds.length; cj++) {
+                var a = childIds[ci], b = childIds[cj];
+                var pa = childParents[a], pb = childParents[b];
+
+                // Gemeinsame Mutter?
+                var sharedMother = pa.mothers.some(function(m) { return pb.mothers.indexOf(m) >= 0; });
+                // Gemeinsamer Vater?
+                var sharedFather = pa.fathers.some(function(f) { return pb.fathers.indexOf(f) >= 0; });
+
+                if (sharedMother || sharedFather) {
+                    var sibKey = Math.min(parseInt(a), parseInt(b)) + '_' + Math.max(parseInt(a), parseInt(b)) + '_sib';
+                    if (!edgeSet[sibKey]) {
+                        edgeSet[sibKey] = true;
+                        // Vollgeschwister (beide Eltern gleich) vs Halbgeschwister
+                        var sibType = (sharedMother && sharedFather) ? 'sibling' : 'half-sibling';
+                        edges.push({
+                            group: 'edges',
+                            data: { id: sibKey, source: a, target: b, type: sibType }
+                        });
+                    }
+                }
+            }
+        }
+
         // ── Cytoscape erstellen ──────────────────────
         cy = cytoscape({
             container: document.getElementById('cy'),
@@ -334,6 +377,9 @@ window.addEventListener('load', function() {
                 { selector: 'edge[type="parent"]', style: { 'line-color': '#666', 'width': 0.6, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#666', 'arrow-scale': 0.4 } },
                 { selector: 'edge[type="married"]', style: { 'line-color': '#555', 'width': 1.5, 'line-style': 'solid' } },
                 { selector: 'edge[type="exmarried"]', style: { 'line-color': '#aaa', 'width': 0.6, 'line-style': 'dashed' } },
+                // Geschwister
+                { selector: 'edge[type="sibling"]', style: { 'line-color': '#88a', 'width': 0.5, 'line-style': 'dashed', 'line-dash-pattern': [4, 3] } },
+                { selector: 'edge[type="half-sibling"]', style: { 'line-color': '#aab', 'width': 0.4, 'line-style': 'dashed', 'line-dash-pattern': [2, 3] } },
                 // Highlight-Klassen
                 { selector: '.fam-hidden', style: { 'opacity': 0.03 } },
                 { selector: '.faded',      style: { 'opacity': 0.05 } },
@@ -642,6 +688,7 @@ window.addEventListener('load', function() {
             var t = e.data('type');
             if (t === 'parent') e.style('display', showParent ? 'element' : 'none');
             else if (t === 'married' || t === 'exmarried') e.style('display', showMarried ? 'element' : 'none');
+            else if (t === 'sibling' || t === 'half-sibling') e.style('display', showSiblingsEdges ? 'element' : 'none');
         });
     }
 
