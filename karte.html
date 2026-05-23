@@ -8,25 +8,23 @@
     <style>
         html, body { height: 100%; font-family: Georgia, serif; background: #fdf8f0; }
         body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { background: #5a3e2b; color: white; padding: 0.8em 2em; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-        #logout-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.4em 1em; border-radius: 5px; cursor: pointer; font-family: Georgia, serif; }
-        #toolbar { background: #f0e8dc; border-bottom: 1px solid #ddd; padding: 0.6em 1.5em; display: flex; align-items: center; gap: 1em; flex-wrap: wrap; flex-shrink: 0; }
+        #toolbar { background: #fff; border-bottom: 1px solid #ddd; padding: 0.6em 1.5em; display: flex; align-items: center; gap: 1em; flex-wrap: wrap; flex-shrink: 0; }
         #toolbar label { font-size: 0.85em; color: #555; }
-        .tool-btn { padding: 0.4em 0.9em; background: #5a3e2b; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; }
+        .tool-btn { padding: 0.4em 0.9em; background: #445; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; }
         .tool-btn:hover { background: #f0f2f5; }
-        .toggle-btn { padding: 0.35em 0.8em; border: 1px solid #5a3e2b; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; background: white; color: #5a3e2b; }
+        .toggle-btn { padding: 0.35em 0.8em; border: 1px solid #445; border-radius: 5px; cursor: pointer; font-size: 0.85em; font-family: Georgia, serif; background: white; color: #445; }
         .toggle-btn.active { background: #eef2ff; color: #223488; border-color: #aab; }
-        #progress-wrap { display: none; align-items: center; gap: 0.6em; font-size: 0.85em; color: #5a3e2b; }
+        #progress-wrap { display: none; align-items: center; gap: 0.6em; font-size: 0.85em; color: #445; }
         #progress-wrap.visible { display: flex; }
         #progress-bar-outer { width: 150px; height: 8px; background: #ddd; border-radius: 4px; overflow: hidden; }
-        #progress-bar-inner { height: 100%; background: #5a3e2b; border-radius: 4px; width: 0%; transition: width 0.2s; }
+        #progress-bar-inner { height: 100%; background: #445; border-radius: 4px; width: 0%; transition: width 0.2s; }
         #stats { font-size: 0.85em; color: #888; margin-left: auto; }
         #map { flex: 1; width: 100%; min-height: 300px; }
         .map-legend { background: rgba(255,255,255,0.95); border: 1px solid #ddd; border-radius: 8px; padding: 0.8em 1.1em; font-size: 0.82em; font-family: Georgia, serif; box-shadow: 0 2px 8px rgba(0,0,0,0.12); line-height: 1.8em; }
-        .map-legend h4 { color: #5a3e2b; margin-bottom: 0.3em; }
+        .map-legend h4 { color: #334; margin-bottom: 0.3em; }
         .legend-row { display: flex; align-items: center; gap: 0.5em; }
         .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.25); }
-        .line-tooltip { background: rgba(255,255,255,0.9); border: 1px solid #ccc; border-radius: 4px; font-family: Georgia, serif; font-size: 0.82em; color: #5a3e2b; padding: 2px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+        .line-tooltip { background: rgba(255,255,255,0.9); border: 1px solid #ccc; border-radius: 4px; font-family: Georgia, serif; font-size: 0.82em; color: #445; padding: 2px 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
     </style>
 </head>
 <body>
@@ -326,7 +324,7 @@ window.addEventListener('load', function() {
             var geoB = geoCache[p.birth_place]; var geoD = geoCache[p.death_place];
             if (!geoB || !geoD) return;
             var line = L.polyline([[geoB.lat, geoB.lng], [geoD.lat, geoD.lng]], {
-                color: '#5a3e2b', weight: 1, opacity: 0.35, dashArray: '4 4',
+                color: '#667', weight: 1, opacity: 0.35, dashArray: '4 4',
             });
             line.bindTooltip(p.display_name, { sticky: true, className: 'line-tooltip' });
             linesLayer.addLayer(line);
@@ -351,7 +349,7 @@ window.addEventListener('load', function() {
 
     function buildPopup(place, persons, type) {
         var html = '<div style="font-family:Georgia,serif; max-width:220px;">';
-        html += '<b style="color:#5a3e2b;">📍 ' + place + '</b><br>';
+        html += '<b style="color:#334;">📍 ' + place + '</b><br>';
         html += '<span style="font-size:0.82em; color:#888;">' +
                 (type === 'birth' ? '🔵 Geburtsort' : '🔴 Sterbeort') +
                 ' · ' + persons.length + ' Person' + (persons.length > 1 ? 'en' : '') + '</span>';
