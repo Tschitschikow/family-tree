@@ -238,6 +238,55 @@ function initColaCy() {
         randomize: true, fit: true,
     }).run();
 
+    // ── Geschwister-Kanten berechnen ──────────────────
+    var childParents = {};
+    allRels.forEach(function(r) {
+        var cid = String(r.person_id);
+        if (r.relationship_type === 'hasMother') {
+            if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
+            childParents[cid].mothers.push(String(r.related_person_id));
+        }
+        if (r.relationship_type === 'hasFather') {
+            if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
+            childParents[cid].fathers.push(String(r.related_person_id));
+        }
+    });
+    var childIds = Object.keys(childParents);
+    var sibEdges = [];
+    var sibSet = {};
+    for (var ci = 0; ci < childIds.length; ci++) {
+        for (var cj = ci + 1; cj < childIds.length; cj++) {
+            var a = childIds[ci], b = childIds[cj];
+            var pa = childParents[a], pb = childParents[b];
+            var sharedM = pa.mothers.some(function(m) { return pb.mothers.indexOf(m) >= 0; });
+            var sharedF = pa.fathers.some(function(f) { return pb.fathers.indexOf(f) >= 0; });
+            if (sharedM || sharedF) {
+                var key = Math.min(parseInt(a), parseInt(b)) + '_' + Math.max(parseInt(a), parseInt(b)) + '_sib';
+                if (!sibSet[key]) {
+                    sibSet[key] = true;
+                    var sibType = (sharedM && sharedF) ? 'sibling' : 'half-sibling';
+                    sibEdges.push({ group: 'edges', data: { id: key, source: a, target: b, type: sibType } });
+                }
+            }
+        }
+    }
+    if (sibEdges.length) colaCy.add(sibEdges);
+
+    // ── Checkbox-Handler ──────────────────────────────
+    var colaShowParent = true, colaShowMarried = true, colaShowSiblings = true;
+    document.getElementById('cola-show-parent').addEventListener('change', function() {
+        colaShowParent = this.checked;
+        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
+    });
+    document.getElementById('cola-show-married').addEventListener('change', function() {
+        colaShowMarried = this.checked;
+        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
+    });
+    document.getElementById('cola-show-siblings').addEventListener('change', function() {
+        colaShowSiblings = this.checked;
+        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
+    });
+
     function startColaLayout() {
         if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
         colaLayout = colaCy.layout({

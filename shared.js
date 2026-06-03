@@ -327,3 +327,89 @@ function showEdgeCard(edge, contentId, hintId) {
         row('Person B', tgtName) +
         row('Kanten-ID', d.id || '\u2013');
 }
+
+
+/* ── Gemeinsame Cytoscape-Styles ──────────────────────
+   Einheitliches Design für Nodes und Edges auf allen Seiten.
+   Nutzung: cy = cytoscape({ ..., style: getCytoscapeStyles(), ... });
+*/
+function getCytoscapeStyles() {
+    return [
+        // ── Nodes ────────────────────────────────────
+        {
+            selector: 'node',
+            style: {
+                'label': 'data(label)',
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'text-wrap': 'wrap',
+                'text-max-width': '90px',
+                'font-size': '7px',
+                'font-family': "'Helvetica Neue', Arial, sans-serif",
+                'color': '#333',
+                'background-color': '#ffffff',
+                'border-width': '2.5px',
+                'border-color': 'data(famColor)',
+                'width': '90px',
+                'height': '36px',
+            }
+        },
+        { selector: 'node[sex="m"]', style: { 'shape': 'round-rectangle' } },
+        { selector: 'node[sex="f"]', style: { 'shape': 'ellipse' } },
+        { selector: 'node:selected', style: {
+            'border-width': '4px', 'border-color': '#334466',
+            'background-color': '#eef2ff',
+        }},
+        // ── Edges ────────────────────────────────────
+        {
+            selector: 'edge',
+            style: {
+                'curve-style': 'bezier',
+                'width': 0.6,
+                'line-color': '#999',
+                'target-arrow-shape': 'none',
+                'opacity': 0.6,
+            }
+        },
+        { selector: 'edge[type="parent"]', style: {
+            'line-color': '#666', 'width': 0.6,
+            'target-arrow-shape': 'triangle', 'target-arrow-color': '#666',
+            'arrow-scale': 0.4,
+        }},
+        { selector: 'edge[type="married"]', style: {
+            'line-color': '#555', 'width': 1.5, 'line-style': 'solid',
+        }},
+        { selector: 'edge[type="exmarried"]', style: {
+            'line-color': '#999', 'width': 1.5,
+            'line-style': 'dashed', 'line-dash-pattern': [6, 4],
+        }},
+        { selector: 'edge[type="sibling"]', style: {
+            'line-color': '#88a', 'width': 0.5,
+            'line-style': 'dashed', 'line-dash-pattern': [4, 3],
+        }},
+        { selector: 'edge[type="half-sibling"]', style: {
+            'line-color': '#aab', 'width': 0.4,
+            'line-style': 'dashed', 'line-dash-pattern': [2, 3],
+        }},
+        // ── Highlight-Klassen ────────────────────────
+        { selector: '.fam-hidden',   style: { 'opacity': 0.03 } },
+        { selector: '.faded',        style: { 'opacity': 0.05 } },
+        { selector: '.ring2',        style: { 'opacity': 0.22 } },
+    ];
+}
+
+/* ── Gemeinsame Kanten-Sichtbarkeit ───────────────────
+   cy:             Cytoscape-Instanz
+   showParent:     boolean
+   showMarried:    boolean
+   showSiblings:   boolean
+*/
+function updateEdgeVisibility(cy, showParent, showMarried, showSiblings) {
+    if (!cy) return;
+    cy.edges().forEach(function(e) {
+        var t = e.data('type');
+        if (t === 'parent') e.style('display', showParent ? 'element' : 'none');
+        else if (t === 'married' || t === 'exmarried') e.style('display', showMarried ? 'element' : 'none');
+        else if (t === 'sibling' || t === 'half-sibling') e.style('display', showSiblings ? 'element' : 'none');
+    });
+}

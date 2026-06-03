@@ -343,48 +343,7 @@ window.addEventListener('load', function() {
             wheelSensitivity: 0.3,
             minZoom: 0.1,
             maxZoom: 3,
-            style: [
-                {
-                    selector: 'node',
-                    style: {
-                        'label': 'data(label)',
-                        'text-valign': 'center',
-                        'text-halign': 'center',
-                        'text-wrap': 'wrap',
-                        'text-max-width': '90px',
-                        'font-size': '7px',
-                        'font-family': "'Helvetica Neue', Arial, sans-serif",
-                        'color': '#333',
-                        'background-color': '#ffffff',
-                        'border-width': '2.5px',
-                        'border-color': 'data(famColor)',
-                        'width': '90px',
-                        'height': '36px',
-                    }
-                },
-                { selector: 'node[sex="m"]', style: { 'shape': 'round-rectangle' } },
-                { selector: 'node[sex="f"]', style: { 'shape': 'ellipse' } },
-                {
-                    selector: 'edge',
-                    style: {
-                        'curve-style': 'bezier',
-                        'width': 0.6,
-                        'line-color': '#999',
-                        'target-arrow-shape': 'none',
-                        'opacity': 0.6,
-                    }
-                },
-                { selector: 'edge[type="parent"]', style: { 'line-color': '#666', 'width': 0.6, 'target-arrow-shape': 'triangle', 'target-arrow-color': '#666', 'arrow-scale': 0.4 } },
-                { selector: 'edge[type="married"]', style: { 'line-color': '#555', 'width': 1.5, 'line-style': 'solid' } },
-                { selector: 'edge[type="exmarried"]', style: { 'line-color': '#999', 'width': 1.5, 'line-style': 'dashed', 'line-dash-pattern': [6, 4] } },
-                // Geschwister
-                { selector: 'edge[type="sibling"]', style: { 'line-color': '#88a', 'width': 0.5, 'line-style': 'dashed', 'line-dash-pattern': [4, 3] } },
-                { selector: 'edge[type="half-sibling"]', style: { 'line-color': '#aab', 'width': 0.4, 'line-style': 'dashed', 'line-dash-pattern': [2, 3] } },
-                // Highlight-Klassen
-                { selector: '.fam-hidden', style: { 'opacity': 0.03 } },
-                { selector: '.faded',      style: { 'opacity': 0.05 } },
-                { selector: '.ring2',      style: { 'opacity': 0.22 } },
-            ],
+            style: getCytoscapeStyles(),
         });
 
         // ── Timeline-Layout anwenden ─────────────────
@@ -400,7 +359,7 @@ window.addEventListener('load', function() {
         setupClickHandlers();
 
         // ── Kanten-Sichtbarkeit ──────────────────────
-        updateEdgeVisibility();
+        localUpdateEdgeVisibility();
 
         // ── Viewport-Handler ────────────────────────
         setupViewportHandlers();
@@ -687,14 +646,8 @@ window.addEventListener('load', function() {
     // ══════════════════════════════════════════════════
     // Kanten-Sichtbarkeit (Checkboxen)
     // ══════════════════════════════════════════════════
-    function updateEdgeVisibility() {
-        if (!cy) return;
-        cy.edges().forEach(function(e) {
-            var t = e.data('type');
-            if (t === 'parent') e.style('display', showParent ? 'element' : 'none');
-            else if (t === 'married' || t === 'exmarried') e.style('display', showMarried ? 'element' : 'none');
-            else if (t === 'sibling' || t === 'half-sibling') e.style('display', showSiblingsEdges ? 'element' : 'none');
-        });
+    function localUpdateEdgeVisibility() {
+        updateEdgeVisibility(cy, showParent, showMarried, showSiblingsEdges);
     }
 
     // ══════════════════════════════════════════════════
@@ -718,15 +671,15 @@ window.addEventListener('load', function() {
 
     document.getElementById('show-parent').addEventListener('change', function() {
         showParent = this.checked;
-        updateEdgeVisibility();
+        localUpdateEdgeVisibility();
     });
     document.getElementById('show-married').addEventListener('change', function() {
         showMarried = this.checked;
-        updateEdgeVisibility();
+        localUpdateEdgeVisibility();
     });
     document.getElementById('show-siblings').addEventListener('change', function() {
         showSiblingsEdges = this.checked;
-        updateEdgeVisibility();
+        localUpdateEdgeVisibility();
     });
 });
 </script>
