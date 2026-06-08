@@ -89,7 +89,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
 <script src="config.js"></script>
-<script src="shared.js?v=20260608"></script>
+<script src="shared.js?v=1780938873"></script>
 <script>
 /* ══════════════════════════════════════════════════════
    Dynamisches Netzwerk – sauber neu aufgebaut
@@ -229,12 +229,34 @@ window.addEventListener('load', function() {
             layout: { name: 'preset' },
         });
 
-        // ── Initiales Layout (cose für gute Positionen) ──
+        // ── Initiales Layout (cose für Startpositionen) ──
         colaCy.layout({
             name: 'cose', animate: false, padding: 60,
             nodeRepulsion: 480000, idealEdgeLength: 120,
             randomize: true, fit: true,
         }).run();
+
+        // ── Cola-Physik starten (dynamisch) ──────────
+        setTimeout(function() {
+            colaCy.layout({
+                name: 'cola',
+                animate: true,
+                refresh: 2,
+                maxSimulationTime: 4000,
+                ungrabifyWhileSimulating: false,
+                fit: false,
+                padding: 40,
+                nodeSpacing: 25,
+                edgeLength: function(e) {
+                    var t = e.data('type');
+                    if (t === 'married' || t === 'exmarried') return 60;
+                    if (t === 'parent') return 100;
+                    return 140;
+                },
+                randomize: false,
+                avoidOverlap: true,
+            }).run();
+        }, 300);
 
         // ── Klick-Handler ────────────────────────────
         setupClickHandlers();
