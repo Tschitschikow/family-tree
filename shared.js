@@ -439,10 +439,10 @@ function buildToolbar(containerId) {
 
     // Buttons
     var buttons = [
-        { id: 'btn-refit', label: 'Neu anordnen' },
-        { id: 'btn-fit', label: '🎯 Einpassen' },
         { id: 'btn-reset', label: 'Auswahl zurücksetzen' },
-        { id: 'btn-png', label: '💾 PNG' },
+        { id: 'btn-refit', label: 'Baum neu anordnen' },
+        { id: 'btn-fit', label: '🎯 Einpassen' },
+        { id: 'btn-png', label: '💾 Druckansicht' },
     ];
     buttons.forEach(function(b) {
         var btn = document.createElement('button');
