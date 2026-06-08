@@ -413,3 +413,150 @@ function updateEdgeVisibility(cy, showParent, showMarried, showSiblings) {
         else if (t === 'sibling' || t === 'half-sibling') e.style('display', showSiblings ? 'element' : 'none');
     });
 }
+
+
+/* ── Gemeinsame Toolbar ───────────────────────────────
+   Baut die Toolbar-Elemente: Suche, Neu anordnen, Einpassen, PNG,
+   Checkboxen, Personenzähler.
+   containerId: z.B. 'toolbar'
+   Jede Seite hängt danach ihre spezifischen Handler an.
+*/
+function buildToolbar(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    container.innerHTML = '';
+    container.style.cssText = 'background:#fff;border-bottom:1px solid #e0e0e0;padding:0.4em 1.2em;display:flex;align-items:center;gap:0.8em;flex-shrink:0;flex-wrap:wrap;font-size:0.85em;';
+
+    // Suche
+    var search = document.createElement('input');
+    search.type = 'text';
+    search.id = 'toolbar-search';
+    search.placeholder = 'Name suchen…';
+    search.autocomplete = 'off';
+    search.style.cssText = 'padding:0.3em 0.6em;border:1px solid #ccd;border-radius:5px;font-size:0.9em;font-family:inherit;width:140px;color:#334;';
+    container.appendChild(search);
+
+    // Buttons
+    var buttons = [
+        { id: 'btn-refit', label: 'Neu anordnen' },
+        { id: 'btn-fit', label: '🎯 Einpassen' },
+        { id: 'btn-reset', label: 'Auswahl zurücksetzen' },
+        { id: 'btn-png', label: '💾 PNG' },
+    ];
+    buttons.forEach(function(b) {
+        var btn = document.createElement('button');
+        btn.id = b.id;
+        btn.textContent = b.label;
+        btn.style.cssText = 'padding:0.3em 0.8em;background:#fff;border:1px solid #ccd;border-radius:5px;cursor:pointer;font-size:0.82em;font-family:inherit;color:#445;';
+        container.appendChild(btn);
+    });
+
+    // Checkboxen
+    var checks = [
+        { id: 'cb-parent', label: 'Eltern-Kind' },
+        { id: 'cb-married', label: 'Verheiratet' },
+        { id: 'cb-siblings', label: 'Geschwister' },
+    ];
+    checks.forEach(function(ch) {
+        var lbl = document.createElement('label');
+        lbl.style.cssText = 'font-size:0.82em;display:flex;align-items:center;gap:4px;cursor:pointer;color:#555;';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = ch.id;
+        cb.checked = true;
+        cb.style.cssText = 'width:auto;margin:0;accent-color:#888;';
+        lbl.appendChild(cb);
+        lbl.appendChild(document.createTextNode(ch.label));
+        container.appendChild(lbl);
+    });
+
+    // Personenzähler
+    var count = document.createElement('span');
+    count.id = 'person-count';
+    count.style.cssText = 'margin-left:auto;font-size:0.8em;color:#999;';
+    container.appendChild(count);
+}
+
+/* ── Gemeinsame Toolbar-Handler ───────────────────────
+   cy:        Cytoscape-Instanz
+   callbacks: {
+     onRefit:  function()  – seiten-spezifisch (Neu anordnen)
+     onSearch: function(query, cy) – optional, Standard: highlight matching
+     onReset:  function()  – optional, Standard: remove all classes
+   }
+*/
+function setupToolbarHandlers(cy, callbacks) {
+    if (!cy) return;
+    var cb = callbacks || {};
+
+    // Checkboxen
+    var showParent = true, showMarried = true, showSiblings = true;
+    document.getElementById('cb-parent').addEventListener('change', function() {
+        showParent = this.checked;
+        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+    });
+    document.getElementById('cb-married').addEventListener('change', function() {
+        showMarried = this.checked;
+        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+    });
+    document.getElementById('cb-siblings').addEventListener('change', function() {
+        showSiblings = this.checked;
+        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+    });
+
+    // Einpassen
+    document.getElementById('btn-fit').addEventListener('click', function() {
+        cy.fit(60);
+    });
+
+    // PNG Export
+    document.getElementById('btn-png').addEventListener('click', function() {
+        var png = cy.png({ scale: 2, bg: '#ffffff', full: true });
+        var a = document.createElement('a');
+        a.href = png;
+        a.download = 'stammbaum.png';
+        a.click();
+    });
+
+    // Auswahl zurücksetzen
+    document.getElementById('btn-reset').addEventListener('click', function() {
+        cy.elements().removeClass('faded ring2 fam-hidden cola-hidden cola-faded cola-focused');
+        document.getElementById('toolbar-search').value = '';
+        if (typeof applyFamilyFilter === 'function') applyFamilyFilter();
+        if (cb.onReset) cb.onReset();
+        // Details zurücksetzen
+        var hint = document.getElementById('details-hint') || document.getElementById('cola-hint');
+        var content = document.getElementById('details-content') || document.getElementById('cola-info-content');
+        if (hint) hint.style.display = '';
+        if (content) content.innerHTML = '';
+    });
+
+    // Neu anordnen (seiten-spezifisch)
+    document.getElementById('btn-refit').addEventListener('click', function() {
+        cy.elements().removeClass('faded ring2 cola-hidden cola-faded cola-focused');
+        document.getElementById('toolbar-search').value = '';
+        if (cb.onRefit) cb.onRefit();
+    });
+
+    // Namenssuche
+    document.getElementById('toolbar-search').addEventListener('input', function() {
+        var q = this.value.trim().toLowerCase();
+        cy.elements().removeClass('faded ring2 cola-faded cola-focused');
+        if (!q) return;
+        cy.elements().addClass('faded');
+        cy.nodes().forEach(function(n) {
+            var raw = n.data('raw') || {};
+            var label = (n.data('label') || '').toLowerCase();
+            var display = (raw.display_name || '').toLowerCase();
+            if (label.indexOf(q) >= 0 || display.indexOf(q) >= 0) {
+                n.removeClass('faded');
+                n.connectedEdges().removeClass('faded');
+                n.connectedEdges().connectedNodes().removeClass('faded');
+            }
+        });
+    });
+
+    // Personenzähler
+    document.getElementById('person-count').textContent = allPersons.length + ' Personen';
+}
