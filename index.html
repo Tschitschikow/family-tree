@@ -381,19 +381,18 @@ window.addEventListener('load', function() {
 
         var avgYear = Math.round(years.reduce(function(a, b) { return a + b; }, 0) / years.length);
 
-        // Y-Position: älteste oben, jüngste unten
+        // Y-Position: älteste OBEN, jüngste UNTEN
         cy.nodes().forEach(function(n) {
             var year = n.data('birthYear') || avgYear;
-            var y = TL_PADDING + (TL_MAX_YEAR - year) * PX_PER_YEAR;
+            var y = TL_PADDING + (year - TL_MIN_YEAR) * PX_PER_YEAR;
             n.position('y', y);
         });
 
-        // X: verbindungs-basierte Verteilung
-        // Kinder nahe bei Eltern, Ehepaare nebeneinander
-        var placed = {};    // id → x
+        // ── X-Verteilung: baumartig mit Zufall ──────────
+        var placed = {};
 
-        // Schritt B: Ehepaare finden
-        var spouseOf = {};  // id → [spouse_ids]
+        // Ehepaare finden
+        var spouseOf = {};
         allRels.forEach(function(r) {
             if (r.relationship_type === 'hasWife' || r.relationship_type === 'hasHusband') {
                 var a = String(r.person_id), b = String(r.related_person_id);
@@ -404,8 +403,8 @@ window.addEventListener('load', function() {
             }
         });
 
-        // Schritt C: Eltern finden
-        var parentOf = {};  // child_id → [parent_ids]
+        // Eltern finden
+        var parentOf = {};
         allRels.forEach(function(r) {
             if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
                 var child = String(r.person_id);
@@ -415,55 +414,63 @@ window.addEventListener('load', function() {
             }
         });
 
-        // Schritt D: X-Position zuweisen
-        // Erst Personen ohne Eltern (Wurzeln), dann deren Kinder
-        // Einfacher Hash für initiale X-Streuung
-        function hashX(id) {
-            var h = 0;
-            var s = String(id);
-            for (var i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
-            return Math.abs(h) % 1600;
-        }
+        // Kinder pro Elternteil (für Auffächerung)
+        var childrenOf = {};
+        allRels.forEach(function(r) {
+            if (r.relationship_type === 'hasMother' || r.relationship_type === 'hasFather') {
+                var par = String(r.related_person_id);
+                if (!childrenOf[par]) childrenOf[par] = [];
+                var cid = String(r.person_id);
+                if (childrenOf[par].indexOf(cid) < 0) childrenOf[par].push(cid);
+            }
+        });
 
-        // Sortiere: älteste zuerst
+        // Sortiere: älteste zuerst (werden zuerst platziert)
         var sortedNodes = cy.nodes().sort(function(a, b) {
             return (a.data('birthYear') || 9999) - (b.data('birthYear') || 9999);
         });
 
-        var slotRows = {};  // y-slot → nächste freie X-Position
+        var slotRows = {};
 
         sortedNodes.forEach(function(n) {
             var id = n.id();
             if (placed[id]) return;
 
             var baseX;
-            // Hat diese Person Eltern die schon platziert sind?
             var parents = parentOf[id] || [];
             var placedParents = parents.filter(function(pid) { return placed[pid]; });
 
             if (placedParents.length > 0) {
-                // Unter den Eltern platzieren
+                // Unter den Eltern platzieren + Auffächerung
                 var sumX = 0;
                 placedParents.forEach(function(pid) { sumX += placed[pid]; });
-                baseX = sumX / placedParents.length;
+                var parentX = sumX / placedParents.length;
+
+                // Wie viele Kinder hat dieser Elternteil? → Auffächern
+                var siblings = childrenOf[placedParents[0]] || [];
+                var sibIndex = siblings.indexOf(id);
+                var sibCount = siblings.length;
+                var spread = Math.min(sibCount * 60, 300);
+                var offset = (sibIndex - (sibCount - 1) / 2) * 120;
+
+                baseX = parentX + offset + (Math.random() - 0.5) * 80;
             } else {
-                // Streuung basierend auf ID
-                baseX = hashX(id);
+                // Wurzel-Person: breite Streuung mit Zufall
+                baseX = Math.random() * 2400;
             }
 
             // Überlappung vermeiden
             var ySlot = Math.floor(n.position('y') / 45);
             if (!slotRows[ySlot]) slotRows[ySlot] = [];
-            
-            // Finde freie Position nahe baseX
             var occupied = slotRows[ySlot];
             var x = baseX;
             var tries = 0;
-            while (occupied.some(function(ox) { return Math.abs(ox - x) < 105; }) && tries < 80) {
-                x += 110;
+            var direction = (Math.random() > 0.5) ? 1 : -1;
+            while (occupied.some(function(ox) { return Math.abs(ox - x) < 100; }) && tries < 60) {
+                x += direction * 110;
                 tries++;
             }
-            
+
             n.position('x', x);
             placed[id] = x;
             occupied.push(x);
@@ -475,7 +482,7 @@ window.addEventListener('load', function() {
                 var sNode = cy.getElementById(sid);
                 if (!sNode || sNode.length === 0) return;
                 var sx = x + 110;
-                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 105; })) {
+                while (occupied.some(function(ox) { return Math.abs(ox - sx) < 100; })) {
                     sx += 110;
                 }
                 sNode.position('x', sx);
@@ -505,7 +512,7 @@ window.addEventListener('load', function() {
 
         for (var yr = startYear; yr <= endYear; yr += step) {
             // Y-Position im Cytoscape-Koordinatensystem
-            var cyY = TL_PADDING + (TL_MAX_YEAR - yr) * PX_PER_YEAR;
+            var cyY = TL_PADDING + (yr - TL_MIN_YEAR) * PX_PER_YEAR;
             // Umrechnung in Screen-Koordinaten
             var screenY = cyY * zoom + pan.y;
 
