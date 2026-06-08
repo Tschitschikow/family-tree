@@ -219,6 +219,7 @@ function initColaCy() {
     }).run();
 
     // ── Geschwister-Kanten berechnen ──────────────────
+    try {
     var childParents = {};
     allRels.forEach(function(r) {
         var cid = String(r.person_id);
@@ -251,9 +252,11 @@ function initColaCy() {
         }
     }
     if (sibEdges.length) colaCy.add(sibEdges);
+    } catch(e) { console.error('Geschwister-Berechnung:', e); }
 
     // ── Checkbox-Handler ──────────────────────────────
     var colaShowParent = true, colaShowMarried = true, colaShowSiblings = true;
+    try {
     document.getElementById('cola-show-parent').addEventListener('change', function() {
         colaShowParent = this.checked;
         updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
@@ -266,6 +269,7 @@ function initColaCy() {
         colaShowSiblings = this.checked;
         updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
     });
+    } catch(e) { console.error('Checkbox-Handler:', e); }
 
     function startColaLayout() {
         if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
