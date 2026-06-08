@@ -319,7 +319,7 @@ function initColaCy() {
     
     
 
-    buildFamilyLegend('cola-fam-list', 'cola-fam-all', 'cola-fam-none', function() { applyColaFamilyFilter(); });
+    // buildFamilyLegend: verschoben in initPage callback
 
     // Knoten-Klick: Highlight + Info
     colaCy.on('tap', 'node', function(evt) {
@@ -419,6 +419,7 @@ window.addEventListener('load', function() {
     initPage(function() {
         document.getElementById('loading').style.display = 'none';
         document.getElementById('cola-body').style.display = 'flex';
+        buildFamilyLegend('cola-fam-list', 'cola-fam-all', 'cola-fam-none', function() { applyColaFamilyFilter(); });
         initColaCy();
     });
 });
