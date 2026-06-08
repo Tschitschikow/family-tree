@@ -7,421 +7,306 @@
     <link rel="stylesheet" href="shared.css">
     <style>
         body { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
-
-        /* Toolbar */
-        #cola-header { background:#fff; border-bottom:1px solid #dde; padding:0.5em 1.2em; display:flex; align-items:center; gap:0.8em; flex-shrink:0; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
-        #cola-header h2 { font-size:0.92em; font-weight:600; color:#334; margin:0; font-family:'Helvetica Neue',Arial,sans-serif; }
-        .cola-hbtn { padding:0.3em 0.8em; background:#fff; border:1px solid #ccd; border-radius:5px; cursor:pointer; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; color:#445; }
-        .cola-hbtn:hover { background:#f0f2f5; }
-        #cola-search { padding:0.28em 0.7em; border:1px solid #ccd; border-radius:5px; font-size:0.8em; font-family:'Helvetica Neue',Arial,sans-serif; width:150px; color:#334; }
-        #cola-search:focus { outline:none; border-color:#8899cc; }
-
-        /* Layout */
-        #cola-body { flex:1; display:flex; overflow:hidden; }
-        #cola-cy { flex:1; position:relative; }
-
-        /* Legende links */
-        #cola-legend { width:160px; min-width:140px; flex-shrink:0; background:#fff; border-right:1px solid #dde; padding:0.8em 0.7em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.78em; display:flex; flex-direction:column; gap:0.3em; }
-        #cola-legend h4 { font-size:0.85em; font-weight:600; color:#334; margin:0 0 0.4em; padding-bottom:0.3em; border-bottom:1px solid #eef; }
-        .cola-fam-item { display:flex; align-items:center; gap:0.4em; cursor:pointer; padding:0.15em 0; user-select:none; }
-        .cola-fam-item input { width:auto; margin:0; cursor:pointer; accent-color:#888; }
-        .cola-fam-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-        .cola-legend-ctrl { display:flex; gap:6px; margin-bottom:0.3em; }
-        .cola-legend-ctrl button { flex:1; font-size:0.82em; padding:0.2em 0.3em; background:#f0f2f5; border:1px solid #dde; border-radius:4px; cursor:pointer; font-family:inherit; color:#445; }
-        .cola-legend-ctrl button:hover { background:#e4e8f0; }
-
-        /* Details rechts */
-        #cola-info { width:210px; flex-shrink:0; background:#fff; border-left:1px solid #dde; padding:0.9em; overflow-y:auto; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.8em; color:#445; }
-        #cola-info h3 { font-size:0.92em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em; }
-        .ci-row { margin:0.28em 0; line-height:1.4; }
-        .ci-lbl { color:#99a; font-size:0.86em; }
-        .ci-val { color:#334; font-weight:500; }
-        #cola-hint { color:#bbc; font-size:0.78em; margin-top:0.4em; font-style:italic; }
-
         #loading { text-align:center; padding:3em; color:#aaa; }
+        #main { flex:1; display:none; overflow:hidden; }
+        #main { display:none; }
+
+        /* ── Dreispaltiges Layout ──────────────────── */
+        #content { display:flex; flex:1; overflow:hidden; }
+        #legend {
+            width:160px; min-width:140px; flex-shrink:0;
+            background:#fff; border-right:1px solid #e8e8e8;
+            padding:0.6em 0.7em; font-size:0.78em; overflow-y:auto;
+        }
+        #legend h4 { font-size:0.88em; font-weight:600; color:#334; margin:0 0 0.4em; padding-bottom:0.3em; border-bottom:1px solid #eef; }
+        .legend-controls { display:flex; gap:6px; margin-bottom:0.4em; }
+        .legend-ctrl-btn { flex:1; font-size:0.82em; padding:0.2em 0.3em; background:#f0f2f5; border:1px solid #dde; border-radius:4px; cursor:pointer; font-family:inherit; color:#445; }
+        .legend-ctrl-btn:hover { background:#e4e8f0; }
+
+        #graph-area { flex:1; position:relative; background:#f8f8f8; }
+        #cola-cy { position:absolute; top:0; left:0; right:0; bottom:0; }
+
+        #details {
+            width:270px; flex-shrink:0; background:#fff;
+            border-left:1px solid #dde; padding:1em; overflow-y:auto;
+            font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.82em; color:#445;
+        }
+        #details h3 { font-size:0.95em; font-weight:600; color:#223; margin:0 0 0.5em; border-bottom:1px solid #eef; padding-bottom:0.3em; }
     </style>
 </head>
 <body>
 
+<!-- ── Header ──────────────────────────────────────── -->
 <header>
     <h1>🌳 Bahrs Familienstammbaum</h1>
     <nav>
-        <a href="admin.html" id="admin-btn">🔐 Admin</a>
+        <a href="admin.html" id="admin-btn" style="display:none;color:white;font-size:0.85em;text-decoration:none;background:rgba(200,150,12,0.4);border:1px solid rgba(200,150,12,0.7);padding:0.35em 0.9em;border-radius:5px;">🔐 Admin</a>
         <div id="view-menu-wrap">
             <button id="view-menu-btn">Ansicht</button>
             <div id="view-dropdown">
-                <div class="vd-item" data-view="timeline"><span class="vd-icon">📅</span> Zeitleiste</div>
-                <div class="vd-item active-view" data-view="network"><span class="vd-icon">🕸️</span> Dynamisches Netzwerk</div>
-                <div class="vd-item" data-view="stammbaum"><span class="vd-icon">🌳</span> Klassischer Stammbaum</div>
-                <div class="vd-item" data-view="register"><span class="vd-icon">📋</span> Register</div>
-                <div class="vd-item" data-view="karte"><span class="vd-icon">🗺️</span> Karte</div>
+                <a href="index.html" class="vd-item" data-view="timeline" style="text-decoration:none;"><span class="vd-icon">📅</span> Zeitleiste</a>
+                <a href="netzwerk.html" class="vd-item active-view" data-view="network" style="text-decoration:none;"><span class="vd-icon">🕸️</span> Dynamisches Netzwerk</a>
+                <a href="stammbaum.html" class="vd-item" data-view="stammbaum" style="text-decoration:none;"><span class="vd-icon">🌳</span> Klassischer Stammbaum</a>
+                <a href="register.html" class="vd-item" data-view="register" style="text-decoration:none;"><span class="vd-icon">📋</span> Register</a>
+                <a href="karte.html" class="vd-item" data-view="karte" style="text-decoration:none;"><span class="vd-icon">🗺️</span> Karte</a>
             </div>
         </div>
         <button id="logout-btn">Ausloggen</button>
     </nav>
 </header>
 
-<div id="cola-header">
-    <h2>🕸️ Dynamisches Netzwerk</h2>
-    <input type="text" id="cola-search" placeholder="Name suchen…" autocomplete="off">
-    <button class="cola-hbtn" id="cola-reset-hl">Auswahl zurücksetzen</button>
-    <button class="cola-hbtn" id="cola-refit">🎯 Einpassen</button>
-    <button class="cola-hbtn" id="btn-cola-export">💾 PNG</button>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555; margin-left:0.5em;">
-        <input type="checkbox" id="cola-show-parent" checked style="width:auto; margin:0; accent-color:#888;">
-        Eltern-Kind
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
-        <input type="checkbox" id="cola-show-married" checked style="width:auto; margin:0; accent-color:#888;">
-        Verheiratet
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
-        <input type="checkbox" id="cola-show-siblings" checked style="width:auto; margin:0; accent-color:#888;">
-        Geschwister
-    </label>
-</div>
+<!-- ── Toolbar (wird von shared.js buildToolbar befüllt) ── -->
+<div id="toolbar"></div>
 
+<!-- ── Ladebalken ──────────────────────────────────── -->
 <div id="loading">Lade Netzwerk...</div>
 
-<div id="cola-body" style="display:none;">
-    <div id="cola-legend">
-        <h4>Familienname</h4>
-        <div class="cola-legend-ctrl">
-            <button id="cola-fam-all">Alle</button>
-            <button id="cola-fam-none">Keine</button>
+<!-- ── Hauptbereich ────────────────────────────────── -->
+<div id="main">
+    <div id="content">
+        <div id="legend">
+            <h4>🎨 Familiennamen</h4>
+            <div class="legend-controls">
+                <button class="legend-ctrl-btn" id="legend-all">Alle</button>
+                <span style="color:#e0e0e0">|</span>
+                <button class="legend-ctrl-btn" id="legend-none">Keine</button>
+            </div>
+            <div id="legend-items"></div>
         </div>
-        <div id="cola-fam-list"></div>
-    </div>
-    <div id="cola-cy"></div>
-    <div id="cola-info">
-        <h3>Details</h3>
-        <p id="cola-hint">Knoten anklicken.</p>
-        <div id="cola-info-content"></div>
+        <div id="graph-area">
+            <div id="cola-cy"></div>
+        </div>
+        <div id="details">
+            <h3>Details</h3>
+            <p id="details-hint" style="color:#888;font-style:italic;font-size:0.85em;">Knoten anklicken.</p>
+            <div id="details-content"></div>
+        </div>
     </div>
 </div>
 
+<!-- ── Scripts ──────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
-<script src="https://unpkg.com/webcola@3.4.0/WebCola/cola.min.js"></script>
-<script src="https://unpkg.com/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
-<script src="config.js?v=1780894272"></script>
-<script src="shared.js?v=1780894272"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-cola@2.5.1/cytoscape-cola.js"></script>
+<script src="config.js"></script>
+<script src="shared.js?v=20260608"></script>
 <script>
 /* ══════════════════════════════════════════════════════
-   Dynamisches Netzwerk – eigene Logik
+   Dynamisches Netzwerk – sauber neu aufgebaut
    ══════════════════════════════════════════════════════ */
 
-// WebCola als Cytoscape-Extension registrieren
-if (typeof cytoscapeCola !== 'undefined') {
-    cytoscape.use(cytoscapeCola);
-}
+window.addEventListener('load', function() {
 
-var colaCy      = null;
-var colaLayout  = null;
+    var colaCy = null;
 
+    setupLogout();
+    setupViewMenu();
 
+    initPage(function() {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('main').style.display = 'flex';
 
+        // 1. Toolbar aus shared.js
+        buildToolbar('toolbar');
 
-document.getElementById('cola-refit').addEventListener('click', function() {
-    if (colaCy) colaCy.fit(60);
-});
-document.getElementById('cola-reset-hl').addEventListener('click', function() {
-    if (colaCy) {
-        colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
-        applyColaFamilyFilter();
-        restartColaLayout();
-    }
-    document.getElementById('cola-search').value = '';
-    document.getElementById('cola-hint').style.display = '';
-    document.getElementById('cola-info-content').innerHTML = '';
-});
-document.getElementById('cola-search').addEventListener('input', function() {
-    if (!colaCy) return;
-    var q = this.value.trim().toLowerCase();
-    colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
-    if (!q) return;
-    colaCy.elements().addClass('cola-faded');
-    colaCy.nodes().forEach(function(n) {
-        var raw = n.data('raw') || {};
-        var name = (raw.display_name || '').toLowerCase();
-        if (name.indexOf(q) >= 0) {
-            n.removeClass('cola-faded').addClass('cola-focused');
-            n.connectedEdges().removeClass('cola-faded').addClass('cola-focused');
-            n.connectedEdges().connectedNodes().removeClass('cola-faded').addClass('cola-focused');
-        }
-    });
-});
+        // 2. Familienlegende (VOR Graph, damit Farben stimmen)
+        buildFamilyLegend('legend-items', 'legend-all', 'legend-none', function() {
+            applyFamilyFilter();
+        });
 
-function initColaCy() {
-    // Nodes aus allPersons
-    var nodes = allPersons.map(function(p) {
-        var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
-        var dyear = p.death_date ? p.death_date.substring(0,4) : '';
-        var fn    = p.family_name
-            ? p.family_name.charAt(0) + p.family_name.slice(1).toLowerCase()
-            : '';
-        var gn    = p.given_name || '';
-        var label = gn + '\n' + fn;
-        if (year) label += '\n*' + year + (dyear ? '  †'+dyear : '');
-        return { group: 'nodes', data: {
-            id:       String(p.id),
-            label:    label,
-            sex:      p.sex,
-            raw:      p,
-            famColor: getFamilyColor(p.family_name),
-        }};
+        // 3. Graph aufbauen
+        buildGraph();
+
+        // 4. Toolbar-Handler
+        setupToolbarHandlers(colaCy, {
+            onRefit: function() {
+                applyFamilyFilter();
+                colaCy.layout({
+                    name: 'cose', animate: true, padding: 60,
+                    nodeRepulsion: 480000, idealEdgeLength: 120,
+                    randomize: true, fit: true,
+                }).run();
+            },
+            onReset: function() {
+                applyFamilyFilter();
+            }
+        });
     });
 
-    // Kanten – normiert, keine Doppelungen
-    var edgeSet = new Set(), edges = [];
-    allRels.forEach(function(r) {
-        var t = r.relationship_type;
-        var src = String(r.person_id), tgt = String(r.related_person_id);
-        var key, etype;
-        if (t === 'hasWife' || t === 'hasHusband') {
-            key   = [Math.min(r.person_id,r.related_person_id),
-                     Math.max(r.person_id,r.related_person_id),'m'].join('_');
-            etype = 'married';
-        } else if (t === 'hasExWife' || t === 'hasExHusband') {
-            key   = [Math.min(r.person_id,r.related_person_id),
-                     Math.max(r.person_id,r.related_person_id),'ex'].join('_');
-            etype = 'exmarried';
-        } else if (t === 'hasMother' || t === 'hasFather') {
-            key   = src + '_' + tgt + '_' + t;
-            etype = 'parent';
-        } else { return; }
-        if (edgeSet.has(key)) return;
-        edgeSet.add(key);
-        edges.push({ group: 'edges', data: {
-            id: key, source: src, target: tgt, type: etype,
-        }});
-    });
+    // ══════════════════════════════════════════════════
+    // Graph aufbauen
+    // ══════════════════════════════════════════════════
+    function buildGraph() {
+        var nodes = [];
+        var edges = [];
+        var edgeSet = {};
 
-    colaCy = cytoscape({
-        container: document.getElementById('cola-cy'),
-        elements:  nodes.concat(edges),
-        userZoomingEnabled: true,
-        userPanningEnabled: true,
-        wheelSensitivity: 0.3,
-        style: getCytoscapeStyles().concat([
-            { selector: '.cola-hidden',  style: { opacity: 0.03 } },
-            { selector: '.cola-faded',   style: { opacity: 0.15 } },
-            { selector: '.cola-focused', style: { opacity: 1 } },
-        ]),
-        layout: { name: 'preset' },
-    });
+        // ── Nodes ────────────────────────────────────
+        allPersons.forEach(function(p) {
+            var year  = p.birth_date ? p.birth_date.substring(0, 4) : '';
+            var dyear = p.death_date ? p.death_date.substring(0, 4) : '';
+            var fn = p.family_name || '';
+            var gn = p.given_name || '';
+            var label = gn + '\n' + fn;
+            if (year) label += '\n*' + year + (dyear ? '  †' + dyear : '');
 
-    // Erst cose für gute Startpositionen, dann cola live
-    colaCy.layout({
-        name: 'cose', animate: false, padding: 60,
-        nodeRepulsion: 480000, idealEdgeLength: 120,
-        randomize: true, fit: true,
-    }).run();
+            nodes.push({ group: 'nodes', data: {
+                id:          String(p.id),
+                label:       label,
+                sex:         p.sex,
+                raw:         p,
+                family_name: p.family_name || '',
+                maiden_name: p.maiden_name || '',
+                famColor:    getFamilyColor(p.family_name),
+            }});
+        });
 
-    // ── Geschwister-Kanten berechnen ──────────────────
-    try {
-    var childParents = {};
-    allRels.forEach(function(r) {
-        var cid = String(r.person_id);
-        if (r.relationship_type === 'hasMother') {
-            if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
-            childParents[cid].mothers.push(String(r.related_person_id));
-        }
-        if (r.relationship_type === 'hasFather') {
-            if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
-            childParents[cid].fathers.push(String(r.related_person_id));
-        }
-    });
-    var childIds = Object.keys(childParents);
-    var sibEdges = [];
-    var sibSet = {};
-    for (var ci = 0; ci < childIds.length; ci++) {
-        for (var cj = ci + 1; cj < childIds.length; cj++) {
-            var a = childIds[ci], b = childIds[cj];
-            var pa = childParents[a], pb = childParents[b];
-            var sharedM = pa.mothers.some(function(m) { return pb.mothers.indexOf(m) >= 0; });
-            var sharedF = pa.fathers.some(function(f) { return pb.fathers.indexOf(f) >= 0; });
-            if (sharedM || sharedF) {
-                var key = Math.min(parseInt(a), parseInt(b)) + '_' + Math.max(parseInt(a), parseInt(b)) + '_sib';
-                if (!sibSet[key]) {
-                    sibSet[key] = true;
-                    var sibType = (sharedM && sharedF) ? 'sibling' : 'half-sibling';
-                    sibEdges.push({ group: 'edges', data: { id: key, source: a, target: b, type: sibType } });
+        // ── Edges (Eltern, Ehe) ──────────────────────
+        allRels.forEach(function(r) {
+            var t = r.relationship_type;
+            var src = String(r.person_id);
+            var tgt = String(r.related_person_id);
+            var key, etype;
+
+            if (t === 'hasWife' || t === 'hasHusband') {
+                key = Math.min(r.person_id, r.related_person_id) + '_' + Math.max(r.person_id, r.related_person_id) + '_m';
+                etype = 'married';
+            } else if (t === 'hasExWife' || t === 'hasExHusband') {
+                key = Math.min(r.person_id, r.related_person_id) + '_' + Math.max(r.person_id, r.related_person_id) + '_ex';
+                etype = 'exmarried';
+            } else if (t === 'hasMother' || t === 'hasFather') {
+                key = src + '_' + tgt + '_' + t;
+                etype = 'parent';
+            } else {
+                return;
+            }
+            if (edgeSet[key]) return;
+            edgeSet[key] = true;
+            edges.push({ group: 'edges', data: { id: key, source: src, target: tgt, type: etype } });
+        });
+
+        // ── Geschwister-Kanten ───────────────────────
+        var childParents = {};
+        allRels.forEach(function(r) {
+            var cid = String(r.person_id);
+            if (r.relationship_type === 'hasMother') {
+                if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
+                childParents[cid].mothers.push(String(r.related_person_id));
+            }
+            if (r.relationship_type === 'hasFather') {
+                if (!childParents[cid]) childParents[cid] = { mothers: [], fathers: [] };
+                childParents[cid].fathers.push(String(r.related_person_id));
+            }
+        });
+        var childIds = Object.keys(childParents);
+        for (var ci = 0; ci < childIds.length; ci++) {
+            for (var cj = ci + 1; cj < childIds.length; cj++) {
+                var a = childIds[ci], b = childIds[cj];
+                var pa = childParents[a], pb = childParents[b];
+                var sharedM = pa.mothers.some(function(m) { return pb.mothers.indexOf(m) >= 0; });
+                var sharedF = pa.fathers.some(function(f) { return pb.fathers.indexOf(f) >= 0; });
+                if (sharedM || sharedF) {
+                    var sibKey = Math.min(parseInt(a), parseInt(b)) + '_' + Math.max(parseInt(a), parseInt(b)) + '_sib';
+                    if (!edgeSet[sibKey]) {
+                        edgeSet[sibKey] = true;
+                        edges.push({ group: 'edges', data: {
+                            id: sibKey, source: a, target: b,
+                            type: (sharedM && sharedF) ? 'sibling' : 'half-sibling'
+                        }});
+                    }
                 }
             }
         }
-    }
-    if (sibEdges.length) colaCy.add(sibEdges);
-    } catch(e) { console.error('Geschwister-Berechnung:', e); }
 
-    // ── Checkbox-Handler ──────────────────────────────
-    var colaShowParent = true, colaShowMarried = true, colaShowSiblings = true;
-    try {
-    document.getElementById('cola-show-parent').addEventListener('change', function() {
-        colaShowParent = this.checked;
-        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
-    });
-    document.getElementById('cola-show-married').addEventListener('change', function() {
-        colaShowMarried = this.checked;
-        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
-    });
-    document.getElementById('cola-show-siblings').addEventListener('change', function() {
-        colaShowSiblings = this.checked;
-        updateEdgeVisibility(colaCy, colaShowParent, colaShowMarried, colaShowSiblings);
-    });
-    } catch(e) { console.error('Checkbox-Handler:', e); }
-
-    function startColaLayout() {
-        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
-        colaLayout = colaCy.layout({
-            name: 'cola', animate: true, infinite: true,
-            fit: false, padding: 50, nodeSpacing: 18,
-            edgeLength: 130, avoidOverlap: true,
-            randomize: false, convergenceThreshold: 0.000001,
-            maxSimulationTime: 9999999,
+        // ── Cytoscape erstellen ──────────────────────
+        colaCy = cytoscape({
+            container: document.getElementById('cola-cy'),
+            elements: nodes.concat(edges),
+            wheelSensitivity: 0.3,
+            minZoom: 0.1,
+            maxZoom: 3,
+            style: getCytoscapeStyles(),
+            layout: { name: 'preset' },
         });
-        colaLayout.run();
+
+        // ── Initiales Layout (cose für gute Positionen) ──
+        colaCy.layout({
+            name: 'cose', animate: false, padding: 60,
+            nodeRepulsion: 480000, idealEdgeLength: 120,
+            randomize: true, fit: true,
+        }).run();
+
+        // ── Klick-Handler ────────────────────────────
+        setupClickHandlers();
     }
 
-    function restartColaLayout() {
-        // Kurze Pause damit Klassen-Änderungen durch sind
-        setTimeout(startColaLayout, 80);
-    }
+    // ══════════════════════════════════════════════════
+    // Klick-Handler
+    // ══════════════════════════════════════════════════
+    function setupClickHandlers() {
+        // Klick auf Node
+        colaCy.on('tap', 'node', function(e) {
+            var node = e.target;
+            var raw = node.data('raw') || {};
+            var numId = parseInt(node.id());
+            var person = allPersons.find(function(p) { return p.id === numId; });
+            if (person) showPersonCard(person, 'details-content', 'details-hint');
 
-    setTimeout(startColaLayout, 200);
+            // Highlight
+            colaCy.elements().removeClass('faded ring2');
+            var firstRing = new Set([node.id()]);
+            node.connectedEdges().not('.fam-hidden').forEach(function(edge) {
+                var nb = edge.source().id() === node.id() ? edge.target() : edge.source();
+                if (!nb.hasClass('fam-hidden')) firstRing.add(nb.id());
+            });
+            colaCy.nodes().not('.fam-hidden').forEach(function(n) {
+                if (!firstRing.has(n.id())) n.addClass('faded');
+            });
+            colaCy.edges().not('.fam-hidden').forEach(function(edge) {
+                if (!firstRing.has(edge.source().id()) || !firstRing.has(edge.target().id())) {
+                    edge.addClass('faded');
+                }
+            });
+        });
 
-    // ── Familiennamen-Filter für Cola ────────────────────
-    
-    var colaAllFamilies    = [];
+        // Klick auf Kante
+        colaCy.on('tap', 'edge', function(e) {
+            showEdgeCard(e.target, 'details-content', 'details-hint');
+        });
 
-    // buildColaLegend: ersetzt durch shared.js buildFamilyLegend
-
-    function applyColaFamilyFilter() {
-    if (!colaCy) return;
-    colaCy.elements().removeClass('cola-hidden cola-faded cola-focused');
-    var allActive = activeFamilies.size === allFamilyNames.length;
-    colaCy.nodes().forEach(function(n) {
-        var raw = n.data('raw') || {};
-        var fn = raw.family_name || '';
-        var mn = raw.maiden_name || '';
-        var visible = allActive || activeFamilies.has(fn) || activeFamilies.has(mn);
-        if (visible) n.removeClass('fam-hidden');
-        else n.addClass('fam-hidden');
-    });
-    colaCy.edges().forEach(function(e) {
-        var sHid = e.source().hasClass('fam-hidden');
-        var tHid = e.target().hasClass('fam-hidden');
-        if (sHid || tHid) e.addClass('fam-hidden');
-        else e.removeClass('fam-hidden');
-    });
-}
-
-    
-    
-
-    // buildFamilyLegend: verschoben in initPage callback
-
-    // Knoten-Klick: Highlight + Info
-    colaCy.on('tap', 'node', function(evt) {
-        var node = evt.target, d = node.data(), p = d.raw || {};
-        var year  = p.birth_date ? p.birth_date.substring(0,4) : '';
-        var dyear = p.death_date ? p.death_date.substring(0,4) : '';
-        var relTypeDE = {
-            'hasMother':'hat Mutter','hasFather':'hat Vater',
-            'hasWife':'hat Ehefrau','hasHusband':'hat Ehemann',
-            'hasExWife':'hat Ex-Ehefrau','hasExHusband':'hat Ex-Ehemann',
-        };
-        var personMap = {};
-        allPersons.forEach(function(pr){ personMap[pr.id] = pr; });
-        var myRels = allRels
-            .filter(function(r){ return r.person_id===p.id||r.related_person_id===p.id; })
-            .sort(function(a,b){ return a.id-b.id; });
-        var relIds = myRels.map(function(r){ return r.id; });
-        var relLines = myRels.map(function(r) {
-            var nameA = personMap[r.person_id]
-                ? personMap[r.person_id].display_name : 'ID '+r.person_id;
-            var nameB = personMap[r.related_person_id]
-                ? personMap[r.related_person_id].display_name : 'ID '+r.related_person_id;
-            var verb = relTypeDE[r.relationship_type] || r.relationship_type;
-            return '<div class="ci-row"><span class="ci-val" style="font-size:0.85em;">' +
-                   nameA + ' ' + verb + ' ' + nameB + '</span></div>';
-        }).join('');
-        var f = function(v){ return v||'–'; };
-        showPersonCard(p, 'cola-info-content', 'cola-hint');
-
-        // 1. Ring voll, 2. Ring gedimmt, Rest ausgeblendet
-        // Nur Nodes die der Familienfilter nicht ausgeblendet hat (opacity > 0.04)
-        // Sichtbar = kein fam-hidden (Familienfilter)
-        function colaNotFamHidden(el) { return !el.hasClass('fam-hidden'); }
-
-        // Alle sichtbaren Elemente hidden setzen (für Highlight-Reset)
-        colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
-        colaCy.nodes().not('.fam-hidden').addClass('cola-hidden');
-        colaCy.edges().not('.fam-hidden').forEach(function(e) {
-            if (!e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden')) {
-                e.addClass('cola-hidden');
+        // Klick auf Hintergrund
+        colaCy.on('tap', function(e) {
+            if (e.target === colaCy) {
+                colaCy.elements().removeClass('faded ring2');
+                document.getElementById('details-hint').style.display = '';
+                document.getElementById('details-content').innerHTML = '';
             }
         });
+    }
 
-        // Layout kurz pausieren während Highlight gesetzt wird
-        if (colaLayout) { try { colaLayout.stop(); } catch(e) {} }
+    // ══════════════════════════════════════════════════
+    // Familienfilter
+    // ══════════════════════════════════════════════════
+    function applyFamilyFilter() {
+        if (!colaCy) return;
+        if (!allFamilyNames || allFamilyNames.length === 0) return;
 
-        // Angeklickter Node: immer sichtbar
-        node.removeClass('cola-hidden').addClass('cola-focused');
+        colaCy.elements().removeClass('fam-hidden');
+        if (activeFamilies.size >= allFamilyNames.length) return;
 
-        // 1. Ring: direkte sichtbare Nachbarn
-        var firstEdges = node.connectedEdges().not('.fam-hidden').filter(function(e) {
-            return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
+        colaCy.nodes().forEach(function(n) {
+            var fn = n.data('family_name') || '';
+            var mn = n.data('maiden_name') || '';
+            if (!activeFamilies.has(fn) && !(mn && activeFamilies.has(mn))) {
+                n.addClass('fam-hidden');
+            }
         });
-        var firstN = firstEdges.connectedNodes().not(node).not('.fam-hidden');
-        firstN.removeClass('cola-hidden').addClass('cola-focused');
-        firstEdges.removeClass('cola-hidden').addClass('cola-focused');
-
-        // 2. Ring
-        var secondEdges = firstN.connectedEdges().not(firstEdges).not('.fam-hidden').filter(function(e) {
-            return !e.source().hasClass('fam-hidden') && !e.target().hasClass('fam-hidden');
+        colaCy.edges().forEach(function(e) {
+            if (e.source().hasClass('fam-hidden') || e.target().hasClass('fam-hidden')) {
+                e.addClass('fam-hidden');
+            }
         });
-        var secondN = secondEdges.connectedNodes().not(node).not(firstN).not('.fam-hidden');
-        secondN.removeClass('cola-hidden').addClass('cola-faded');
-        secondEdges.removeClass('cola-hidden').addClass('cola-faded');
-    });
-
-    colaCy.on('tap', 'edge', function(evt) {
-        showEdgeCard(evt.target, 'cola-info-content', 'cola-hint');
-    });
-
-    colaCy.on('tap', function(evt) {
-        if (evt.target === colaCy) {
-            colaCy.elements().not('.fam-hidden').removeClass('cola-hidden cola-faded cola-focused');
-            applyColaFamilyFilter();
-            document.getElementById('cola-hint').style.display = '';
-            document.getElementById('cola-info-content').innerHTML = '';
-            // Physics neu starten falls eingefroren
-            restartColaLayout();
-        }
-    });
-}
-
-/* ── PNG-Export ────────────────────────────────────── */
-document.getElementById('btn-cola-export').addEventListener('click', function() {
-    if (!colaCy) return;
-    var png = colaCy.png({ full: true, scale: 2, bg: '#f8f8f8' });
-    var a = document.createElement('a');
-    a.href = png;
-    a.download = 'netzwerk_' + new Date().toISOString().substring(0, 10) + '.png';
-    a.click();
-});
-
-/* ── Init ─────────────────────────────────────────── */
-window.addEventListener('load', function() {
-    setupLogout();
-    setupViewMenu();
-    initPage(function() {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('cola-body').style.display = 'flex';
-        buildFamilyLegend('cola-fam-list', 'cola-fam-all', 'cola-fam-none', function() { applyColaFamilyFilter(); });
-        initColaCy();
-    });
+    }
 });
 </script>
 </body>
