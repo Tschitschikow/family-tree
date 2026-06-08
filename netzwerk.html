@@ -67,6 +67,18 @@
     <button class="cola-hbtn" id="cola-reset-hl">Auswahl zurücksetzen</button>
     <button class="cola-hbtn" id="cola-refit">🎯 Einpassen</button>
     <button class="cola-hbtn" id="btn-cola-export">💾 PNG</button>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555; margin-left:0.5em;">
+        <input type="checkbox" id="cola-show-parent" checked style="width:auto; margin:0; accent-color:#888;">
+        Eltern-Kind
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
+        <input type="checkbox" id="cola-show-married" checked style="width:auto; margin:0; accent-color:#888;">
+        Verheiratet
+    </label>
+    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
+        <input type="checkbox" id="cola-show-siblings" checked style="width:auto; margin:0; accent-color:#888;">
+        Geschwister
+    </label>
 </div>
 
 <div id="loading">Lade Netzwerk...</div>
@@ -191,43 +203,11 @@ function initColaCy() {
         userZoomingEnabled: true,
         userPanningEnabled: true,
         wheelSensitivity: 0.3,
-        style: [
-            { selector: 'node', style: {
-                label: 'data(label)',
-                'text-valign': 'center', 'text-halign': 'center',
-                'text-wrap': 'wrap', 'text-max-width': '72px',
-                'font-size': '8px', 'font-family': "'Helvetica Neue',Arial,sans-serif",
-                color: '#223',
-                'background-color': '#ffffff',
-                'border-width': '2.5px', 'border-color': 'data(famColor)',
-                width: '80px', height: '44px',
-            }},
-            { selector: 'node[sex="m"]', style: { shape: 'round-rectangle',  }},
-            { selector: 'node[sex="f"]', style: { shape: 'ellipse' }},
-            { selector: 'node:selected', style: {
-                'border-width': '4px', 'border-color': '#334466',
-                'background-color': '#eef2ff',
-            }},
-            { selector: 'edge', style: {
-                'curve-style': 'bezier', 'target-arrow-shape': 'none',
-                width: 1, 'line-color': '#ccc', opacity: 0.8,
-            }},
-            { selector: 'edge[type="parent"]', style: {
-                'line-color': '#888', width: 1.2, 'line-style': 'solid',
-                'target-arrow-shape': 'triangle', 'target-arrow-color': '#888',
-            }},
-            { selector: 'edge[type="married"]', style: {
-                'line-color': '#334', width: 2.5, 'line-style': 'solid',
-            }},
-            { selector: 'edge[type="exmarried"]', style: {
-                'line-color': '#aaa', width: 1.2,
-                'line-style': 'dashed', 'line-dash-pattern': [5, 4],
-            }},
-            { selector: '.fam-hidden',   style: { opacity: 0.03 } },
+        style: getCytoscapeStyles().concat([
             { selector: '.cola-hidden',  style: { opacity: 0.03 } },
             { selector: '.cola-faded',   style: { opacity: 0.15 } },
             { selector: '.cola-focused', style: { opacity: 1 } },
-        ],
+        ]),
         layout: { name: 'preset' },
     });
 
