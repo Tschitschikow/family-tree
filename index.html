@@ -140,23 +140,7 @@
 </header>
 
 <!-- ── Toolbar ──────────────────────────────────────── -->
-<div id="toolbar">
-    <span style="font-size:0.9em; color:#5a3e2b; font-weight:bold;">Generationenansicht</span>
-    <button class="tool-btn" id="btn-refit">Neu anordnen</button>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
-        <input type="checkbox" id="show-parent" checked style="width:auto; margin:0; accent-color:#888;">
-        Eltern-Kind
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
-        <input type="checkbox" id="show-married" checked style="width:auto; margin:0; accent-color:#888;">
-        Verheiratet
-    </label>
-    <label style="font-size:0.82em; display:flex; align-items:center; gap:4px; cursor:pointer; color:#555;">
-        <input type="checkbox" id="show-siblings" checked style="width:auto; margin:0; accent-color:#888;">
-        Geschwister
-    </label>
-    <span id="person-count" style="margin-left:auto; font-size:0.8em; color:#999;"></span>
-</div>
+<div id="toolbar"></div>
 
 <!-- ── Ladebalken ──────────────────────────────────── -->
 <div id="status">Lade Stammbaum...</div>
@@ -226,8 +210,20 @@ window.addEventListener('load', function() {
         // Schritt 4: Graph aufbauen
         buildGraph();
 
-        // Schritt 5: Personenzähler
-        updateCount();
+        // Schritt 5: Toolbar aufbauen
+        buildToolbar('toolbar');
+        setupToolbarHandlers(cy, {
+            onRefit: function() {
+                applyTimelineLayout();
+                applyFamilyFilter();
+                cy.fit(60);
+                setTimeout(drawTimeline, 100);
+            },
+            onReset: function() {
+                applyFamilyFilter();
+                drawTimeline();
+            }
+        });
     });
 
     // ══════════════════════════════════════════════════
@@ -653,41 +649,19 @@ window.addEventListener('load', function() {
     // ══════════════════════════════════════════════════
     // Kanten-Sichtbarkeit (Checkboxen)
     // ══════════════════════════════════════════════════
-    function localUpdateEdgeVisibility() {
-        updateEdgeVisibility(cy, showParent, showMarried, showSiblingsEdges);
-    }
+
 
     // ══════════════════════════════════════════════════
     // Personenzähler
     // ══════════════════════════════════════════════════
-    function updateCount() {
-        document.getElementById('person-count').textContent = allPersons.length + ' Personen';
-    }
+
 
     // ══════════════════════════════════════════════════
     // Button-Handler
     // ══════════════════════════════════════════════════
-    document.getElementById('btn-refit').addEventListener('click', function() {
-        if (!cy) return;
-        cy.elements().removeClass('faded ring2');
-        applyTimelineLayout();
-        applyFamilyFilter();
-        cy.fit(60);
-        setTimeout(drawTimeline, 100);
-    });
+    // btn-refit: via setupToolbarHandlers in shared.js
 
-    document.getElementById('show-parent').addEventListener('change', function() {
-        showParent = this.checked;
-        localUpdateEdgeVisibility();
-    });
-    document.getElementById('show-married').addEventListener('change', function() {
-        showMarried = this.checked;
-        localUpdateEdgeVisibility();
-    });
-    document.getElementById('show-siblings').addEventListener('change', function() {
-        showSiblingsEdges = this.checked;
-        localUpdateEdgeVisibility();
-    });
+    // Checkbox-Handler: via setupToolbarHandlers in shared.js
 });
 </script>
 </body>
