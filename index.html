@@ -140,7 +140,23 @@
 </header>
 
 <!-- ── Toolbar ──────────────────────────────────────── -->
-<div id="toolbar"></div>
+<div id="toolbar" style="background:#fff;border-bottom:1px solid #e0e0e0;padding:0.4em 1.2em;display:flex;align-items:center;gap:0.8em;flex-shrink:0;flex-wrap:wrap;font-size:0.85em;">
+    <input type="text" id="toolbar-search" placeholder="Name suchen…" autocomplete="off" style="padding:0.3em 0.6em;border:1px solid #ccd;border-radius:5px;font-size:0.9em;font-family:inherit;width:140px;color:#334;">
+    <button id="btn-reset" style="padding:0.3em 0.8em;background:#fff;border:1px solid #ccd;border-radius:5px;cursor:pointer;font-size:0.82em;font-family:inherit;color:#445;">Auswahl zurücksetzen</button>
+    <button id="btn-refit" style="padding:0.3em 0.8em;background:#fff;border:1px solid #ccd;border-radius:5px;cursor:pointer;font-size:0.82em;font-family:inherit;color:#445;">Baum neu anordnen</button>
+    <button id="btn-fit" style="padding:0.3em 0.8em;background:#fff;border:1px solid #ccd;border-radius:5px;cursor:pointer;font-size:0.82em;font-family:inherit;color:#445;">🎯 Einpassen</button>
+    <button id="btn-png" style="padding:0.3em 0.8em;background:#fff;border:1px solid #ccd;border-radius:5px;cursor:pointer;font-size:0.82em;font-family:inherit;color:#445;">💾 Druckansicht</button>
+    <label style="font-size:0.82em;display:flex;align-items:center;gap:4px;cursor:pointer;color:#555;">
+        <input type="checkbox" id="cb-parent" checked style="width:auto;margin:0;accent-color:#888;"> Eltern-Kind
+    </label>
+    <label style="font-size:0.82em;display:flex;align-items:center;gap:4px;cursor:pointer;color:#555;">
+        <input type="checkbox" id="cb-married" checked style="width:auto;margin:0;accent-color:#888;"> Verheiratet
+    </label>
+    <label style="font-size:0.82em;display:flex;align-items:center;gap:4px;cursor:pointer;color:#555;">
+        <input type="checkbox" id="cb-siblings" checked style="width:auto;margin:0;accent-color:#888;"> Geschwister
+    </label>
+    <span id="person-count" style="margin-left:auto;font-size:0.8em;color:#999;"></span>
+</div>
 
 <!-- ── Ladebalken ──────────────────────────────────── -->
 <div id="status">Lade Stammbaum...</div>
@@ -176,7 +192,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
 <script src="config.js?v=1780938873"></script>
-<script src="shared.js?v=1780938873"></script>
+<script src="shared.js?v=1780993365"></script>
 <script>
 /* ══════════════════════════════════════════════════════
    Zeitleiste – komplett neu aufgebaut
@@ -207,11 +223,14 @@ window.addEventListener('load', function() {
             applyFamilyFilter();
         });
 
-        // Schritt 4: Graph aufbauen
-        buildGraph();
+        // Schritt 4: Toolbar aufbauen (VOR Graph, damit immer sichtbar)
 
-        // Schritt 5: Toolbar aufbauen + Handler
-        buildToolbar('toolbar');
+        // Schritt 5: Graph aufbauen
+        try {
+            buildGraph();
+        } catch(e) {
+            console.error('buildGraph Fehler:', e);
+        }
 
         // Handler direkt setzen (cy ist jetzt garantiert gesetzt)
         var showParent = true, showMarried = true, showSiblings = true;
