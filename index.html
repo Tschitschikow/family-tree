@@ -196,6 +196,7 @@ window.addEventListener('load', function() {
     // ── Schritt 1: Menü sofort aktiv ─────────────────
     setupLogout();
     setupViewMenu();
+    buildToolbar('toolbar');
 
     // ── Schritt 2: Daten laden ───────────────────────
     initPage(function() {
@@ -210,7 +211,7 @@ window.addEventListener('load', function() {
         // Schritt 4: Graph aufbauen
         buildGraph();
 
-        // Schritt 5: Toolbar aufbauen
+        // Schritt 5: Toolbar aufbauen + Handler
         buildToolbar('toolbar');
         setupToolbarHandlers(cy, {
             onRefit: function() {
