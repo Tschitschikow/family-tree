@@ -486,69 +486,59 @@ function buildToolbar(containerId) {
      onReset:  function()  – optional, Standard: remove all classes
    }
 */
-function setupToolbarHandlers(cy, callbacks) {
-    if (!cy) return;
+function setupToolbarHandlers(getCy, callbacks) {
     var cb = callbacks || {};
 
-    // Checkboxen
+    // getCy ist eine Funktion die die aktuelle Cytoscape-Instanz liefert
+    // So funktioniert es auch wenn cy erst nach dem Setup gesetzt wird
     var showParent = true, showMarried = true, showSiblings = true;
+
     document.getElementById('cb-parent').addEventListener('change', function() {
         showParent = this.checked;
-        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+        var cy = getCy(); if (cy) updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
     });
     document.getElementById('cb-married').addEventListener('change', function() {
         showMarried = this.checked;
-        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+        var cy = getCy(); if (cy) updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
     });
     document.getElementById('cb-siblings').addEventListener('change', function() {
         showSiblings = this.checked;
-        updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
+        var cy = getCy(); if (cy) updateEdgeVisibility(cy, showParent, showMarried, showSiblings);
     });
-
-    // Einpassen
     document.getElementById('btn-fit').addEventListener('click', function() {
-        cy.fit(60);
+        var cy = getCy(); if (cy) cy.fit(60);
     });
-
-    // PNG Export
     document.getElementById('btn-png').addEventListener('click', function() {
+        var cy = getCy(); if (!cy) return;
         var png = cy.png({ scale: 2, bg: '#ffffff', full: true });
         var a = document.createElement('a');
-        a.href = png;
-        a.download = 'stammbaum.png';
-        a.click();
+        a.href = png; a.download = 'stammbaum.png'; a.click();
     });
-
-    // Auswahl zurücksetzen
     document.getElementById('btn-reset').addEventListener('click', function() {
-        cy.elements().removeClass('faded ring2 fam-hidden cola-hidden cola-faded cola-focused');
+        var cy = getCy(); if (!cy) return;
+        cy.elements().removeClass('faded ring2 fam-hidden');
         document.getElementById('toolbar-search').value = '';
-        if (typeof applyFamilyFilter === 'function') applyFamilyFilter();
         if (cb.onReset) cb.onReset();
-        // Details zurücksetzen
-        var hint = document.getElementById('details-hint') || document.getElementById('cola-hint');
-        var content = document.getElementById('details-content') || document.getElementById('cola-info-content');
+        var hint = document.getElementById('details-hint');
+        var content = document.getElementById('details-content');
         if (hint) hint.style.display = '';
         if (content) content.innerHTML = '';
     });
-
-    // Neu anordnen (seiten-spezifisch)
     document.getElementById('btn-refit').addEventListener('click', function() {
-        cy.elements().removeClass('faded ring2 cola-hidden cola-faded cola-focused');
+        var cy = getCy(); if (!cy) return;
+        cy.elements().removeClass('faded ring2');
         document.getElementById('toolbar-search').value = '';
         if (cb.onRefit) cb.onRefit();
     });
-
-    // Namenssuche
     document.getElementById('toolbar-search').addEventListener('input', function() {
+        var cy = getCy(); if (!cy) return;
         var q = this.value.trim().toLowerCase();
-        cy.elements().removeClass('faded ring2 cola-faded cola-focused');
+        cy.elements().removeClass('faded ring2');
         if (!q) return;
         cy.elements().addClass('faded');
         cy.nodes().forEach(function(n) {
-            var raw = n.data('raw') || {};
             var label = (n.data('label') || '').toLowerCase();
-            var display = (raw.display_name || '').toLowerCase();
+            var display = ((n.data('raw') || {}).display_name || '').toLowerCase();
             if (label.indexOf(q) >= 0 || display.indexOf(q) >= 0) {
                 n.removeClass('faded');
                 n.connectedEdges().removeClass('faded');
@@ -556,7 +546,5 @@ function setupToolbarHandlers(cy, callbacks) {
             }
         });
     });
-
-    // Personenzähler
     document.getElementById('person-count').textContent = allPersons.length + ' Personen';
 }
